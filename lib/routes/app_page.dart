@@ -69,9 +69,13 @@ class AppPage {
   static const topDevelopersName = 'topDevelopers';
   static const developerDetailName = 'developerDetail';
 
+  static const devRegisterStep1Name = 'devRegisterStep1';
+  static const devRegisterStep2Name = 'devRegisterStep2';
+  static const devRegisterStep3Name = 'devRegisterStep3';
+
   // Map
 
-  static const searchOnMapName = 'searchOnMap';
+  static const searchOnMapName = 'search-map';
 
   // commercial
 
@@ -157,6 +161,10 @@ class AppPage {
 
   static const topDevelopers = '/developers';
   static const developerDetail = '/developers/detail';
+
+  static const devRegisterStep1 = '/devRegisterStep1';
+  static const devRegisterStep2 = '/devRegisterStep2';
+  static const devRegisterStep3 = '/devRegisterStep3';
 
   // map
 

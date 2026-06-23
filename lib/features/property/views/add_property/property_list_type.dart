@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/developer/providers/register_provider.dart';
 import 'package:gharmb_app/features/property/providers/property_add_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
@@ -17,7 +18,6 @@ class PropertyListType extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.white,
-
       body: SafeArea(
         child: SingleChildScrollView(
           child: ConstrainedBox(
@@ -128,16 +128,14 @@ class PropertyListType extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
                   // ── CTA button ───────────────────────────────────────────
                   AppButton(
                     title: "Continue as ${_roleLabel(state.role)}",
-                    onTap: () {
-                      context.pushNamed(AppPage.basicDetailsName);
-                    },
+                    onTap: () => _handleNavigation(context, state.role),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
@@ -145,6 +143,32 @@ class PropertyListType extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  // ── Navigation logic ──────────────────────────────────────────────────────
+  void _handleNavigation(BuildContext context, ListingRole role) {
+    switch (role) {
+      case ListingRole.owner:
+        // Owner → direct to property listing flow
+        context.pushNamed(AppPage.basicDetailsName);
+        break;
+
+      case ListingRole.agentBroker:
+        context.pushNamed(
+          AppPage.devRegisterStep1Name,
+          extra: RegistrationType.agent,
+        );
+
+        break;
+
+      case ListingRole.developerBuilder:
+        context.pushNamed(
+          AppPage.devRegisterStep1Name,
+          extra: RegistrationType.developer,
+        );
+
+        break;
+    }
   }
 
   String _roleLabel(ListingRole r) => switch (r) {

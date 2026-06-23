@@ -11,7 +11,7 @@ enum ListingRole { owner, agentBroker, developerBuilder }
 
 enum ListingFor { sale, rent, lease, pg }
 
-enum PropertyTypeList { apartment, villa, house, studio, commercial, plot }
+enum PropertyTypeList { apartment, villa, house, studio, plot }
 
 enum AgeOfProperty { zeroToThree, threeToSeven, sevenToFifteen, fifteenPlus }
 
@@ -282,7 +282,6 @@ extension PropertyTypeLabel on PropertyTypeList {
     PropertyTypeList.villa => 'Villa',
     PropertyTypeList.house => 'House',
     PropertyTypeList.studio => 'Studio',
-    PropertyTypeList.commercial => 'Commercial',
     PropertyTypeList.plot => 'Plot',
   };
 }

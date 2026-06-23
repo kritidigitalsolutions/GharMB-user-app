@@ -10,10 +10,14 @@ import 'package:gharmb_app/features/auth/views/stay_update_page.dart';
 import 'package:gharmb_app/features/commercial/views/commercial_lists_page.dart';
 import 'package:gharmb_app/features/commercial/views/commercial_property_details_page.dart';
 import 'package:gharmb_app/features/commercial/views/commercial_space_page.dart';
-import 'package:gharmb_app/features/home/views/developer_details_page.dart';
+import 'package:gharmb_app/features/developer/providers/register_provider.dart';
+import 'package:gharmb_app/features/developer/views/developer_details_page.dart';
+import 'package:gharmb_app/features/developer/views/developer_register1_page.dart';
+import 'package:gharmb_app/features/developer/views/registeration_step2_page.dart';
+import 'package:gharmb_app/features/developer/views/registeraton_step3_page.dart';
 import 'package:gharmb_app/features/home/views/notification_page.dart';
 import 'package:gharmb_app/features/home/views/search_on_map.dart';
-import 'package:gharmb_app/features/home/views/top_developers_Page.dart';
+import 'package:gharmb_app/features/developer/views/top_developers_Page.dart';
 import 'package:gharmb_app/features/profile/views/dashboard_screen.dart';
 import 'package:gharmb_app/features/profile/views/invite_friends_page.dart';
 import 'package:gharmb_app/features/profile/views/loan_calculator_Page.dart';
@@ -49,10 +53,11 @@ import 'app_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: AppPage.splash,
-
+    initialLocation: AppPage.myHome,
     routes: [
-      // ================= SPLASH =================
+      // =====================================================
+      // 🔵 SPLASH & AUTH FLOW
+      // =====================================================
       GoRoute(
         name: AppPage.splashName,
         path: AppPage.splash,
@@ -65,95 +70,87 @@ class AppRouter {
         builder: (context, state) => const AuthScreen(),
       ),
 
-      // ================= LOGIN =================
       GoRoute(
         name: AppPage.loginName,
         path: AppPage.login,
         builder: (context, state) => const LoginScreen(),
       ),
 
-      // ================= BASIC INFO =================
       GoRoute(
         name: AppPage.basicInfoName,
         path: AppPage.basicInfo,
         builder: (context, state) => const BasicInfoScreen(),
       ),
 
-      // ================= OTP =================
       GoRoute(
         name: AppPage.otpName,
         path: AppPage.otp,
         builder: (context, state) => const OtpVerificationScreen(),
       ),
 
-      // ================= ROLE SELECTION =================
       GoRoute(
         name: AppPage.roleSelectionName,
         path: AppPage.roleSelection,
         builder: (context, state) => const RoleSelectionScreen(),
       ),
 
-      // ================= Onboarding final =================
       GoRoute(
         name: AppPage.onboardingFinalName,
         path: AppPage.onboardingFinal,
         builder: (context, state) => const OnboardingGoalPage(),
       ),
 
-      // ================= Preferences page =================
       GoRoute(
         name: AppPage.preferenceName,
         path: AppPage.preference,
         builder: (context, state) => const PreferencesPage(),
       ),
 
-      // ================= All Set =================
       GoRoute(
         name: AppPage.allSetName,
         path: AppPage.allSet,
         builder: (context, state) => const AllSetPage(),
       ),
 
-      // ================= Stay Update =================
       GoRoute(
         name: AppPage.stayUpdateName,
         path: AppPage.stayUpdate,
         builder: (context, state) => const StayUpdatedPage(),
       ),
 
-      // ================= My Home screen =================
+      // =====================================================
+      // 🏠 HOME / MAIN APP
+      // =====================================================
       GoRoute(
         name: AppPage.myHomeName,
         path: AppPage.myHome,
         builder: (context, state) {
           final index = state.extra as int?;
-
           return MyHomePage(initialIndex: index);
         },
       ),
 
-      // ================= Property listing =================
+      // =====================================================
+      // 🏘 PROPERTY MODULE
+      // =====================================================
       GoRoute(
         name: AppPage.propertyListName,
         path: AppPage.propertyList,
         builder: (context, state) => VerifiedListingsPage(),
       ),
 
-      // ================= Property Details =================
       GoRoute(
         name: AppPage.propertyDetailsName,
         path: AppPage.propertyDetails,
         builder: (context, state) => PropertyDetailPage(),
       ),
 
-      // ================= book by token page =================
       GoRoute(
         name: AppPage.bookByTokenName,
         path: AppPage.bookByToken,
         builder: (context, state) => BookWithTokenPage(),
       ),
 
-      // ================= Property Reserved page =================
       GoRoute(
         name: AppPage.propertyReservedName,
         path: AppPage.propertyReserved,
@@ -202,11 +199,31 @@ class AppRouter {
         builder: (_, _) => const PropertySubmittedPage(),
       ),
 
-      // ============ dashboard ========================
+      // =====================================================
+      // 👤 PROFILE MODULE
+      // =====================================================
       GoRoute(
         name: AppPage.dashboardName,
         path: AppPage.dashboard,
         builder: (_, _) => const DashboardPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.myPropertyName,
+        path: AppPage.myProperty,
+        builder: (_, _) => const MyPropertyPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.profileEditName,
+        path: AppPage.profileEdit,
+        builder: (_, _) => const ProfileEditPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.inviteFriendsName,
+        path: AppPage.inviteFriends,
+        builder: (_, _) => const InviteFriendsPage(),
       ),
 
       GoRoute(
@@ -215,7 +232,9 @@ class AppRouter {
         builder: (_, _) => const MyPropertyDetailsPage(),
       ),
 
-      // ============ token ========================
+      // =====================================================
+      // 🪙 TOKEN MODULE
+      // =====================================================
       GoRoute(
         name: AppPage.tokenRequestedName,
         path: AppPage.tokenRequested,
@@ -234,91 +253,99 @@ class AppRouter {
         builder: (_, _) => const DecisionPage(),
       ),
 
-      // ============ project details ========================
+      // =====================================================
+      // 🏗 PROJECT & DEVELOPERS
+      // =====================================================
       GoRoute(
         name: AppPage.projectDetailName,
         path: AppPage.projectDetail,
         builder: (_, _) => const ProjectDetailPage(),
       ),
 
-      // ============ Unit converter ========================
-      GoRoute(
-        name: AppPage.unitConverterName,
-        path: AppPage.unitConverter,
-        builder: (_, _) => const UnitConverterPage(),
-      ),
-
-      // ============ loan calculater ========================
-      GoRoute(
-        name: AppPage.loanCalculatorName,
-        path: AppPage.loanCalculator,
-        builder: (_, _) => const LoanCalculatorPage(),
-      ),
-
-      // ============ News list page ========================
-      GoRoute(
-        name: AppPage.newsListName,
-        path: AppPage.newsList,
-        builder: (_, _) => const RealEstateNewsPage(),
-      ),
-
-      // ============ News details Page ========================
-      GoRoute(
-        name: AppPage.newsDetailsName,
-        path: AppPage.newsDetails,
-        builder: (_, _) => const NewsDetailPage(),
-      ),
-
-      // ============ Unit converter ========================
-      GoRoute(
-        name: AppPage.homeLoanName,
-        path: AppPage.homeLoan,
-        builder: (_, _) => const HomeLoanPage(),
-      ),
-
-      // ============ loan calculater ========================
-      GoRoute(
-        name: AppPage.interiorDesignName,
-        path: AppPage.interiorDesign,
-        builder: (_, _) => const InteriorDesignPage(),
-      ),
-
-      // ============ News list page ========================
-      GoRoute(
-        name: AppPage.legalAdviseName,
-        path: AppPage.legalAdvise,
-        builder: (_, _) => const LegalServicesPage(),
-      ),
-
-      // ============ News details Page ========================
-      GoRoute(
-        name: AppPage.packersMoverName,
-        path: AppPage.packersMover,
-        builder: (_, _) => const PackersMoversPage(),
-      ),
-
-      // ============ News details Page ========================
       GoRoute(
         name: AppPage.topDevelopersName,
         path: AppPage.topDevelopers,
         builder: (_, _) => const TopDevelopersPage(),
       ),
 
-      // ============ News details Page ========================
       GoRoute(
         name: AppPage.developerDetailName,
         path: AppPage.developerDetail,
         builder: (_, _) => const DeveloperDetailPage(),
       ),
 
-      // ============ Map Page ========================
       GoRoute(
-        name: AppPage.searchOnMapName,
-        path: AppPage.searchOnMap,
-        builder: (_, _) => const SearchOnMapPage(),
+        name: AppPage.devRegisterStep1Name,
+        path: AppPage.devRegisterStep1,
+        builder: (context, state) {
+          final type = state.extra as RegistrationType;
+          return RegistrationStep1Page(type: type);
+        },
       ),
 
-      // =================== commercial property ========================
+      GoRoute(
+        name: AppPage.devRegisterStep2Name,
+        path: AppPage.devRegisterStep2,
+        builder: (context, state) {
+          final type = state.extra as RegistrationType;
+          return RegistrationStep2Page(type: type);
+        },
+      ),
+
+      GoRoute(
+        name: AppPage.devRegisterStep3Name,
+        path: AppPage.devRegisterStep3,
+        builder: (context, state) {
+          final type = state.extra as RegistrationType;
+          return RegistrationStep3Page(type: type);
+        },
+      ),
+
+      // =====================================================
+      // 📰 NEWS MODULE
+      // =====================================================
+      GoRoute(
+        name: AppPage.newsListName,
+        path: AppPage.newsList,
+        builder: (_, _) => const RealEstateNewsPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.newsDetailsName,
+        path: AppPage.newsDetails,
+        builder: (_, _) => const NewsDetailPage(),
+      ),
+
+      // =====================================================
+      // ⚡ QUICK ACCESS MODULE
+      // =====================================================
+      GoRoute(
+        name: AppPage.homeLoanName,
+        path: AppPage.homeLoan,
+        builder: (_, _) => const HomeLoanPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.interiorDesignName,
+        path: AppPage.interiorDesign,
+        builder: (_, _) => const InteriorDesignPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.legalAdviseName,
+        path: AppPage.legalAdvise,
+        builder: (_, _) => const LegalServicesPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.packersMoverName,
+        path: AppPage.packersMover,
+        builder: (_, _) => const PackersMoversPage(),
+      ),
+
+      // =====================================================
+      // 🏢 COMMERCIAL MODULE
+      // =====================================================
       GoRoute(
         name: AppPage.commercialSpacesName,
         path: AppPage.commercialSpacesPath,
@@ -337,32 +364,34 @@ class AppRouter {
         builder: (context, state) => const CommercialPropertyDetailsPage(),
       ),
 
-      // =================== Profile Edit ========================
+      // =====================================================
+      // 🧭 UTILITIES
+      // =====================================================
       GoRoute(
-        name: AppPage.profileEditName,
-        path: AppPage.profileEdit,
-        builder: (context, state) => const ProfileEditPage(),
+        name: AppPage.unitConverterName,
+        path: AppPage.unitConverter,
+        builder: (_, _) => const UnitConverterPage(),
       ),
 
-      // =================== My Property ========================
       GoRoute(
-        name: AppPage.myPropertyName,
-        path: AppPage.myProperty,
-        builder: (context, state) => const MyPropertyPage(),
+        name: AppPage.loanCalculatorName,
+        path: AppPage.loanCalculator,
+        builder: (_, _) => const LoanCalculatorPage(),
       ),
 
-      // =================== Invite friends ========================
       GoRoute(
-        name: AppPage.inviteFriendsName,
-        path: AppPage.inviteFriends,
-        builder: (context, state) => const InviteFriendsPage(),
+        name: AppPage.searchOnMapName,
+        path: AppPage.searchOnMap,
+        builder: (_, _) => const SearchOnMapPage(),
       ),
 
-      // =================== notification ========================
+      // =====================================================
+      // 🔔 NOTIFICATIONS
+      // =====================================================
       GoRoute(
         name: AppPage.notificationName,
         path: AppPage.notification,
-        builder: (context, state) => const NotificationsPage(),
+        builder: (_, _) => const NotificationsPage(),
       ),
     ],
   );

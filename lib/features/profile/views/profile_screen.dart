@@ -37,11 +37,11 @@ const List<_ToolItem> _tools = [
     bgColor: Color(0xFFE8F5FF),
   ),
   _ToolItem(
-    title: 'My Properties',
-    subtitle: 'Manage your properties',
-    icon: Icons.home_outlined,
-    iconColor: Color(0xFFF35402),
-    bgColor: Color(0xFFFFF3EE),
+    title: 'My Project',
+    subtitle: 'Manage developer projects',
+    icon: Icons.apartment_outlined,
+    iconColor: Color(0xFF6C63FF),
+    bgColor: Color(0xFFF0EEFF),
   ),
   _ToolItem(
     title: 'News & Insights',
@@ -353,8 +353,8 @@ void _handleToolTap(BuildContext context, String title) {
     case 'Dashboard':
       context.pushNamed(AppPage.dashboardName);
       break;
-    case 'My Properties':
-      context.pushNamed(AppPage.myPropertyName);
+    case 'My Project':
+      context.pushNamed(AppPage.myProjectName);
       break;
     case 'Invite Friends':
       context.pushNamed(AppPage.inviteFriendsName);

@@ -38,7 +38,7 @@ class AppPage {
   static const unitConverterName = 'unitConverter';
 
   static const profileEditName = "profileEdit";
-  static const myPropertyName = "myProperty";
+  static const myProjectName = "myProject";
   static const inviteFriendsName = "inviteFriends";
 
   // token
@@ -72,6 +72,11 @@ class AppPage {
   static const devRegisterStep1Name = 'devRegisterStep1';
   static const devRegisterStep2Name = 'devRegisterStep2';
   static const devRegisterStep3Name = 'devRegisterStep3';
+  static const devProjectBasicInfoName = 'devProjectBasicInfo';
+  static const devProjectUnitConfigName = 'devProjectUnitConfig';
+  static const devProjectAmenitiesName = 'devProjectAmenities';
+  static const devProjectPhotosName = 'devProjectPhotos';
+  static const devProjectReviewName = 'devProjectReview';
 
   // Map
 
@@ -131,7 +136,7 @@ class AppPage {
   static const unitConverter = '/unitConverter';
 
   static const profileEdit = "/profileEdit";
-  static const myProperty = "/myProperty";
+  static const myProject = "/myProject";
   static const inviteFriends = "/inviteFriends";
 
   // token
@@ -165,6 +170,11 @@ class AppPage {
   static const devRegisterStep1 = '/devRegisterStep1';
   static const devRegisterStep2 = '/devRegisterStep2';
   static const devRegisterStep3 = '/devRegisterStep3';
+  static const devProjectBasicInfo = '/devProjectBasicInfo';
+  static const devProjectUnitConfig = '/devProjectUnitConfig';
+  static const devProjectAmenities = '/developer/project/amenities';
+  static const devProjectPhotos = '/developer/project/photos';
+  static const devProjectReview = '/developer/project/review';
 
   // map
 

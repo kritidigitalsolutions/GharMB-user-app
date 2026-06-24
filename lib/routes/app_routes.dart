@@ -11,8 +11,13 @@ import 'package:gharmb_app/features/commercial/views/commercial_lists_page.dart'
 import 'package:gharmb_app/features/commercial/views/commercial_property_details_page.dart';
 import 'package:gharmb_app/features/commercial/views/commercial_space_page.dart';
 import 'package:gharmb_app/features/developer/providers/register_provider.dart';
+import 'package:gharmb_app/features/developer/views/add-project/dev_p2_basic_infor_page.dart';
+import 'package:gharmb_app/features/developer/views/add-project/dev_p2_unit_config_page.dart';
 import 'package:gharmb_app/features/developer/views/developer_details_page.dart';
 import 'package:gharmb_app/features/developer/views/developer_register1_page.dart';
+import 'package:gharmb_app/features/developer/views/add-project/dev_p3_amenities_highlights_page.dart';
+import 'package:gharmb_app/features/developer/views/add-project/dev_p4_photos_plans_page.dart';
+import 'package:gharmb_app/features/developer/views/add-project/dev_p5_review_submit_page.dart';
 import 'package:gharmb_app/features/developer/views/registeration_step2_page.dart';
 import 'package:gharmb_app/features/developer/views/registeraton_step3_page.dart';
 import 'package:gharmb_app/features/home/views/notification_page.dart';
@@ -21,8 +26,8 @@ import 'package:gharmb_app/features/developer/views/top_developers_Page.dart';
 import 'package:gharmb_app/features/profile/views/dashboard_screen.dart';
 import 'package:gharmb_app/features/profile/views/invite_friends_page.dart';
 import 'package:gharmb_app/features/profile/views/loan_calculator_Page.dart';
-import 'package:gharmb_app/features/profile/views/my_property_page.dart';
 import 'package:gharmb_app/features/profile/views/my_property_view_Page.dart';
+import 'package:gharmb_app/features/profile/views/my_project_page.dart';
 import 'package:gharmb_app/features/profile/views/profile_edit_page.dart';
 import 'package:gharmb_app/features/profile/views/token/decision_page.dart';
 import 'package:gharmb_app/features/profile/views/token/token_details.dart';
@@ -53,7 +58,7 @@ import 'app_page.dart';
 
 class AppRouter {
   static final GoRouter router = GoRouter(
-    initialLocation: AppPage.myHome,
+    initialLocation: AppPage.splash,
     routes: [
       // =====================================================
       // 🔵 SPLASH & AUTH FLOW
@@ -209,9 +214,9 @@ class AppRouter {
       ),
 
       GoRoute(
-        name: AppPage.myPropertyName,
-        path: AppPage.myProperty,
-        builder: (_, _) => const MyPropertyPage(),
+        name: AppPage.myProjectName,
+        path: AppPage.myProject,
+        builder: (_, _) => const MyProjectPage(),
       ),
 
       GoRoute(
@@ -299,6 +304,36 @@ class AppRouter {
           final type = state.extra as RegistrationType;
           return RegistrationStep3Page(type: type);
         },
+      ),
+
+      GoRoute(
+        name: AppPage.devProjectBasicInfoName,
+        path: AppPage.devProjectBasicInfo,
+        builder: (_, _) => const ProjectBasicInfoPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.devProjectUnitConfigName,
+        path: AppPage.devProjectUnitConfig,
+        builder: (_, _) => const ProjectUnitConfigPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.devProjectAmenitiesName,
+        path: AppPage.devProjectAmenities,
+        builder: (_, _) => const DevProjectAmenitiesHighlightsPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.devProjectPhotosName,
+        path: AppPage.devProjectPhotos,
+        builder: (_, _) => const DevProjectPhotosPlansPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.devProjectReviewName,
+        path: AppPage.devProjectReview,
+        builder: (_, _) => const DevProjectReviewSubmitPage(),
       ),
 
       // =====================================================

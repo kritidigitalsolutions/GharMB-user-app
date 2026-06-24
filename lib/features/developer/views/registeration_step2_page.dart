@@ -26,11 +26,11 @@ class RegistrationStep2Page extends ConsumerWidget {
         : ref.read(agentStep2Provider.notifier);
     final pickedFiles = ref.watch(pickedFilesProvider);
 
-    final canSubmit = step2State.documents
-        .asMap()
-        .entries
-        .where((e) => e.value.isRequired)
-        .every((e) => pickedFiles.containsKey(e.key));
+    // final canSubmit = step2State.documents
+    //     .asMap()
+    //     .entries
+    //     .where((e) => e.value.isRequired)
+    //     .every((e) => pickedFiles.containsKey(e.key));
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -221,12 +221,10 @@ class RegistrationStep2Page extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               child: AppButton(
                 title: "Next",
-                onTap: canSubmit
-                    ? () => context.pushNamed(
-                        AppPage.devRegisterStep3Name,
-                        extra: type,
-                      )
-                    : null,
+                onTap: () => context.pushNamed(
+                  AppPage.devRegisterStep3Name,
+                  extra: type,
+                ),
               ),
             ),
           ],

@@ -7,6 +7,7 @@ class PropertyModel {
   final int shortlisted;
   final int tokens;
   final bool isLive;
+  final String status;
   final String imageUrl;
 
   const PropertyModel({
@@ -17,6 +18,7 @@ class PropertyModel {
     required this.shortlisted,
     required this.tokens,
     required this.isLive,
+    this.status = 'Live',
     required this.imageUrl,
   });
 }

@@ -28,6 +28,7 @@ final propertiesProvider = Provider<List<PropertyModel>>((ref) {
       shortlisted: 23,
       tokens: 2,
       isLive: true,
+      status: 'Live',
       imageUrl: 'https://via.placeholder.com/80x60',
     ),
     PropertyModel(
@@ -37,7 +38,8 @@ final propertiesProvider = Provider<List<PropertyModel>>((ref) {
       views: 156,
       shortlisted: 23,
       tokens: 2,
-      isLive: true,
+      isLive: false,
+      status: 'Pending',
       imageUrl: 'https://via.placeholder.com/80x60',
     ),
     PropertyModel(
@@ -47,7 +49,8 @@ final propertiesProvider = Provider<List<PropertyModel>>((ref) {
       views: 156,
       shortlisted: 23,
       tokens: 2,
-      isLive: true,
+      isLive: false,
+      status: 'Rejected',
       imageUrl: 'https://via.placeholder.com/80x60',
     ),
   ];
@@ -55,3 +58,4 @@ final propertiesProvider = Provider<List<PropertyModel>>((ref) {
 
 // ─── Selected Period Provider ─────────────────────────────────
 final selectedPeriodProvider = StateProvider<String>((ref) => 'This Month');
+final dashboardPropertyFilterProvider = StateProvider<String>((ref) => 'Live');

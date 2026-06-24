@@ -123,7 +123,7 @@ class RegistrationStep3Page extends StatelessWidget {
                 title: _isDeveloper ? "Add Project" : "Add Property",
                 onTap: () {
                   if (_isDeveloper) {
-                    Navigator.of(context).popUntil((r) => r.isFirst);
+                    context.pushNamed(AppPage.devProjectBasicInfoName);
                   } else {
                     context.pushNamed(AppPage.basicDetailsName);
                   }

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/features/profile/provider/profile_provider.dart';
+import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
@@ -293,20 +294,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
 
-                  _FormSection(
-                    title: 'About You',
-                    children: [
-                      _ProfileField(
-                        label: 'Bio / Preference',
-                        hint: 'E.g. Looking for a 3 BHK in Noida...',
-                        controller: _bioCtrl,
-                        icon: Icons.notes_outlined,
-                        maxLines: 3,
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -314,6 +302,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
           ),
 
           // ── Save Button ─────────────────────────────────────────────
+          //AppButton(title: "Save Changes")
           Container(
             padding: EdgeInsets.fromLTRB(
               20,

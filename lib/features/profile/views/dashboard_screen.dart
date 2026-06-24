@@ -16,9 +16,22 @@ class DashboardPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(dashboardStatsProvider);
     final properties = ref.watch(propertiesProvider);
+    final filter = ref.watch(dashboardPropertyFilterProvider);
+    final filteredProperties = properties
+        .where((property) => property.status == filter)
+        .toList();
 
     return Scaffold(
       backgroundColor: AppColors.white,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.pushNamed(AppPage.basicDetailsName),
+        backgroundColor: AppColors.primary,
+        icon: const Icon(Icons.add, color: AppColors.white),
+        label: Text(
+          'List New Property',
+          style: text13(color: AppColors.white, fontWeight: FontWeight.w700),
+        ),
+      ),
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -30,6 +43,8 @@ class DashboardPage extends ConsumerWidget {
                   children: [
                     _DashboardHeader(),
                     const SizedBox(height: 20),
+                    _AgentProfileCard(),
+                    const SizedBox(height: 20),
                     _StatsGrid(stats: stats),
                     const SizedBox(height: 16),
                     _TokenRequestBanner(count: stats.newTokenRequests),
@@ -37,6 +52,13 @@ class DashboardPage extends ConsumerWidget {
                     _PerformanceSection(stats: stats),
                     const SizedBox(height: 24),
                     _PropertiesHeader(),
+                    const SizedBox(height: 10),
+                    _StatusFilterBar(
+                      selected: filter,
+                      onChanged: (value) => ref
+                          .read(dashboardPropertyFilterProvider.notifier)
+                          .state = value,
+                    ),
                     const SizedBox(height: 12),
                   ],
                 ),
@@ -46,17 +68,12 @@ class DashboardPage extends ConsumerWidget {
               delegate: SliverChildBuilderDelegate(
                 (context, i) => Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                  child: _PropertyCard(property: properties[i]),
+                  child: _PropertyCard(property: filteredProperties[i]),
                 ),
-                childCount: properties.length,
+                childCount: filteredProperties.length,
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-                child: _AddListingButton(),
-              ),
-            ),
+            SliverToBoxAdapter(child: SizedBox(height: 100)),
           ],
         ),
       ),
@@ -81,6 +98,147 @@ class _DashboardHeader extends StatelessWidget {
               style: text12(color: AppColors.textSecondary),
             ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AgentProfileCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.grey200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.person_pin_circle_outlined,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Rahul Sharma',
+                            style: text16(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.success.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Verified',
+                            style: text10(
+                              color: AppColors.success,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Agent / Owner Profile',
+                      style: text12(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _AgentInfoRow(
+            icon: Icons.badge_outlined,
+            text: 'RERA ID: UPRERA-AGT-240612',
+          ),
+          const SizedBox(height: 8),
+          _AgentInfoRow(icon: Icons.call_outlined, text: '+91 98765 43210'),
+          const SizedBox(height: 8),
+          _AgentInfoRow(
+            icon: Icons.mail_outline,
+            text: 'rahul.sharma@gharmb.in',
+          ),
+          const SizedBox(height: 8),
+          _AgentInfoRow(
+            icon: Icons.location_on_outlined,
+            text: 'Meerut, Uttar Pradesh',
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => context.pushNamed(AppPage.profileEditName),
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              label: Text(
+                'Edit Agent Profile',
+                style: text13(fontWeight: FontWeight.w700),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AgentInfoRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _AgentInfoRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.textSecondary, size: 16),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text, style: text12(color: AppColors.textSecondary)),
         ),
       ],
     );
@@ -345,6 +503,44 @@ class _PropertiesHeader extends StatelessWidget {
 }
 
 // ─── Property Card ─────────────────────────────────────────────
+class _StatusFilterBar extends StatelessWidget {
+  final String selected;
+  final ValueChanged<String> onChanged;
+
+  const _StatusFilterBar({required this.selected, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      children: ['Live', 'Pending', 'Rejected'].map((status) {
+        final isSelected = selected == status;
+        return GestureDetector(
+          onTap: () => onChanged(status),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : AppColors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : AppColors.grey300,
+              ),
+            ),
+            child: Text(
+              status,
+              style: text12(
+                color: isSelected ? AppColors.white : AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
 class _PropertyCard extends StatelessWidget {
   final PropertyModel property;
   const _PropertyCard({required this.property});
@@ -405,24 +601,7 @@ class _PropertyCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (property.isLive)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'Live',
-                            style: text10(
-                              color: AppColors.success,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
+                      _PropertyStatusBadge(status: property.status),
                     ],
                   ),
                   const SizedBox(height: 4),
@@ -476,28 +655,28 @@ class _PropStat extends StatelessWidget {
   }
 }
 
-// ─── Add Listing Button ────────────────────────────────────────
-class _AddListingButton extends StatelessWidget {
+class _PropertyStatusBadge extends StatelessWidget {
+  final String status;
+
+  const _PropertyStatusBadge({required this.status});
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () {
-          context.pushNamed(AppPage.myHomeName, extra: 2);
-        },
-        icon: const Icon(Icons.add, color: AppColors.primary, size: 18),
-        label: Text(
-          'Add New Listing',
-          style: text14(fontWeight: FontWeight.w600, color: AppColors.primary),
-        ),
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.primary),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-        ),
+    final color = switch (status) {
+      'Live' => AppColors.success,
+      'Pending' => AppColors.warning,
+      _ => AppColors.error,
+    };
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status,
+        style: text10(color: color, fontWeight: FontWeight.w600),
       ),
     );
   }

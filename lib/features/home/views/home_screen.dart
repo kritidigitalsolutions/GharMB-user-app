@@ -1,3 +1,4 @@
+import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
@@ -126,6 +127,9 @@ class HomePage extends ConsumerWidget {
                       children: [
                         // Hero search
                         _HeroSearch(onFilterTap: () => _openFilter(context)),
+                        const SizedBox(height: 14),
+                        const _HomeBannerCarousel(),
+                        const SizedBox(height: 14),
                         // Property type chips
                         _PropertyTypeChips(types: _propertyTypes),
 
@@ -283,6 +287,96 @@ class HomePage extends ConsumerWidget {
                 child: Image.asset("assets/map.png", fit: BoxFit.contain),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeBannerCarousel extends StatefulWidget {
+  const _HomeBannerCarousel();
+
+  @override
+  State<_HomeBannerCarousel> createState() => _HomeBannerCarouselState();
+}
+
+class _HomeBannerCarouselState extends State<_HomeBannerCarousel> {
+  int _currentIndex = 0;
+
+  static const _banners = [
+    'assets/builder.png',
+    'assets/builder.png',
+    'assets/builder.png',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        CarouselSlider.builder(
+          itemCount: _banners.length,
+          itemBuilder: (context, index, realIndex) {
+            return _BannerCard(
+              imageAsset: _banners[index],
+              onTap: () => context.pushNamed(AppPage.propertyListName),
+            );
+          },
+          options: CarouselOptions(
+            height: 150,
+            viewportFraction: 0.92,
+            enlargeCenterPage: true,
+            enlargeFactor: 0.18,
+            autoPlay: true,
+            autoPlayInterval: const Duration(seconds: 4),
+            onPageChanged: (index, reason) {
+              setState(() => _currentIndex = index);
+            },
+          ),
+        ),
+        const SizedBox(height: 9),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            _banners.length,
+            (index) => AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              width: _currentIndex == index ? 18 : 6,
+              height: 6,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              decoration: BoxDecoration(
+                color: _currentIndex == index
+                    ? AppColors.primary
+                    : AppColors.grey200,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BannerCard extends StatelessWidget {
+  final String imageAsset;
+  final VoidCallback onTap;
+
+  const _BannerCard({required this.imageAsset, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Material(
+        color: AppColors.primary,
+        child: InkWell(
+          onTap: onTap,
+          child: Image.asset(
+            imageAsset,
+            width: double.infinity,
+            height: double.infinity,
+            fit: BoxFit.cover,
           ),
         ),
       ),

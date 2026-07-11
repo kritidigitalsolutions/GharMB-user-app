@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/developer/providers/project_add_provider.dart';
-import 'package:gharmb_app/features/property/widget/listing_widget.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:gharmb_app/shared/widget/custom_stepprogress.dart';

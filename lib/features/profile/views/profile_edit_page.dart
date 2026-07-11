@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/features/profile/provider/profile_provider.dart';
-import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
@@ -411,7 +410,6 @@ class _ProfileField extends StatelessWidget {
   final TextEditingController controller;
   final IconData icon;
   final TextInputType? keyboardType;
-  final int maxLines;
 
   const _ProfileField({
     required this.label,
@@ -419,7 +417,6 @@ class _ProfileField extends StatelessWidget {
     required this.controller,
     required this.icon,
     this.keyboardType,
-    this.maxLines = 1,
   });
 
   @override
@@ -449,7 +446,6 @@ class _ProfileField extends StatelessWidget {
                 TextField(
                   controller: controller,
                   keyboardType: keyboardType,
-                  maxLines: maxLines,
                   style: text14(),
                   decoration: InputDecoration(
                     hintText: hint,

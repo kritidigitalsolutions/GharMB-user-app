@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
-import 'package:gharmb_app/features/auth/providers/auth_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +11,7 @@ class AuthScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isLoading = ref.watch(authLoadingProvider);
+    // final isLoading = ref.watch(authLoadingProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -69,29 +68,26 @@ class AuthScreen extends ConsumerWidget {
 
                 // Google button
                 _SocialButton(
-                  onTap: isLoading
-                      ? null
-                      : () {
-                          ref.read(authLoadingProvider.notifier).state = true;
-                          // Trigger Google sign-in
-                        },
+                  onTap: () {
+                    //  ref.read(authLoadingProvider.notifier).state = true;
+                    // Trigger Google sign-in
+                  },
                   image: "assets/auth/google.png",
                   label: 'Continue with Google',
                 ),
 
-                const SizedBox(height: 12),
+                // const SizedBox(height: 12),
 
-                // Facebook button
-                _SocialButton(
-                  onTap: isLoading
-                      ? null
-                      : () {
-                          // Trigger Facebook sign-in
-                        },
-                  image: "assets/auth/facebook.png",
-                  label: 'Continue with Facebook',
-                ),
-
+                // // Facebook button
+                // _SocialButton(
+                //   onTap: isLoading
+                //       ? null
+                //       : () {
+                //           // Trigger Facebook sign-in
+                //         },
+                //   image: "assets/auth/facebook.png",
+                //   label: 'Continue with Facebook',
+                // ),
                 const SizedBox(height: 20),
 
                 // OR divider
@@ -117,7 +113,6 @@ class AuthScreen extends ConsumerWidget {
                   onTap: () {
                     context.pushNamed(AppPage.loginName);
                   },
-                  isLoading: isLoading,
                 ),
 
                 const SizedBox(height: 24),
@@ -135,7 +130,7 @@ class AuthScreen extends ConsumerWidget {
                         context.pushNamed(AppPage.basicInfoName);
                       },
                       child: Text(
-                        'Sign in',
+                        'Sign up',
                         style: text13(
                           fontWeight: FontWeight.w600,
                           color: AppColors.primary,

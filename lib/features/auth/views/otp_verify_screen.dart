@@ -47,9 +47,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         _focusNodes[index + 1].requestFocus();
       } else {
         _focusNodes[index].unfocus();
-        // Auto-verify when last digit entered
         notifier.verify(() {
-          // Navigate to next step
+          context.pushNamed(AppPage.roleSelectionName);
         });
       }
     }
@@ -149,25 +148,31 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                   ),
                 ),
 
-              if (state.hasError)
+              if (state.hasError && state.errorMessage != null)
                 Center(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: AppColors.error,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Invalid OTP. Please try again.',
-                        style: text13(
-                          fontWeight: FontWeight.w500,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
                           color: AppColors.error,
+                          size: 16,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            state.errorMessage!,
+                            textAlign: TextAlign.center,
+                            style: text13(
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.error,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -175,34 +180,45 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
               // Resend section
               Center(
-                child: GestureDetector(
-                  onTap: state.resendCountdown == 0 ? notifier.resend : null,
-                  child: RichText(
-                    text: TextSpan(
-                      style: text13(color: AppColors.textSecondary),
-                      children: [
-                        const TextSpan(text: "Didn't receive code? "),
-                        if (state.resendCountdown > 0)
-                          TextSpan(
-                            text:
-                                'Resend OTP in ${_formatSeconds(state.resendCountdown)}',
-                            style: text13(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          )
-                        else
-                          TextSpan(
-                            text: 'Resend OTP',
-                            style: text13(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
+                child: state.isResending
+                    ? SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : GestureDetector(
+                        onTap: state.resendCountdown == 0
+                            ? notifier.resend
+                            : null,
+                        child: RichText(
+                          text: TextSpan(
+                            style: text13(color: AppColors.textSecondary),
+                            children: [
+                              const TextSpan(text: "Didn't receive code? "),
+                              if (state.resendCountdown > 0)
+                                TextSpan(
+                                  text:
+                                      'Resend OTP in ${_formatSeconds(state.resendCountdown)}',
+                                  style: text13(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              else
+                                TextSpan(
+                                  text: 'Resend OTP',
+                                  style: text13(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                            ],
                           ),
-                      ],
-                    ),
-                  ),
-                ),
+                        ),
+                      ),
               ),
 
               const Spacer(),

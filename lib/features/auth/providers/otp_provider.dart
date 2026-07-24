@@ -1,24 +1,31 @@
-// ---------------------------------------------------------------------------
-// State
-// ---------------------------------------------------------------------------
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:gharmb_app/core/data/exception/app_exception.dart';
+import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
+import 'package:gharmb_app/features/auth/repo/auth_repo.dart';
+
+// ---------------------------------------------------------------------------
+// State
+// ---------------------------------------------------------------------------
 
 class OtpState {
   final List<String> digits;
   final bool isVerified;
   final bool hasError;
+  final String? errorMessage;
   final bool isLoading;
+  final bool isResending;
   final int resendCountdown; // seconds remaining
 
   const OtpState({
     this.digits = const ['', '', '', '', '', ''],
     this.isVerified = false,
     this.hasError = false,
+    this.errorMessage,
     this.isLoading = false,
+    this.isResending = false,
     this.resendCountdown = 30,
   });
 
@@ -26,14 +33,19 @@ class OtpState {
     List<String>? digits,
     bool? isVerified,
     bool? hasError,
+    String? errorMessage,
     bool? isLoading,
+    bool? isResending,
     int? resendCountdown,
+    bool clearError = false,
   }) {
     return OtpState(
       digits: digits ?? this.digits,
       isVerified: isVerified ?? this.isVerified,
-      hasError: hasError ?? this.hasError,
+      hasError: clearError ? false : (hasError ?? this.hasError),
+      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       isLoading: isLoading ?? this.isLoading,
+      isResending: isResending ?? this.isResending,
       resendCountdown: resendCountdown ?? this.resendCountdown,
     );
   }
@@ -47,9 +59,13 @@ class OtpState {
 // ---------------------------------------------------------------------------
 
 class OtpNotifier extends StateNotifier<OtpState> {
+  final String phone;
+  final AuthRepo _authRepo;
   Timer? _timer;
 
-  OtpNotifier() : super(const OtpState()) {
+  OtpNotifier(this.phone, {AuthRepo? authRepo})
+    : _authRepo = authRepo ?? AuthRepo(),
+      super(const OtpState()) {
     _startCountdown();
   }
 
@@ -71,34 +87,62 @@ class OtpNotifier extends StateNotifier<OtpState> {
     newDigits[index] = value;
     state = state.copyWith(
       digits: newDigits,
-      hasError: false,
       isVerified: false,
+      clearError: true,
     );
   }
 
   Future<void> verify(VoidCallback onSuccess) async {
     if (!state.isFilled) return;
-    state = state.copyWith(isLoading: true, hasError: false);
-    await Future.delayed(const Duration(seconds: 1));
+    state = state.copyWith(isLoading: true, clearError: true);
 
-    // Simulate success for demo (code == '2222')
-    if (state.otpCode.length == 6) {
+    try {
+      final res = await _authRepo.verifyOTP(phone, state.otpCode);
+      if (res.status == "success") {
+        await LocalStorageService.saveAuthResponse(res);
+      }
       state = state.copyWith(isLoading: false, isVerified: true);
       onSuccess();
-    } else {
-      state = state.copyWith(isLoading: false, hasError: true);
+    } on AppException catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        hasError: true,
+        errorMessage: e.message,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        hasError: true,
+        errorMessage: 'Something went wrong. Please try again.',
+      );
     }
   }
 
   Future<void> resend() async {
     if (state.resendCountdown > 0) return;
-    state = state.copyWith(
-      digits: const ['', '', '', '', '', ''],
-      hasError: false,
-      isVerified: false,
-    );
-    _startCountdown();
-    // Trigger resend OTP API
+
+    state = state.copyWith(isResending: true, clearError: true);
+    try {
+      await _authRepo.login(phone); // login API OTP trigger karta hai
+      state = state.copyWith(
+        isResending: false,
+        digits: const ['', '', '', '', '', ''],
+        isVerified: false,
+      );
+      _startCountdown();
+    } on AppException catch (e) {
+      state = state.copyWith(
+        isResending: false,
+        hasError: true,
+        errorMessage: e.message,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isResending: false,
+        hasError: true,
+        errorMessage: 'Could not resend OTP. Please try again.',
+      );
+    }
   }
 
   @override
@@ -112,9 +156,12 @@ class OtpNotifier extends StateNotifier<OtpState> {
 // Providers
 // ---------------------------------------------------------------------------
 
-final otpProvider = StateNotifierProvider.autoDispose<OtpNotifier, OtpState>(
-  (ref) => OtpNotifier(),
-);
+// Route ke through phone number set hoga is provider ke through
+final otpPhoneProvider = StateProvider<String>((ref) => '');
 
-// You'd pass phone number via route arguments; using a simple provider here
-final otpPhoneProvider = StateProvider<String>((ref) => '+91 98765 43210');
+final otpProvider = StateNotifierProvider.autoDispose<OtpNotifier, OtpState>((
+  ref,
+) {
+  final phone = ref.watch(otpPhoneProvider);
+  return OtpNotifier(phone);
+});

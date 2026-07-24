@@ -21,7 +21,6 @@ class _StayUpdatedPageState extends ConsumerState<StayUpdatedPage> {
   Future<void> _handleStartExploring() async {
     setState(() => _isLoading = true);
 
-    // Request OS notification permission
     final status = await Permission.notification.request();
 
     setState(() => _isLoading = false);
@@ -29,13 +28,10 @@ class _StayUpdatedPageState extends ConsumerState<StayUpdatedPage> {
     if (!mounted) return;
 
     if (status.isGranted) {
-      // Permission granted — proceed
       _navigateToHome();
     } else if (status.isPermanentlyDenied) {
-      // User said "Never ask again" — open app settings
       _showSettingsDialog();
     } else {
-      // Denied but can ask again — show snackbar and proceed anyway
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -105,8 +101,8 @@ class _StayUpdatedPageState extends ConsumerState<StayUpdatedPage> {
 
   @override
   Widget build(BuildContext context) {
-    final prefs = ref.watch(notificationPrefsProvider);
-    final notifier = ref.read(notificationPrefsProvider.notifier);
+    final state = ref.watch(onboardingProvider);
+    final notifier = ref.read(onboardingProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -117,11 +113,9 @@ class _StayUpdatedPageState extends ConsumerState<StayUpdatedPage> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    // ── Hero Illustration ────────────────────────────────
                     _HeroSection(),
                     const SizedBox(height: 8),
 
-                    // ── Title ────────────────────────────────────────────
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 32),
                       child: Column(
@@ -141,7 +135,6 @@ class _StayUpdatedPageState extends ConsumerState<StayUpdatedPage> {
                     ),
                     const SizedBox(height: 28),
 
-                    // ── Toggle List ──────────────────────────────────────
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Container(
@@ -161,33 +154,37 @@ class _StayUpdatedPageState extends ConsumerState<StayUpdatedPage> {
                             _NotifToggleRow(
                               title: 'Notification preferences',
                               subtitle: 'Get notified when prices drop',
-                              value: prefs.notificationPreferences,
-                              onChanged: (_) =>
-                                  notifier.toggle('notificationPreferences'),
+                              value: state.notificationPreferences,
+                              onChanged: (_) => notifier.toggleNotification(
+                                'notificationPreferences',
+                              ),
                               showDivider: true,
                             ),
                             _NotifToggleRow(
                               title: 'New listing alerts',
                               subtitle: 'Get notified when prices drop',
-                              value: prefs.newListingAlerts,
-                              onChanged: (_) =>
-                                  notifier.toggle('newListingAlerts'),
+                              value: state.newListingAlerts,
+                              onChanged: (_) => notifier.toggleNotification(
+                                'newListingAlerts',
+                              ),
                               showDivider: true,
                             ),
                             _NotifToggleRow(
                               title: 'Token & booking updates',
                               subtitle: 'Get updates on your bookings',
-                              value: prefs.tokenAndBooking,
-                              onChanged: (_) =>
-                                  notifier.toggle('tokenAndBooking'),
+                              value: state.tokenAndBooking,
+                              onChanged: (_) => notifier.toggleNotification(
+                                'tokenAndBooking',
+                              ),
                               showDivider: true,
                             ),
                             _NotifToggleRow(
                               title: 'Important updates',
                               subtitle: 'Platform & safety updates',
-                              value: prefs.importantUpdates,
-                              onChanged: (_) =>
-                                  notifier.toggle('importantUpdates'),
+                              value: state.importantUpdates,
+                              onChanged: (_) => notifier.toggleNotification(
+                                'importantUpdates',
+                              ),
                               showDivider: false,
                             ),
                           ],
@@ -200,13 +197,18 @@ class _StayUpdatedPageState extends ConsumerState<StayUpdatedPage> {
               ),
             ),
 
-            // ── CTA Button ───────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
               child: AppButton(
                 title: "Start Exploring",
-                onTap: _isLoading ? null : _handleStartExploring,
-                isLoading: _isLoading,
+                onTap: state.isLoading
+                    ? null
+                    : () {
+                        notifier.submitOnboarding(() {
+                          context.pushReplacementNamed(AppPage.myHomeName);
+                        });
+                      },
+                isLoading: state.isLoading,
               ),
             ),
           ],
@@ -215,7 +217,6 @@ class _StayUpdatedPageState extends ConsumerState<StayUpdatedPage> {
     );
   }
 }
-
 // ─── Hero Section ─────────────────────────────────────────────────────────────
 
 class _HeroSection extends StatelessWidget {

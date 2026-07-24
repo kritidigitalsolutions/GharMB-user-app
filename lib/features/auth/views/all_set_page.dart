@@ -12,11 +12,10 @@ class AllSetPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final prefs = ref.watch(preferencesProvider);
-    final goals = ref.watch(onboardingGoalProvider);
+    final state = ref.watch(onboardingProvider);
 
     // Build the summary rows from actual state
-    final summaryItems = _buildSummary(goals, prefs);
+    final summaryItems = _buildSummary(state);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -91,11 +90,10 @@ class AllSetPage extends ConsumerWidget {
     );
   }
 
-  List<_SummaryItem> _buildSummary(
-    Set<PropertyGoal> goals,
-    PreferencesState prefs,
-  ) {
+  List<_SummaryItem> _buildSummary(OnboardingState state) {
     final items = <_SummaryItem>[];
+    final goals = state.goals;
+    final prefs = state;
 
     // Goal → intent
     if (goals.isNotEmpty) {

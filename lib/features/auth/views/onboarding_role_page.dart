@@ -13,8 +13,8 @@ class OnboardingGoalPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedGoals = ref.watch(onboardingGoalProvider);
-    final notifier = ref.read(onboardingGoalProvider.notifier);
+    final state = ref.watch(onboardingProvider);
+    final notifier = ref.read(onboardingProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -47,7 +47,6 @@ class OnboardingGoalPage extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              // GridView for 2x2 tiles
               Expanded(
                 child: Column(
                   children: [
@@ -56,7 +55,7 @@ class OnboardingGoalPage extends ConsumerWidget {
                         crossAxisCount: 2,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 12,
-                        childAspectRatio: 1, // Adjust for visual balance
+                        childAspectRatio: 1,
                         physics: const NeverScrollableScrollPhysics(),
                         children: [
                           _GoalTile(
@@ -66,10 +65,8 @@ class OnboardingGoalPage extends ConsumerWidget {
                             subtitle: 'Find your dream home',
                             iconColor: AppColors.primary,
                             bgColor: const Color(0xFFFFF1EB),
-                            isSelected: selectedGoals.contains(
-                              PropertyGoal.buy,
-                            ),
-                            onTap: () => notifier.toggle(PropertyGoal.buy),
+                            isSelected: state.goals.contains(PropertyGoal.buy),
+                            onTap: () => notifier.toggleGoal(PropertyGoal.buy),
                           ),
                           _GoalTile(
                             goal: PropertyGoal.rent,
@@ -78,10 +75,8 @@ class OnboardingGoalPage extends ConsumerWidget {
                             subtitle: 'Find rental homes easily',
                             iconColor: const Color(0xFF7B2FBE),
                             bgColor: const Color(0xFFF5EEFF),
-                            isSelected: selectedGoals.contains(
-                              PropertyGoal.rent,
-                            ),
-                            onTap: () => notifier.toggle(PropertyGoal.rent),
+                            isSelected: state.goals.contains(PropertyGoal.rent),
+                            onTap: () => notifier.toggleGoal(PropertyGoal.rent),
                           ),
                           _GoalTile(
                             goal: PropertyGoal.commercial,
@@ -90,11 +85,11 @@ class OnboardingGoalPage extends ConsumerWidget {
                             subtitle: 'Shops, Offices &\nShowrooms',
                             iconColor: const Color(0xFF059AE4),
                             bgColor: const Color(0xFFE8F6FD),
-                            isSelected: selectedGoals.contains(
+                            isSelected: state.goals.contains(
                               PropertyGoal.commercial,
                             ),
                             onTap: () =>
-                                notifier.toggle(PropertyGoal.commercial),
+                                notifier.toggleGoal(PropertyGoal.commercial),
                           ),
                           _GoalTile(
                             goal: PropertyGoal.sell,
@@ -103,21 +98,19 @@ class OnboardingGoalPage extends ConsumerWidget {
                             subtitle: 'List & sell your\nproperty',
                             iconColor: AppColors.primary,
                             bgColor: const Color(0xFFFFF1EB),
-                            isSelected: selectedGoals.contains(
-                              PropertyGoal.sell,
-                            ),
-                            onTap: () => notifier.toggle(PropertyGoal.sell),
+                            isSelected: state.goals.contains(PropertyGoal.sell),
+                            onTap: () => notifier.toggleGoal(PropertyGoal.sell),
                           ),
                         ],
                       ),
                     ),
 
-                    // Full-width Explore Projects tile
                     _ExploreTile(
-                      isSelected: selectedGoals.contains(
+                      isSelected: state.goals.contains(
                         PropertyGoal.exploreProjects,
                       ),
-                      onTap: () {},
+                      onTap: () =>
+                          notifier.toggleGoal(PropertyGoal.exploreProjects),
                     ),
                   ],
                 ),
@@ -126,7 +119,7 @@ class OnboardingGoalPage extends ConsumerWidget {
               const SizedBox(height: 16),
               AppButton(
                 title: "Get Started",
-                onTap: selectedGoals.isNotEmpty
+                onTap: state.goals.isNotEmpty
                     ? () => context.pushNamed(AppPage.preferenceName)
                     : null,
               ),

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/auth/providers/login_provider.dart';
+import 'package:gharmb_app/features/auth/providers/otp_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
@@ -167,6 +168,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         if (state.errorMessage != null) ...[
                           const SizedBox(height: 8),
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+
                             children: [
                               const Icon(
                                 Icons.error_outline,
@@ -174,9 +177,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: AppColors.error,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                state.errorMessage!,
-                                style: text12(color: AppColors.error),
+                              Expanded(
+                                child: Text(
+                                  state.errorMessage!,
+                                  style: text12(color: AppColors.error),
+                                ),
                               ),
                             ],
                           ),
@@ -208,6 +213,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               onPressed: (state.isValid && !state.isLoading)
                                   ? () => notifier.sendOtp(
                                       onSuccess: () {
+                                        ref
+                                            .read(otpPhoneProvider.notifier)
+                                            .state = state.phone
+                                            .trim();
                                         context.pushNamed(AppPage.otpName);
                                       },
                                     )
@@ -312,7 +321,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         // Create account button
                         AppOutlineButton(
                           title: "Create an Account",
-                          onTap: () {},
+                          onTap: () {
+                            context.pushNamed(AppPage.basicInfoName);
+                          },
                         ),
 
                         const SizedBox(height: 32),

@@ -13,8 +13,8 @@ class PreferencesPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final prefs = ref.watch(preferencesProvider);
-    final notifier = ref.read(preferencesProvider.notifier);
+    final state = ref.watch(onboardingProvider);
+    final notifier = ref.read(onboardingProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -43,7 +43,6 @@ class PreferencesPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 28),
 
-                    // ── Property Type ──────────────────────────────────────
                     Text(
                       'Property type',
                       style: text13(color: AppColors.textSecondary),
@@ -53,7 +52,7 @@ class PreferencesPage extends ConsumerWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: PropertyType.values.map((type) {
-                        final selected = prefs.propertyTypes.contains(type);
+                        final selected = state.propertyTypes.contains(type);
                         return _FilterChip(
                           label: type.label,
                           isSelected: selected,
@@ -63,14 +62,13 @@ class PreferencesPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 28),
 
-                    // ── Budget Range ───────────────────────────────────────
                     Text(
                       'Budget range',
                       style: text13(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      prefs.budgetLabel,
+                      state.budgetLabel,
                       style: text14(
                         fontWeight: FontWeight.w600,
                         color: AppColors.primary,
@@ -79,14 +77,13 @@ class PreferencesPage extends ConsumerWidget {
                     const SizedBox(height: 6),
                     _BudgetSlider(
                       range: RangeValues(
-                        prefs.budgetRange.start,
-                        prefs.budgetRange.end,
+                        state.budgetRange.start,
+                        state.budgetRange.end,
                       ),
                       onChanged: (v) => notifier.setBudgetRange(v),
                     ),
                     const SizedBox(height: 28),
 
-                    // ── City / Area ────────────────────────────────────────
                     Text(
                       'Preferred city / area',
                       style: text13(color: AppColors.textSecondary),
@@ -125,7 +122,6 @@ class PreferencesPage extends ConsumerWidget {
                     ),
                     const SizedBox(height: 28),
 
-                    // ── Bedrooms ───────────────────────────────────────────
                     Text(
                       'Bedrooms',
                       style: text13(color: AppColors.textSecondary),
@@ -135,7 +131,7 @@ class PreferencesPage extends ConsumerWidget {
                       spacing: 8,
                       runSpacing: 8,
                       children: BedroomCount.values.map((b) {
-                        final selected = prefs.bedrooms.contains(b);
+                        final selected = state.bedrooms.contains(b);
                         return _FilterChip(
                           label: b.label,
                           isSelected: selected,
@@ -149,7 +145,6 @@ class PreferencesPage extends ConsumerWidget {
               ),
             ),
 
-            // ── Continue Button ────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: AppButton(
@@ -165,7 +160,6 @@ class PreferencesPage extends ConsumerWidget {
     );
   }
 }
-
 // ─── Filter Chip ──────────────────────────────────────────────────────────────
 
 class _FilterChip extends StatelessWidget {

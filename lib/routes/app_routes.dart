@@ -51,7 +51,7 @@ import 'package:gharmb_app/features/quick_access/views/home_loan_page.dart';
 import 'package:gharmb_app/features/quick_access/views/interlor_design_page.dart';
 import 'package:gharmb_app/features/quick_access/views/legal_service_page.dart';
 import 'package:gharmb_app/features/quick_access/views/packers_movers_page.dart';
-import 'package:gharmb_app/features/splash/view/splash_screen.dart';
+import 'package:gharmb_app/features/auth/views/splash_screen.dart';
 import 'package:gharmb_app/main.dart';
 import 'package:go_router/go_router.dart';
 import 'app_page.dart';

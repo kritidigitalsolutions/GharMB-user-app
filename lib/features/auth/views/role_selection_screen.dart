@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
-import 'package:gharmb_app/features/auth/providers/auth_provider.dart';
+import 'package:gharmb_app/features/auth/providers/onboarding_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/widget/custom_stepprogress.dart';
 import 'package:go_router/go_router.dart';
@@ -12,7 +12,8 @@ class RoleSelectionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectedRole = ref.watch(selectedRoleProvider);
+    final state = ref.watch(onboardingProvider);
+    final notifier = ref.read(onboardingProvider.notifier);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -26,7 +27,6 @@ class RoleSelectionScreen extends ConsumerWidget {
               StepProgress(current: 1, total: 3),
               const SizedBox(height: 16),
 
-              // Heading
               Text(
                 'I am here as a',
                 style: text24(color: AppColors.textPrimary),
@@ -45,12 +45,12 @@ class RoleSelectionScreen extends ConsumerWidget {
               Expanded(
                 child: ListView(
                   children: UserRole.values.map((role) {
-                    final isSelected = selectedRole == role;
+                    final isSelected = state.selectedRole == role;
                     return _RoleCard(
                       role: role,
                       isSelected: isSelected,
                       onTap: () {
-                        ref.read(selectedRoleProvider.notifier).state = role;
+                        notifier.selectRole(role);
                         context.pushNamed(AppPage.onboardingFinalName);
                       },
                     );
@@ -121,7 +121,10 @@ class _RoleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.grey200, width: 1),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.grey200,
+            width: isSelected ? 1.6 : 1,
+          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
@@ -132,7 +135,6 @@ class _RoleCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Icon container
             Container(
               width: 42,
               height: 42,
@@ -145,7 +147,6 @@ class _RoleCard extends StatelessWidget {
 
             const SizedBox(width: 14),
 
-            // Text
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -166,7 +167,6 @@ class _RoleCard extends StatelessWidget {
               ),
             ),
 
-            // Arrow
             Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.grey400),
           ],
         ),

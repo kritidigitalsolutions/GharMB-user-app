@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/auth/providers/basic_info_provider.dart';
+import 'package:gharmb_app/features/auth/providers/otp_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +11,7 @@ import 'package:go_router/go_router.dart';
 class BasicInfoScreen extends ConsumerWidget {
   const BasicInfoScreen({super.key});
 
+  @override
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(basicInfoProvider);
@@ -28,7 +30,6 @@ class BasicInfoScreen extends ConsumerWidget {
             color: AppColors.textPrimary,
           ),
         ),
-
         centerTitle: false,
         titleSpacing: 0,
       ),
@@ -83,7 +84,6 @@ class BasicInfoScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               // Address with dropdown arrow
-              // Address field — GPS + manual edit
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -103,7 +103,6 @@ class BasicInfoScreen extends ConsumerWidget {
                     ),
                     child: Column(
                       children: [
-                        // --- GPS button row ---
                         InkWell(
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(12),
@@ -111,13 +110,7 @@ class BasicInfoScreen extends ConsumerWidget {
                           onTap: state.isLocationLoading
                               ? null
                               : () async {
-                                  final error = await notifier
-                                      .fetchCurrentLocation();
-                                  if (error != null && context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(error)),
-                                    );
-                                  }
+                                  await notifier.fetchCurrentLocation();
                                 },
                           child: Container(
                             height: 44,
@@ -150,11 +143,7 @@ class BasicInfoScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-
-                        // --- Divider ---
                         Divider(height: 1, color: AppColors.grey200),
-
-                        // --- Manual edit field ---
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -198,67 +187,53 @@ class BasicInfoScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
 
-              // Password with visibility toggle
-              // Column(
-              //   crossAxisAlignment: CrossAxisAlignment.start,
-              //   children: [
-              //     Text(
-              //       'Password',
-              //       style: text12(
-              //         fontWeight: FontWeight.w500,
-              //         color: AppColors.textSecondary,
-              //       ),
-              //     ),
-              //     const SizedBox(height: 6),
-              //     Container(
-              //       height: 52,
-              //       decoration: BoxDecoration(
-              //         color: AppColors.grey50,
-              //         borderRadius: BorderRadius.circular(12),
-              //         border: Border.all(color: AppColors.grey200),
-              //       ),
-              //       child: Row(
-              //         children: [
-              //           const SizedBox(width: 14),
-              //           const Icon(
-              //             Icons.lock_outline,
-              //             size: 20,
-              //             color: AppColors.textSecondary,
-              //           ),
-              //           const SizedBox(width: 10),
-              //           Expanded(
-              //             child: TextField(
-              //               obscureText: !state.passwordVisible,
-              //               onChanged: notifier.setPassword,
-              //               style: text13(color: AppColors.textPrimary),
-              //               decoration: InputDecoration(
-              //                 hintText: 'Create a strong password',
-              //                 hintStyle: text13(color: AppColors.hintText),
-              //                 border: InputBorder.none,
-              //                 isDense: true,
-              //                 contentPadding: EdgeInsets.zero,
-              //               ),
-              //             ),
-              //           ),
-              //           GestureDetector(
-              //             onTap: notifier.togglePasswordVisibility,
-              //             child: Icon(
-              //               state.passwordVisible
-              //                   ? Icons.visibility_outlined
-              //                   : Icons.visibility_off_outlined,
-              //               size: 20,
-              //               color: AppColors.textSecondary,
-              //             ),
-              //           ),
-              //           const SizedBox(width: 12),
-              //         ],@
-              //       ),
-              //     ),
-              //   ],
-              // ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 20),
+
+              // --- Inline error banner ---
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: state.errorMessage != null
+                    ? Container(
+                        key: ValueKey(state.errorMessage),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        margin: const EdgeInsets.only(bottom: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: Colors.red.withOpacity(0.35),
+                          ),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              size: 18,
+                              color: AppColors.error,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                state.errorMessage!,
+                                style: text13(
+                                  color: AppColors.error,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+
+              const SizedBox(height: 8),
 
               // Terms text
               RichText(
@@ -293,6 +268,8 @@ class BasicInfoScreen extends ConsumerWidget {
                 title: "Continue",
                 onTap: (notifier.isFormValid && !state.isLoading)
                     ? () {
+                        ref.read(otpPhoneProvider.notifier).state = state.phone
+                            .trim();
                         notifier.submit(() {
                           context.pushNamed(AppPage.otpName);
                         });

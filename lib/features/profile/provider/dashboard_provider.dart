@@ -57,7 +57,7 @@ final propertiesProvider = Provider<List<PropertyModel>>((ref) {
     return items.map((item) {
       return PropertyModel(
         id: item.id ?? '',
-        title: item.title ?? 'Untitled Property',
+        title: item.title ?? '',
         location: (item.locality?.isNotEmpty ?? false)
             ? '${item.locality}, ${item.city ?? ''}'
             : (item.city ?? '—'),

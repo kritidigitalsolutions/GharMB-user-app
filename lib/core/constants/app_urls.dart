@@ -1,5 +1,6 @@
 class AppUrls {
-  static const baseUrl = "http://192.168.1.13:5001/api/app";
+  static const serverUrl = "http://192.168.1.16:5001";
+  static const baseUrl = "$serverUrl/api/user";
 
   // --------------------------------------
   // Auth
@@ -14,4 +15,9 @@ class AppUrls {
   static const agentRegister = "$baseUrl/users/register-agent";
   static const uploadFile = "$baseUrl/upload/multiple";
   static const developerRegister = "$baseUrl/users/register-developer";
+  static const allProperties = "$baseUrl/properties";
+  static const legalTerms = "$serverUrl/api/legal/terms";
+  static const legalPrivacyPolicy = "$serverUrl/api/legal/privacy-policy";
+  static const legalAboutUs = "$serverUrl/api/pages/about-us";
+  static const legalHelp = "$serverUrl/api/pages/help-support";
 }

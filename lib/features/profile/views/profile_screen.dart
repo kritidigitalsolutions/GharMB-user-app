@@ -4,6 +4,10 @@ import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
 import 'package:gharmb_app/features/profile/provider/user_profile_provider.dart';
+import 'package:gharmb_app/features/profile/views/about_us_page.dart';
+import 'package:gharmb_app/features/profile/views/contact_us_page.dart';
+import 'package:gharmb_app/features/profile/views/privacy_policy_page.dart';
+import 'package:gharmb_app/features/profile/views/term_and_condtion_page.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:go_router/go_router.dart';
 
@@ -67,12 +71,39 @@ const List<_ToolItem> _tools = [
     iconColor: Color(0xFF059AE4),
     bgColor: Color(0xFFE8F5FF),
   ),
+  _ToolItem(
+    title: 'About us',
+    subtitle: 'about us',
+    icon: Icons.info,
+    iconColor: Color(0xFF059AE4),
+    bgColor: Color(0xFFE8F5FF),
+  ),
+  _ToolItem(
+    title: 'Privacy policy',
+    subtitle: 'Privacy policy',
+    icon: Icons.security,
+    iconColor: Colors.red,
+    bgColor: Color(0xFFE8F5FF),
+  ),
+  _ToolItem(
+    title: 'Terms and conditions',
+    subtitle: 'Terms and conditions',
+    icon: Icons.description, // or Icons.article
+    iconColor: Colors.orange,
+    bgColor: Color(0xFFE8F5FF),
+  ),
+  _ToolItem(
+    title: 'Contact us',
+    subtitle: 'Contact us',
+    icon: Icons.support_agent_rounded, // or Icons.article
+    iconColor: Colors.purple,
+    bgColor: Color(0xFFE8F5FF),
+  ),
 ];
 
 // ─── Main Page ─────────────────────────────────────────────────
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(userModelProvider);
@@ -372,6 +403,26 @@ void _handleToolTap(BuildContext context, String title) {
       break;
     case 'News & Insights':
       context.pushNamed(AppPage.newsListName);
+      break;
+    case 'About us':
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: ((context) => AboutUsPage())));
+      break;
+    case 'Contact us':
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: ((context) => ContactUsPage())));
+      break;
+    case 'Terms and conditions':
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: ((context) => TermsConditionPage())));
+      break;
+    case 'Privacy policy':
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: ((context) => PrivacyPolicyPage())));
       break;
   }
 }

@@ -12,7 +12,10 @@ class AppPage {
   static const stayUpdateName = "stayUpdate";
 
   static const myHomeName = "myHome";
-
+  static const contactUs = "contactUs";
+  static const termAndCondtion = "termConditions";
+  static const privacyPolicy = "privacyPolicy";
+  static const aboutUs = "aboutUs";
   // Property
 
   static const propertyListName = "propertyList";

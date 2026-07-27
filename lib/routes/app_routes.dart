@@ -23,12 +23,16 @@ import 'package:gharmb_app/features/developer/views/registeraton_step3_page.dart
 import 'package:gharmb_app/features/home/views/notification_page.dart';
 import 'package:gharmb_app/features/home/views/search_on_map.dart';
 import 'package:gharmb_app/features/developer/views/top_developers_Page.dart';
+import 'package:gharmb_app/features/profile/views/about_us_page.dart';
+import 'package:gharmb_app/features/profile/views/contact_us_page.dart';
 import 'package:gharmb_app/features/profile/views/dashboard_screen.dart';
 import 'package:gharmb_app/features/profile/views/invite_friends_page.dart';
 import 'package:gharmb_app/features/profile/views/loan_calculator_Page.dart';
 import 'package:gharmb_app/features/profile/views/my_property_view_Page.dart';
 import 'package:gharmb_app/features/profile/views/my_project_page.dart';
+import 'package:gharmb_app/features/profile/views/privacy_policy_page.dart';
 import 'package:gharmb_app/features/profile/views/profile_edit_page.dart';
+import 'package:gharmb_app/features/profile/views/term_and_condtion_page.dart';
 import 'package:gharmb_app/features/profile/views/token/decision_page.dart';
 import 'package:gharmb_app/features/profile/views/token/token_details.dart';
 import 'package:gharmb_app/features/profile/views/token/token_requested_page.dart';
@@ -427,6 +431,26 @@ class AppRouter {
         name: AppPage.notificationName,
         path: AppPage.notification,
         builder: (_, _) => const NotificationsPage(),
+      ),
+      GoRoute(
+        name: AppPage.contactUs,
+        path: AppPage.contactUs,
+        builder: (_, _) => const ContactUsPage(),
+      ),
+      GoRoute(
+        name: AppPage.privacyPolicy,
+        path: AppPage.privacyPolicy,
+        builder: (_, _) => const PrivacyPolicyPage(),
+      ),
+      GoRoute(
+        name: AppPage.termAndCondtion,
+        path: AppPage.termAndCondtion,
+        builder: (_, _) => const TermsConditionPage(),
+      ),
+      GoRoute(
+        name: AppPage.aboutUs,
+        path: AppPage.aboutUs,
+        builder: (_, _) => const AboutUsPage(),
       ),
     ],
   );

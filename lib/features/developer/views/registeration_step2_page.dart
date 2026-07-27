@@ -26,11 +26,9 @@ class RegistrationStep2Page extends ConsumerWidget {
         : ref.read(agentStep2Provider.notifier);
     final pickedFiles = ref.watch(pickedFilesProvider);
 
-    // final canSubmit = step2State.documents
-    //     .asMap()
-    //     .entries
-    //     .where((e) => e.value.isRequired)
-    //     .every((e) => pickedFiles.containsKey(e.key));
+    final canSubmit = step2State.documents
+        .where((d) => d.isRequired)
+        .every((d) => pickedFiles.containsKey(d.key));
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -85,107 +83,35 @@ class RegistrationStep2Page extends ConsumerWidget {
                     ),
                     const SizedBox(height: 14),
 
-                    // Document rows
-                    ...List.generate(
-                      step2State.documents.length,
-                      (i) => Padding(
+                    // Document rows — keyed by doc.key, not list index
+                    ...step2State.documents.map(
+                      (doc) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: _DocumentRow(
-                          doc: step2State.documents[i],
-                          fileInfo: pickedFiles[i],
+                          doc: doc,
+                          fileInfo: pickedFiles[doc.key],
                           onUpload: () async {
-                            final file = await _pickFile(
-                              context,
-                              step2State.documents[i].name,
-                            );
+                            final file = await _pickFile(context, doc.name);
                             if (file != null) {
                               ref
                                   .read(pickedFilesProvider.notifier)
-                                  .update((s) => {...s, i: file});
-                              notifier.toggleUpload(i);
+                                  .update((s) => {...s, doc.key: file});
+                              notifier.setUploaded(doc.key, true);
                             }
                           },
                           onRemove: () {
                             ref.read(pickedFilesProvider.notifier).update((s) {
-                              final copy = Map<int, FileInfo>.from(s);
-                              copy.remove(i);
+                              final copy = Map<String, FileInfo>.from(s);
+                              copy.remove(doc.key);
                               return copy;
                             });
-                            // set back to not uploaded
-                            if (step2State.documents[i].isUploaded) {
-                              notifier.toggleUpload(i);
-                            }
+                            notifier.setUploaded(doc.key, false);
                           },
                         ),
                       ),
                     ),
 
                     const SizedBox(height: 8),
-
-                    // // ── Drop zone ────────────────────────────
-                    // GestureDetector(
-                    //   onTap: () async {
-                    //     final result = await FilePicker.pickFiles(
-                    //       allowMultiple: true,
-                    //       type: FileType.custom,
-                    //       allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
-                    //     );
-                    //     if (result != null && context.mounted) {
-                    //       ScaffoldMessenger.of(context).showSnackBar(
-                    //         SnackBar(
-                    //           content: Text(
-                    //             '${result.files.length} file(s) selected. Assign them to the fields above.',
-                    //             style: text12(color: AppColors.white),
-                    //           ),
-                    //           backgroundColor: AppColors.primary,
-                    //           behavior: SnackBarBehavior.floating,
-                    //           shape: RoundedRectangleBorder(
-                    //             borderRadius: BorderRadius.circular(8),
-                    //           ),
-                    //         ),
-                    //       );
-                    //     }
-                    //   },
-                    //   child: Container(
-                    //     width: double.infinity,
-                    //     padding: const EdgeInsets.symmetric(vertical: 28),
-                    //     decoration: BoxDecoration(
-                    //       color: AppColors.card,
-                    //       borderRadius: BorderRadius.circular(12),
-                    //       border: Border.all(
-                    //         color: AppColors.grey300,
-                    //         style: BorderStyle.solid,
-                    //       ),
-                    //     ),
-                    //     child: Column(
-                    //       children: [
-                    //         const Icon(
-                    //           Icons.attach_file_rounded,
-                    //           color: AppColors.grey400,
-                    //           size: 30,
-                    //         ),
-                    //         const SizedBox(height: 10),
-                    //         Text(
-                    //           'Tap to upload or drag & drop',
-                    //           style: text13(color: AppColors.textSecondary),
-                    //         ),
-                    //         const SizedBox(height: 4),
-                    //         Text(
-                    //           'Browse files',
-                    //           style: text13(
-                    //             color: AppColors.primary,
-                    //             fontWeight: FontWeight.w600,
-                    //           ),
-                    //         ),
-                    //         const SizedBox(height: 6),
-                    //         Text(
-                    //           'PDF, JPG, PNG · max 5 MB each',
-                    //           style: text10(color: AppColors.grey400),
-                    //         ),
-                    //       ],
-                    //     ),
-                    //   ),
-                    // ),
                     const SizedBox(height: 16),
 
                     // ── Security note ────────────────────────
@@ -221,10 +147,29 @@ class RegistrationStep2Page extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
               child: AppButton(
                 title: "Next",
-                onTap: () => context.pushNamed(
-                  AppPage.devRegisterStep3Name,
-                  extra: type,
-                ),
+                // Disabled (visually + functionally) until every required
+                // document has a picked file. Adjust AppButton's API here
+                // if it doesn't support an `enabled`/`onTap: null` pattern.
+                onTap: canSubmit
+                    ? () => context.pushNamed(
+                        AppPage.devRegisterStep3Name,
+                        extra: type,
+                      )
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Please upload all required documents first.',
+                              style: text12(color: AppColors.white),
+                            ),
+                            backgroundColor: AppColors.error,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        );
+                      },
               ),
             ),
           ],
@@ -420,7 +365,7 @@ class _SheetOption extends StatelessWidget {
   }
 }
 
-// ─── Document Row (updated) ────────────────────────────────────
+// ─── Document Row ────────────────────────────────────
 class _DocumentRow extends StatelessWidget {
   final DocumentStatus doc;
   final FileInfo? fileInfo;

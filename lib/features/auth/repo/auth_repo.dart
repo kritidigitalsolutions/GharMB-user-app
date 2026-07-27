@@ -2,8 +2,10 @@ import 'package:gharmb_app/core/constants/app_urls.dart';
 import 'package:gharmb_app/core/data/exception/app_exception.dart';
 import 'package:gharmb_app/core/data/network/network_api_service.dart';
 import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
+import 'package:gharmb_app/features/auth/models/request/upload_request.dart';
 import 'package:gharmb_app/features/auth/models/request/user_register_req_model.dart';
 import 'package:gharmb_app/features/auth/models/response/auth_response_model.dart';
+import 'package:gharmb_app/features/auth/models/response/file_upload_model.dart';
 
 class AuthRepo {
   final NetworkApiService _api = NetworkApiService();
@@ -79,5 +81,20 @@ class AuthRepo {
     } catch (e) {
       throw FetchDataException(e.toString());
     }
+  }
+
+  Future<UploadResponse?> uploadFile({
+    required FileUploadRequest uploadRequest,
+    void Function(int sent, int total)? onSendProgress,
+  }) async {
+    final res = await _api.uploadMultipartApi(
+      AppUrls.uploadFile,
+      uploadRequest.fields,
+      files: uploadRequest.files,
+      onSendProgress: onSendProgress,
+    );
+
+    if (res == null) return null;
+    return UploadResponse.fromJson(res);
   }
 }

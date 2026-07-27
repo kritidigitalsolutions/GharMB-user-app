@@ -256,6 +256,7 @@ class _ResidentialSpecs extends StatelessWidget {
         const SizedBox(height: 18),
 
         // ── RENT / LEASE / PG specific ───────────────────────────────────
+        // ── RENT / LEASE / PG specific ───────────────────────────────────
         if (isRent || isPg) ...[
           const _SectionDivider(title: 'Rental details'),
 
@@ -268,8 +269,8 @@ class _ResidentialSpecs extends StatelessWidget {
                 .map(
                   (t) => SelectorChip(
                     label: t,
-                    isSelected: false, // hook into state if needed
-                    onTap: () {},
+                    isSelected: state.preferredTenant == t,
+                    onTap: () => notifier.setPreferredTenant(t),
                   ),
                 )
                 .toList(),
@@ -277,8 +278,16 @@ class _ResidentialSpecs extends StatelessWidget {
           const SizedBox(height: 14),
 
           // ── No pets / No smoking toggles ─────────────────────────────
-          _ToggleRow(title: 'Pets allowed', value: false, onChanged: (_) {}),
-          _ToggleRow(title: 'Smoking allowed', value: false, onChanged: (_) {}),
+          _ToggleRow(
+            title: 'Pets allowed',
+            value: state.petsAllowed,
+            onChanged: notifier.setPetsAllowed,
+          ),
+          _ToggleRow(
+            title: 'Smoking allowed',
+            value: state.smokingAllowed,
+            onChanged: notifier.setSmokingAllowed,
+          ),
 
           // ── Notice period (rent/lease only) ──────────────────────────
           if (!isPg) ...[
@@ -288,37 +297,19 @@ class _ResidentialSpecs extends StatelessWidget {
               spacing: 8,
               children: ['15 days', '1 month', '2 months', '3 months']
                   .map(
-                    (t) =>
-                        SelectorChip(label: t, isSelected: false, onTap: () {}),
+                    (t) => SelectorChip(
+                      label: t,
+                      isSelected: state.noticePeriod == t,
+                      onTap: () => notifier.setNoticePeriod(t),
+                    ),
                   )
                   .toList(),
             ),
           ],
 
-          // ── PG: food included ────────────────────────────────────────
+          // ── PG: food included / occupancy — still not wired, see note below ──
           if (isPg) ...[
-            const SizedBox(height: 14),
-            const FieldLabel('Food included'),
-            Wrap(
-              spacing: 8,
-              children: ['Yes (veg)', 'Yes (veg + non-veg)', 'No']
-                  .map(
-                    (t) =>
-                        SelectorChip(label: t, isSelected: false, onTap: () {}),
-                  )
-                  .toList(),
-            ),
-            const SizedBox(height: 14),
-            const FieldLabel('Occupancy type'),
-            Wrap(
-              spacing: 8,
-              children: ['Single', 'Double', 'Triple']
-                  .map(
-                    (t) =>
-                        SelectorChip(label: t, isSelected: false, onTap: () {}),
-                  )
-                  .toList(),
-            ),
+            // unchanged for now — no matching state field exists yet
           ],
           const SizedBox(height: 18),
         ],

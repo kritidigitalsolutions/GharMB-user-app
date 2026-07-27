@@ -1,14 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gharmb_app/core/constants/app_colors.dart';
+import 'package:gharmb_app/core/data/network/base_api_service.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/auth/models/request/upload_request.dart';
+import 'package:gharmb_app/features/auth/providers/upload_provider.dart';
 import 'package:gharmb_app/features/property/providers/property_add_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:gharmb_app/shared/widget/custom_stepprogress.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:gharmb_app/core/constants/app_colors.dart';
 
 class PhotosVideoPage extends ConsumerStatefulWidget {
   const PhotosVideoPage({super.key});
@@ -124,11 +127,54 @@ class _PhotosVideoPageState extends ConsumerState<PhotosVideoPage> {
     ref.read(listPropertyProvider.notifier).removePhoto(index);
   }
 
+  /// Uploads all currently picked photos, stores the returned URLs into
+  /// [listPropertyProvider]'s `uploadedImageUrls`, then navigates forward.
+  Future<void> _handleNext() async {
+    final photos = ref.read(listPropertyProvider).photos;
+
+    if (photos.isEmpty) {
+      context.pushNamed(AppPage.pricingPreferencesName);
+      return;
+    }
+
+    final request = FileUploadRequest(
+      fields: const {"type": "propertyImage"},
+      files: photos
+          .map(
+            (file) =>
+                MultipartFileData(fieldName: "images", filePath: file.path),
+          )
+          .toList(),
+    );
+
+    await ref.read(uploadProvider.notifier).upload(request);
+
+    final uploadState = ref.read(uploadProvider);
+
+    if (uploadState.isSuccess) {
+      final urls = uploadState.response?.data.fileUrls ?? [];
+      ref.read(listPropertyProvider.notifier).setUploadedImageUrls(urls);
+      ref.read(uploadProvider.notifier).reset();
+      if (mounted) context.pushNamed(AppPage.pricingPreferencesName);
+    } else if (uploadState.isError) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              uploadState.errorMessage ?? 'Upload failed. Please try again.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(listPropertyProvider);
     final photos = state.photos;
     final addedCount = photos.length;
+    final uploadState = ref.watch(uploadProvider);
 
     // Build grid slots: filled + empty + up to 6 empty (max 12 total)
     final totalSlots = (addedCount + 1).clamp(6, _maxPhotos);
@@ -153,7 +199,7 @@ class _PhotosVideoPageState extends ConsumerState<PhotosVideoPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text("Photos Upload", style: text16(fontWeight: FontWeight.bold)),
-            SizedBox(height: 2),
+            const SizedBox(height: 2),
             StepProgress(current: 3, total: 5),
           ],
         ),
@@ -228,14 +274,32 @@ class _PhotosVideoPageState extends ConsumerState<PhotosVideoPage> {
                     '$addedCount / $_maxPhotos photos added · tap + to add more',
                     style: text12(color: AppColors.textSecondary),
                   ),
+
+                  // ── Upload progress ──────────────────────────────────
+                  if (uploadState.isUploading) ...[
+                    const SizedBox(height: 14),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: LinearProgressIndicator(
+                        value: uploadState.progress,
+                        minHeight: 6,
+                        backgroundColor: AppColors.grey200,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Uploading photos... ${(uploadState.progress * 100).toStringAsFixed(0)}%',
+                      style: text11(color: AppColors.textSecondary),
+                    ),
+                  ],
+
                   const SizedBox(height: 28),
 
                   // ── Next ─────────────────────────────────────────────
                   AppButton(
-                    title: "Next",
-                    onTap: () {
-                      context.pushNamed(AppPage.pricingPreferencesName);
-                    },
+                    title: uploadState.isUploading ? "Uploading..." : "Next",
+                    onTap: uploadState.isUploading ? () {} : _handleNext,
                   ),
                   const SizedBox(height: 12),
 
@@ -244,7 +308,11 @@ class _PhotosVideoPageState extends ConsumerState<PhotosVideoPage> {
                     width: double.infinity,
                     height: 48,
                     child: OutlinedButton(
-                      onPressed: () => context.pushNamed('pricingPreferences'),
+                      onPressed: uploadState.isUploading
+                          ? null
+                          : () => context.pushNamed(
+                              AppPage.pricingPreferencesName,
+                            ),
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: AppColors.grey300),
                         shape: RoundedRectangleBorder(
@@ -324,11 +392,7 @@ class _EmptyPhotoSlot extends StatelessWidget {
           color: isDashed ? AppColors.white : AppColors.grey50,
           borderRadius: BorderRadius.circular(10),
           border: isDashed
-              ? Border.all(
-                  color: AppColors.grey300,
-                  width: 1.5,
-                  // CustomPaint for dashed is complex; use regular border
-                )
+              ? Border.all(color: AppColors.grey300, width: 1.5)
               : Border.all(color: AppColors.grey300, width: 1.5),
         ),
         child: Center(

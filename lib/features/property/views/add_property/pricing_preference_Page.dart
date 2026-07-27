@@ -593,10 +593,7 @@ class _Flow extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final child in children) ...[
-          child,
-          const SizedBox(height: 20),
-        ],
+        for (final child in children) ...[child, const SizedBox(height: 20)],
       ],
     );
   }
@@ -694,7 +691,10 @@ class _MoneyField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.5,
+              ),
             ),
           ),
         ),
@@ -848,10 +848,7 @@ class _BuyerPreferencesSection extends StatelessWidget {
   final ListPropertyState state;
   final ListPropertyNotifier notifier;
 
-  const _BuyerPreferencesSection({
-    required this.state,
-    required this.notifier,
-  });
+  const _BuyerPreferencesSection({required this.state, required this.notifier});
 
   @override
   Widget build(BuildContext context) {
@@ -1042,7 +1039,11 @@ class _ListingPlanTile extends StatelessWidget {
                   color: AppColors.success,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.check, color: AppColors.white, size: 14),
+                child: const Icon(
+                  Icons.check,
+                  color: AppColors.white,
+                  size: 14,
+                ),
               ),
           ],
         ),

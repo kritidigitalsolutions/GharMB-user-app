@@ -2,6 +2,10 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/legacy.dart';
 
+import 'package:gharmb_app/core/data/exception/app_exception.dart';
+import 'package:gharmb_app/features/property/repo/property_repo.dart';
+import 'package:gharmb_app/features/property/models/payload/owner_propert_listing_payload.dart';
+
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum ListingRole { owner, agentBroker, developerBuilder }
@@ -19,7 +23,6 @@ enum CommercialType {
 
 enum ListingFor { sale, rent, lease, pg }
 
-// ── Residential-specific ──────────────────────────────────────────────────────
 enum PropertyTypeList { apartment, villa, house, studio, plot }
 
 enum AgeOfProperty { zeroToThree, threeToSeven, sevenToFifteen, fifteenPlus }
@@ -41,7 +44,6 @@ enum AmenityList {
   clubhouse,
 }
 
-// ── Commercial-specific ───────────────────────────────────────────────────────
 enum CeilingHeight { below10, ten14, fourteen18, above18 }
 
 enum CommercialFacilities {
@@ -59,23 +61,18 @@ enum FootfallArea { highFootfall, itHub, highwayFacing, residentialComplex }
 
 enum CommercialParking { none, oneReserved, twoPlus, visitor }
 
-// ── Pricing / Preferences ─────────────────────────────────────────────────────
 enum PriceNegotiable { yes, no, slightly }
 
 enum PossessionStatus { immediate, within1Month, within3Months, within6Months }
 
 enum ListingType { standard, featured, premium }
 
-// ── NEW: Lock-in period ───────────────────────────────────────────────────────
 enum LockInPeriod { none, sixMonths, oneYear, twoYears, threeYears, fiveYears }
 
-// ── NEW: Escalation clause ────────────────────────────────────────────────────
 enum EscalationClause { none, five, ten, fifteen }
 
-// ── NEW: GST applicable ───────────────────────────────────────────────────────
 enum GstApplicable { gst12, gst18, notApplicable, dontKnow }
 
-// ── NEW: PG inclusions ────────────────────────────────────────────────────────
 enum PgInclusion {
   wifi,
   foodVeg,
@@ -88,11 +85,9 @@ enum PgInclusion {
 // ─── State ────────────────────────────────────────────────────────────────────
 
 class ListPropertyState {
-  // Role & Category
   final ListingRole role;
   final PropertyCategory category;
 
-  // Step 1 — Basic Details (shared)
   final String propertyTitle;
   final Set<ListingFor> listingFor;
   final String city;
@@ -101,13 +96,9 @@ class ListPropertyState {
   final String pincode;
   final String description;
 
-  // Step 1 — Residential only
   final PropertyTypeList? propertyType;
-
-  // Step 1 — Commercial only
   final CommercialType? commercialType;
 
-  // Step 2 — Residential specs
   final int bedrooms;
   final int bathrooms;
   final String carpetArea;
@@ -120,7 +111,6 @@ class ListPropertyState {
   final ParkingType? parking;
   final Set<AmenityList> amenities;
 
-  // Step 2 — Commercial specs
   final String commercialCarpetArea;
   final String commercialBuiltUpArea;
   final String commercialFloor;
@@ -132,17 +122,14 @@ class ListPropertyState {
   final Set<CommercialFacilities> facilities;
   final AgeOfProperty? commercialAge;
 
-  // Step 3 — Commercial: location USP
   final String commercialUsp;
   final Set<FootfallArea> footfallArea;
   final String securityDeposit;
   final String securityDepositMonths;
   final bool brokerageFree;
 
-  // Step 3 — Photos
   final List<File> photos;
 
-  // Step 4 — Pricing & Preferences (shared)
   final String expectedPrice;
   final PriceNegotiable priceNegotiable;
   final String maintenancePerMonth;
@@ -164,40 +151,32 @@ class ListPropertyState {
   final bool taxIncluded;
   final ListingType listingType;
 
-  // ── NEW: Secondary charges fields ────────────────────────────────────────────
-  /// Whether maintenance is included in rent (Residential Rent)
   final bool maintenanceIncluded;
-
-  /// Lease duration as text, e.g. "2 years" (Residential & Commercial Lease)
   final String leaseDuration;
-
-  /// Lock-in period (Residential Lease, Commercial Rent, Commercial Lease)
   final LockInPeriod? lockInPeriod;
-
-  /// Escalation clause (Commercial Rent, Commercial Lease)
   final EscalationClause? escalationClause;
-
-  /// Notice period text, e.g. "30 days" (PG)
   final String noticePeriod;
-
-  /// What is included in PG charges
   final Set<PgInclusion> pgInclusions;
-
-  /// GST applicable (Commercial Sale)
   final GstApplicable? gstApplicable;
 
-  // ── NEW: Preference toggle fields ────────────────────────────────────────────
-  /// Family preferred (Residential Rent / Lease / PG)
   final bool familyPreferred;
-
-  /// Fit-out / interior modification allowed (Commercial Rent / Lease)
   final bool fitOutAllowed;
-
-  /// Legal clearance / title deed clear (Commercial Sale)
   final bool legalClearanceDone;
-
-  /// Long-term tenant preferred — 2+ years (Commercial Rent / Lease)
   final bool longTermPreferred;
+
+  final bool petsAllowed;
+  final bool smokingAllowed;
+
+  final double? latitude;
+  final double? longitude;
+
+  // ── Uploaded image URLs (needed for API `images` payload) ──────────────
+  final List<String> uploadedImageUrls;
+
+  // ── Submission state ─────────────────────────────────────────────────
+  final bool isSubmitting;
+  final String? submitError;
+  final String? submissionId;
 
   const ListPropertyState({
     this.role = ListingRole.owner,
@@ -211,7 +190,6 @@ class ListPropertyState {
     this.fullAddress = '',
     this.pincode = '',
     this.description = '',
-    // Residential specs
     this.bedrooms = 2,
     this.bathrooms = 2,
     this.carpetArea = '',
@@ -223,7 +201,6 @@ class ListPropertyState {
     this.facing = const {},
     this.parking,
     this.amenities = const {},
-    // Commercial specs
     this.commercialCarpetArea = '',
     this.commercialBuiltUpArea = '',
     this.commercialFloor = '',
@@ -234,15 +211,12 @@ class ListPropertyState {
     this.commercialParking,
     this.facilities = const {},
     this.commercialAge,
-    // Commercial USP
     this.commercialUsp = '',
     this.footfallArea = const {},
     this.securityDeposit = '2',
     this.securityDepositMonths = '',
     this.brokerageFree = true,
-    // Photos
     this.photos = const [],
-    // Pricing
     this.expectedPrice = '',
     this.priceNegotiable = PriceNegotiable.yes,
     this.maintenancePerMonth = '',
@@ -263,7 +237,6 @@ class ListPropertyState {
     this.loanAssistanceNeeded = true,
     this.taxIncluded = false,
     this.listingType = ListingType.standard,
-    // Secondary charges
     this.maintenanceIncluded = false,
     this.leaseDuration = '',
     this.lockInPeriod,
@@ -271,14 +244,19 @@ class ListPropertyState {
     this.noticePeriod = '',
     this.pgInclusions = const {},
     this.gstApplicable,
-    // Preference toggles
     this.familyPreferred = false,
     this.fitOutAllowed = false,
     this.legalClearanceDone = false,
     this.longTermPreferred = false,
+    this.petsAllowed = false,
+    this.smokingAllowed = false,
+    this.latitude,
+    this.longitude,
+    this.uploadedImageUrls = const [],
+    this.isSubmitting = false,
+    this.submitError,
+    this.submissionId,
   });
-
-  // ── Computed helpers ──────────────────────────────────────────────────────
 
   bool get isResidential => category == PropertyCategory.residential;
   bool get isCommercial => category == PropertyCategory.commercial;
@@ -305,6 +283,7 @@ class ListPropertyState {
     ListingType.featured => 'Featured - ₹999',
     ListingType.premium => 'Premium - ₹1,999',
   };
+  String get listingTierValue => listingType.tierLabel;
 
   ListPropertyState copyWith({
     ListingRole? role,
@@ -365,7 +344,6 @@ class ListPropertyState {
     bool? loanAssistanceNeeded,
     bool? taxIncluded,
     ListingType? listingType,
-    // Secondary charges
     bool? maintenanceIncluded,
     String? leaseDuration,
     LockInPeriod? lockInPeriod,
@@ -373,11 +351,19 @@ class ListPropertyState {
     String? noticePeriod,
     Set<PgInclusion>? pgInclusions,
     GstApplicable? gstApplicable,
-    // Preference toggles
     bool? familyPreferred,
     bool? fitOutAllowed,
     bool? legalClearanceDone,
     bool? longTermPreferred,
+    bool? petsAllowed,
+    bool? smokingAllowed,
+    double? latitude,
+    double? longitude,
+    List<String>? uploadedImageUrls,
+    bool? isSubmitting,
+    String? submitError,
+    String? submissionId,
+    bool clearSubmitError = false,
   }) {
     return ListPropertyState(
       role: role ?? this.role,
@@ -441,7 +427,6 @@ class ListPropertyState {
       loanAssistanceNeeded: loanAssistanceNeeded ?? this.loanAssistanceNeeded,
       taxIncluded: taxIncluded ?? this.taxIncluded,
       listingType: listingType ?? this.listingType,
-      // Secondary charges
       maintenanceIncluded: maintenanceIncluded ?? this.maintenanceIncluded,
       leaseDuration: leaseDuration ?? this.leaseDuration,
       lockInPeriod: lockInPeriod ?? this.lockInPeriod,
@@ -449,11 +434,18 @@ class ListPropertyState {
       noticePeriod: noticePeriod ?? this.noticePeriod,
       pgInclusions: pgInclusions ?? this.pgInclusions,
       gstApplicable: gstApplicable ?? this.gstApplicable,
-      // Preference toggles
       familyPreferred: familyPreferred ?? this.familyPreferred,
       fitOutAllowed: fitOutAllowed ?? this.fitOutAllowed,
       legalClearanceDone: legalClearanceDone ?? this.legalClearanceDone,
       longTermPreferred: longTermPreferred ?? this.longTermPreferred,
+      petsAllowed: petsAllowed ?? this.petsAllowed,
+      smokingAllowed: smokingAllowed ?? this.smokingAllowed,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      uploadedImageUrls: uploadedImageUrls ?? this.uploadedImageUrls,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      submitError: clearSubmitError ? null : (submitError ?? this.submitError),
+      submissionId: submissionId ?? this.submissionId,
     );
   }
 }
@@ -461,7 +453,11 @@ class ListPropertyState {
 // ─── Notifier ─────────────────────────────────────────────────────────────────
 
 class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
-  ListPropertyNotifier() : super(const ListPropertyState());
+  final PropertyRepo _propertyRepo;
+
+  ListPropertyNotifier({PropertyRepo? propertyRepo})
+    : _propertyRepo = propertyRepo ?? PropertyRepo(),
+      super(const ListPropertyState());
 
   void setRole(ListingRole r) => state = state.copyWith(role: r);
 
@@ -490,7 +486,11 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
   void setPincode(String v) => state = state.copyWith(pincode: v);
   void setDescription(String v) => state = state.copyWith(description: v);
 
-  // Residential specs
+  void setLatitude(double v) => state = state.copyWith(latitude: v);
+  void setLongitude(double v) => state = state.copyWith(longitude: v);
+  void setLatLng(double lat, double lng) =>
+      state = state.copyWith(latitude: lat, longitude: lng);
+
   void setBedrooms(int v) => state = state.copyWith(bedrooms: v);
   void setBathrooms(int v) => state = state.copyWith(bathrooms: v);
   void setCarpetArea(String v) => state = state.copyWith(carpetArea: v);
@@ -512,7 +512,6 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
     state = state.copyWith(amenities: s);
   }
 
-  // Commercial specs
   void setCommercialCarpetArea(String v) =>
       state = state.copyWith(commercialCarpetArea: v);
   void setCommercialBuiltUpArea(String v) =>
@@ -536,7 +535,6 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
   void setCommercialAge(AgeOfProperty v) =>
       state = state.copyWith(commercialAge: v);
 
-  // Commercial USP
   void setCommercialUsp(String v) => state = state.copyWith(commercialUsp: v);
   void toggleFootfall(FootfallArea v) {
     final s = Set<FootfallArea>.from(state.footfallArea);
@@ -559,6 +557,15 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
   void removePhoto(int index) {
     final updated = List<File>.from(state.photos)..removeAt(index);
     state = state.copyWith(photos: updated);
+  }
+
+  // ── Uploaded image URLs setters ──────────────────────────────────────
+  void setUploadedImageUrls(List<String> urls) =>
+      state = state.copyWith(uploadedImageUrls: urls);
+
+  void addUploadedImageUrls(List<String> urls) {
+    final merged = [...state.uploadedImageUrls, ...urls];
+    state = state.copyWith(uploadedImageUrls: merged);
   }
 
   // Pricing
@@ -591,8 +598,6 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
   void setTaxIncluded(bool v) => state = state.copyWith(taxIncluded: v);
   void setListingType(ListingType v) => state = state.copyWith(listingType: v);
 
-  // ── NEW: Secondary charges setters ──────────────────────────────────────────
-
   void setMaintenanceIncluded(bool v) =>
       state = state.copyWith(maintenanceIncluded: v);
 
@@ -615,17 +620,118 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
   void setGstApplicable(GstApplicable v) =>
       state = state.copyWith(gstApplicable: v);
 
-  // ── NEW: Preference toggle setters ──────────────────────────────────────────
-
   void setFamilyPreferred(bool v) => state = state.copyWith(familyPreferred: v);
-
   void setFitOutAllowed(bool v) => state = state.copyWith(fitOutAllowed: v);
-
   void setLegalClearanceDone(bool v) =>
       state = state.copyWith(legalClearanceDone: v);
-
   void setLongTermPreferred(bool v) =>
       state = state.copyWith(longTermPreferred: v);
+
+  void setPetsAllowed(bool v) => state = state.copyWith(petsAllowed: v);
+  void setSmokingAllowed(bool v) => state = state.copyWith(smokingAllowed: v);
+
+  // ── Submit to API ────────────────────────────────────────────────────
+  Future<bool> submitProperty() async {
+    state = state.copyWith(isSubmitting: true, clearSubmitError: true);
+
+    try {
+      final payload = _buildPayload(state);
+
+      final response = await _propertyRepo.addPropertyListing(
+        ownerPropertListingPayload: payload,
+      );
+
+      state = state.copyWith(
+        isSubmitting: false,
+        submissionId: response?.data?.submissionId,
+      );
+      return true;
+    } on AppException catch (e) {
+      state = state.copyWith(isSubmitting: false, submitError: e.message);
+      return false;
+    } catch (e) {
+      state = state.copyWith(
+        isSubmitting: false,
+        submitError: 'Something went wrong. Please try again.',
+      );
+      return false;
+    }
+  }
+
+  OwnerPropertListingPayload _buildPayload(ListPropertyState s) {
+    final bool isResidential = s.isResidential;
+
+    return OwnerPropertListingPayload(
+      listingAs: s.role.label,
+      category: s.category.label,
+      listingFor: s.listingFor.isNotEmpty ? s.listingFor.first.label : null,
+      propertyType: isResidential
+          ? s.propertyType?.label
+          : s.commercialType?.label,
+      title: s.propertyTitle,
+      city: s.city,
+      locality: s.locality,
+      fullAddress: s.fullAddress,
+      pincode: s.pincode,
+      description: s.description,
+      bedrooms: isResidential ? s.bedrooms.toString() : null,
+      bathrooms: isResidential ? s.bathrooms.toString() : null,
+      carpetArea: _parseInt(
+        isResidential ? s.carpetArea : s.commercialCarpetArea,
+      ),
+      builtUpArea: _parseInt(
+        isResidential ? s.builtUpArea : s.commercialBuiltUpArea,
+      ),
+      floorNo: isResidential ? s.floorNo : s.commercialFloor,
+      totalFloors: isResidential ? s.totalFloors : s.commercialTotalFloors,
+      ageOfProperty: (isResidential ? s.ageOfProperty : s.commercialAge)?.name,
+      furnishing: s.furnishing?.name,
+      facingDirection: s.facing.isNotEmpty
+          ? s.facing.map((f) => f.name).join(',')
+          : null,
+      parking: isResidential ? s.parking?.name : s.commercialParking?.name,
+      amenities: isResidential
+          ? (s.amenities.isNotEmpty
+                ? s.amenities.map((a) => a.name).toList()
+                : null)
+          : (s.facilities.isNotEmpty
+                ? s.facilities.map((f) => f.name).toList()
+                : null),
+      preferredTenants: s.preferredTenant.trim().isNotEmpty
+          ? [s.preferredTenant.trim()]
+          : null,
+      petsAllowed: isResidential ? s.petsAllowed : null,
+      smokingAllowed: isResidential ? s.smokingAllowed : null,
+      noticePeriod: s.noticePeriod.isNotEmpty
+          ? s.noticePeriod
+          : s.leaseDuration,
+      availableFrom: s.availability,
+      // Images are already uploaded (see PhotosVideoPage → uploadProvider)
+      // and stored as URLs in uploadedImageUrls; map them here so the
+      // final JSON payload actually carries the image URLs.
+      images: s.uploadedImageUrls.isNotEmpty ? s.uploadedImageUrls : null,
+      price: _parseInt(s.expectedPrice),
+      securityDeposit: _parseInt(s.securityDeposit),
+      maintenanceCharges: _parseInt(s.maintenancePerMonth),
+      maintenanceIncludedInRent: s.maintenanceIncluded,
+      brokerageFee: _parseInt(s.brokerageAmount),
+      vastuCompliant: s.vastuCompliant,
+      openToAllBuyers: s.openToAllBuyers,
+      loanAssistanceNeeded: s.loanAssistanceNeeded,
+      listingTier: s.listingType.tierLabel,
+      location: (s.latitude != null && s.longitude != null)
+          ? LocationPayload.fromLatLng(
+              latitude: s.latitude!,
+              longitude: s.longitude!,
+            )
+          : null,
+    );
+  }
+
+  int? _parseInt(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    return int.tryParse(value.trim());
+  }
 }
 
 final listPropertyProvider =
@@ -634,6 +740,14 @@ final listPropertyProvider =
     );
 
 // ─── Extensions ───────────────────────────────────────────────────────────────
+
+extension ListingRoleLabel on ListingRole {
+  String get label => switch (this) {
+    ListingRole.owner => 'Owner',
+    ListingRole.agentBroker => 'Agent / Broker',
+    ListingRole.developerBuilder => 'Developer / Builder',
+  };
+}
 
 extension PropertyCategoryLabel on PropertyCategory {
   String get label => switch (this) {
@@ -770,8 +884,6 @@ extension PriceNegotiableLabel on PriceNegotiable {
   };
 }
 
-// ── NEW: Extension labels ─────────────────────────────────────────────────────
-
 extension PossessionStatusLabel on PossessionStatus {
   String get shortLabel => switch (this) {
     PossessionStatus.immediate => 'Immediate',
@@ -818,6 +930,14 @@ extension PgInclusionLabel on PgInclusion {
     PgInclusion.laundry => 'Laundry',
     PgInclusion.housekeeping => 'Housekeeping',
     PgInclusion.powerBackup => 'Power backup',
+  };
+}
+
+extension ListingTypeTierLabel on ListingType {
+  String get tierLabel => switch (this) {
+    ListingType.standard => 'Standard',
+    ListingType.featured => 'Featured',
+    ListingType.premium => 'Premium',
   };
 }
 

@@ -95,4 +95,23 @@ class LocalStorageService {
     await prefs.remove(_userKey);
     await prefs.remove(_authResponseKey);
   }
+
+  static Future<void> updateOnboardingStatus(bool isCompleted) async {
+    final prefs = await SharedPreferences.getInstance();
+    final currentUser = await getUser();
+
+    if (currentUser == null) return;
+
+    final updatedUser = AuthUserModel(
+      id: currentUser.id,
+      name: currentUser.name,
+      email: currentUser.email,
+      phone: currentUser.phone,
+      address: currentUser.address,
+      location: currentUser.location,
+      isOnboardingCompleted: isCompleted,
+    );
+
+    await prefs.setString(_userKey, jsonEncode(updatedUser.toJson()));
+  }
 }

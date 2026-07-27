@@ -82,14 +82,28 @@ class RegistrationStep1Notifier extends StateNotifier<RegistrationStep1State> {
   void setExperience(String v) => state = state.copyWith(experience: v);
 }
 
+// ─── Document keys ─────────────────────────────────────────────
+// Stable identifiers shared between DocumentStatus, pickedFilesProvider,
+// and uploadProvider(key) — this is what lets each document upload
+// independently without index-based mismatches between developer/agent flows.
+class DocumentKeys {
+  static const reraCertificate = 'reraCertificate';
+  static const panCard = 'panCard';
+  static const companyLogo = 'companyLogo';
+  static const aadhaarCard = 'aadhaarCard';
+  static const profilePhoto = 'profilePhoto';
+}
+
 // ─── Step 2 State ─────────────────────────────────────────────
 class DocumentStatus {
+  final String key;
   final String name;
   final String subtitle;
   final bool isRequired;
   final bool isUploaded;
 
   const DocumentStatus({
+    required this.key,
     required this.name,
     required this.subtitle,
     this.isRequired = true,
@@ -97,6 +111,7 @@ class DocumentStatus {
   });
 
   DocumentStatus copyWith({bool? isUploaded}) => DocumentStatus(
+    key: key,
     name: name,
     subtitle: subtitle,
     isRequired: isRequired,
@@ -110,6 +125,13 @@ class RegistrationStep2State {
 
   bool get canSubmit =>
       documents.where((d) => d.isRequired).every((d) => d.isUploaded);
+
+  DocumentStatus? byKey(String key) {
+    for (final d in documents) {
+      if (d.key == key) return d;
+    }
+    return null;
+  }
 }
 
 class RegistrationStep2Notifier extends StateNotifier<RegistrationStep2State> {
@@ -119,18 +141,21 @@ class RegistrationStep2Notifier extends StateNotifier<RegistrationStep2State> {
           documents: type == RegistrationType.developer
               ? const [
                   DocumentStatus(
+                    key: DocumentKeys.reraCertificate,
                     name: 'RERA certificate',
                     subtitle: 'PDF or image, max 5 MB',
                     isRequired: true,
-                    isUploaded: true,
+                    isUploaded: false,
                   ),
                   DocumentStatus(
+                    key: DocumentKeys.panCard,
                     name: 'PAN card',
                     subtitle: 'Company or proprietor PAN',
                     isRequired: true,
                     isUploaded: false,
                   ),
                   DocumentStatus(
+                    key: DocumentKeys.companyLogo,
                     name: 'Company logo',
                     subtitle: 'PNG / JPG, shown on listings',
                     isRequired: false,
@@ -139,18 +164,21 @@ class RegistrationStep2Notifier extends StateNotifier<RegistrationStep2State> {
                 ]
               : const [
                   DocumentStatus(
+                    key: DocumentKeys.reraCertificate,
                     name: 'RERA certificate',
                     subtitle: 'PDF or image, max 5 MB',
                     isRequired: true,
-                    isUploaded: true,
+                    isUploaded: false,
                   ),
                   DocumentStatus(
+                    key: DocumentKeys.aadhaarCard,
                     name: 'Aadhaar card',
                     subtitle: 'Front & back, max 5 MB',
                     isRequired: true,
                     isUploaded: false,
                   ),
                   DocumentStatus(
+                    key: DocumentKeys.profilePhoto,
                     name: 'Profile photo',
                     subtitle: 'PNG / JPG, shown on listings',
                     isRequired: false,
@@ -160,11 +188,19 @@ class RegistrationStep2Notifier extends StateNotifier<RegistrationStep2State> {
         ),
       );
 
-  void toggleUpload(int index) {
-    final updated = [...state.documents];
-    updated[index] = updated[index].copyWith(
-      isUploaded: !updated[index].isUploaded,
-    );
+  void toggleUpload(String key) {
+    final updated = state.documents
+        .map((d) => d.key == key ? d.copyWith(isUploaded: !d.isUploaded) : d)
+        .toList();
+    state = RegistrationStep2State(documents: updated);
+  }
+
+  /// Set upload status explicitly for a document, driven by real upload
+  /// results rather than a manual UI toggle.
+  void setUploaded(String key, bool uploaded) {
+    final updated = state.documents
+        .map((d) => d.key == key ? d.copyWith(isUploaded: uploaded) : d)
+        .toList();
     state = RegistrationStep2State(documents: updated);
   }
 }
@@ -211,5 +247,6 @@ class FileInfo {
   });
 }
 
-// ─── Provider for picked files (index → _FileInfo) ────────────
-final pickedFilesProvider = StateProvider<Map<int, FileInfo>>((ref) => {});
+// ─── Provider for picked files (key → FileInfo) ────────────────
+// Keyed by DocumentKeys.* instead of a list index, matching uploadProvider.
+final pickedFilesProvider = StateProvider<Map<String, FileInfo>>((ref) => {});

@@ -32,18 +32,23 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final bool isLoggedIn = token != null && token.isNotEmpty;
     final bool isOnboardingCompleted = user?.isOnboardingCompleted ?? false;
-
-    if (!isLoggedIn) {
+    if (isLoggedIn && isOnboardingCompleted) {
+      print("token: $token");
+      context.pushReplacementNamed(AppPage.myHomeName);
+    } else if (!isLoggedIn) {
       context.pushReplacementNamed(AppPage.authName);
+      print("token: $token");
       return;
     }
 
     if (!isOnboardingCompleted) {
       context.pushReplacementNamed(AppPage.roleSelectionName);
+      print("token: $token");
       return;
     }
 
     context.pushReplacementNamed(AppPage.myHomeName);
+    print("token: $token");
   }
 
   @override

@@ -1,29 +1,3 @@
-// ─── Property Model ───────────────────────────────────────────
-class PropertyModel {
-  final String id;
-  final String title;
-  final String location;
-  final int views;
-  final int shortlisted;
-  final int tokens;
-  final bool isLive;
-  final String status;
-  final String imageUrl;
-
-  const PropertyModel({
-    required this.id,
-    required this.title,
-    required this.location,
-    required this.views,
-    required this.shortlisted,
-    required this.tokens,
-    required this.isLive,
-    this.status = 'Live',
-    required this.imageUrl,
-  });
-}
-
-// ─── Dashboard Stats Model ────────────────────────────────────
 class DashboardStats {
   final int totalListings;
   final int liveListings;
@@ -35,7 +9,7 @@ class DashboardStats {
   final int tokenReceived;
   final int newTokenRequests;
 
-  const DashboardStats({
+  DashboardStats({
     required this.totalListings,
     required this.liveListings,
     required this.pendingTokens,
@@ -48,22 +22,30 @@ class DashboardStats {
   });
 }
 
-// ─── Listing Timeline Event ───────────────────────────────────
-class TimelineEvent {
+class PropertyModel {
+  final String id;
   final String title;
-  final String? subtitle;
-  final String date;
-  final bool completed;
+  final String location;
+  final int views;
+  final int shortlisted;
+  final int tokens;
+  final bool isLive;
+  final String status; // 'Live' | 'Pending' | 'Rejected'
+  final String imageUrl;
 
-  const TimelineEvent({
+  PropertyModel({
+    required this.id,
     required this.title,
-    this.subtitle,
-    required this.date,
-    required this.completed,
+    required this.location,
+    required this.views,
+    required this.shortlisted,
+    required this.tokens,
+    required this.isLive,
+    required this.status,
+    required this.imageUrl,
   });
 }
 
-// ─── Listing Detail Model ─────────────────────────────────────
 class ListingDetail {
   final String id;
   final String title;
@@ -79,5 +61,19 @@ class ListingDetail {
     required this.location,
     required this.imageUrl,
     required this.timeline,
+  });
+}
+
+class TimelineEvent {
+  final String title;
+  final String date;
+  final bool completed;
+  final String? subtitle;
+
+  const TimelineEvent({
+    required this.title,
+    required this.date,
+    required this.completed,
+    this.subtitle,
   });
 }

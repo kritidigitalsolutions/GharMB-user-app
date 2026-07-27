@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:gharmb_app/core/data/exception/app_exception.dart';
@@ -115,6 +117,62 @@ class NetworkApiService extends BaseApiService {
       return returnResponse(response);
     } on DioException catch (e) {
       debugPrint("DELETE API ERROR => ${e.message}");
+      throw _handleDioError(e);
+    }
+  }
+
+  @override
+  Future<dynamic> uploadMultipartApi(
+    String url,
+    Map<String, dynamic> fields, {
+    List<MultipartFileData>? files,
+    void Function(int sent, int total)? onSendProgress,
+  }) async {
+    try {
+      debugPrint("UPLOAD API CALL => $url");
+      debugPrint("UPLOAD FIELDS => $fields");
+
+      final formMap = <String, dynamic>{...fields};
+
+      if (files != null && files.isNotEmpty) {
+        for (final fileData in files) {
+          final file = File(fileData.filePath);
+          if (!await file.exists()) {
+            throw BadRequestException(
+              "File not found at path: ${fileData.filePath}",
+            );
+          }
+
+          final multipartFile = await MultipartFile.fromFile(
+            fileData.filePath,
+            filename: fileData.fileName ?? fileData.filePath.split('/').last,
+          );
+
+          // Support multiple files under the same field name
+          if (formMap[fileData.fieldName] == null) {
+            formMap[fileData.fieldName] = multipartFile;
+          } else if (formMap[fileData.fieldName] is List) {
+            (formMap[fileData.fieldName] as List).add(multipartFile);
+          } else {
+            formMap[fileData.fieldName] = [
+              formMap[fileData.fieldName],
+              multipartFile,
+            ];
+          }
+        }
+      }
+
+      final formData = FormData.fromMap(formMap);
+
+      final response = await _dio.post(
+        url,
+        data: formData,
+        options: Options(headers: {"Content-Type": "multipart/form-data"}),
+        onSendProgress: onSendProgress,
+      );
+      return returnResponse(response);
+    } on DioException catch (e) {
+      debugPrint("UPLOAD API ERROR => ${e.message}");
       throw _handleDioError(e);
     }
   }

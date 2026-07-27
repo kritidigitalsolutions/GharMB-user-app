@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/profile/models/dashboard_model.dart';
 import 'package:gharmb_app/features/profile/models/models.dart';
 import 'package:gharmb_app/features/profile/provider/dashboard_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
@@ -14,12 +15,7 @@ class DashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stats = ref.watch(dashboardStatsProvider);
-    final properties = ref.watch(propertiesProvider);
-    final filter = ref.watch(dashboardPropertyFilterProvider);
-    final filteredProperties = properties
-        .where((property) => property.status == filter)
-        .toList();
+    final dashboardAsync = ref.watch(dashboardDataProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -33,37 +29,89 @@ class DashboardPage extends ConsumerWidget {
         ),
       ),
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _DashboardHeader(),
-                    const SizedBox(height: 20),
-                    _AgentProfileCard(),
-                    const SizedBox(height: 20),
-                    _StatsGrid(stats: stats),
-                    const SizedBox(height: 16),
-                    _TokenRequestBanner(count: stats.newTokenRequests),
-                    const SizedBox(height: 24),
-                    _PerformanceSection(stats: stats),
-                    const SizedBox(height: 24),
-                    _PropertiesHeader(),
-                    const SizedBox(height: 10),
-                    _StatusFilterBar(
-                      selected: filter,
-                      onChanged: (value) => ref
-                          .read(dashboardPropertyFilterProvider.notifier)
-                          .state = value,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                ),
+        child: dashboardAsync.when(
+          loading: () => const _DashboardLoading(),
+          error: (error, _) => _DashboardError(
+            message: error.toString(),
+            onRetry: () => ref.invalidate(dashboardDataProvider),
+          ),
+          data: (response) {
+            if (response == null || response.data == null) {
+              return _DashboardError(
+                message: 'Something went wrong. Please try again.',
+                onRetry: () => ref.invalidate(dashboardDataProvider),
+              );
+            }
+            return _DashboardBody();
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Body (rendered once data is loaded) ────────────────────────
+class _DashboardBody extends ConsumerWidget {
+  const _DashboardBody();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(profileProvider);
+    final stats = ref.watch(dashboardStatsProvider);
+    final properties = ref.watch(propertiesProvider);
+    final filter = ref.watch(dashboardPropertyFilterProvider);
+    final filteredProperties = properties
+        .where((property) => property.status == filter)
+        .toList();
+
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(dashboardDataProvider),
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _DashboardHeader(profile: profile),
+                  const SizedBox(height: 20),
+                  _AgentProfileCard(profile: profile),
+                  const SizedBox(height: 20),
+                  _StatsGrid(stats: stats),
+                  const SizedBox(height: 16),
+                  _TokenRequestBanner(count: stats.newTokenRequests),
+                  const SizedBox(height: 24),
+                  _PerformanceSection(stats: stats),
+                  const SizedBox(height: 24),
+                  _PropertiesHeader(),
+                  const SizedBox(height: 10),
+                  _StatusFilterBar(
+                    selected: filter,
+                    onChanged: (value) =>
+                        ref
+                                .read(dashboardPropertyFilterProvider.notifier)
+                                .state =
+                            value,
+                  ),
+                  const SizedBox(height: 12),
+                ],
               ),
             ),
+          ),
+          if (filteredProperties.isEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Text(
+                    'No $filter properties yet',
+                    style: text13(color: AppColors.textSecondary),
+                  ),
+                ),
+              ),
+            )
+          else
             SliverList(
               delegate: SliverChildBuilderDelegate(
                 (context, i) => Padding(
@@ -73,7 +121,51 @@ class DashboardPage extends ConsumerWidget {
                 childCount: filteredProperties.length,
               ),
             ),
-            SliverToBoxAdapter(child: SizedBox(height: 100)),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Loading / Error states ─────────────────────────────────────
+class _DashboardLoading extends StatelessWidget {
+  const _DashboardLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: CircularProgressIndicator(color: AppColors.primary),
+    );
+  }
+}
+
+class _DashboardError extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  const _DashboardError({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: AppColors.error,
+              size: 40,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: text13(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            CustomTextButton(title: 'Retry', onTap: onRetry),
           ],
         ),
       ),
@@ -83,8 +175,16 @@ class DashboardPage extends ConsumerWidget {
 
 // ─── Header ────────────────────────────────────────────────────
 class _DashboardHeader extends StatelessWidget {
+  final ProfileModel? profile;
+  const _DashboardHeader({required this.profile});
+
   @override
   Widget build(BuildContext context) {
+    final name = profile?.name?.trim();
+    final firstName = (name != null && name.isNotEmpty)
+        ? name.split(' ').first
+        : 'there';
+
     return Row(
       children: [
         CustomBackButton(),
@@ -94,7 +194,7 @@ class _DashboardHeader extends StatelessWidget {
           children: [
             Text('My dashboard', style: text18(fontWeight: FontWeight.bold)),
             Text(
-              'Welcome back, Rahul',
+              'Welcome back, $firstName',
               style: text12(color: AppColors.textSecondary),
             ),
           ],
@@ -105,8 +205,23 @@ class _DashboardHeader extends StatelessWidget {
 }
 
 class _AgentProfileCard extends StatelessWidget {
+  final ProfileModel? profile;
+  const _AgentProfileCard({required this.profile});
+
   @override
   Widget build(BuildContext context) {
+    final name = (profile?.name?.isNotEmpty ?? false) ? profile!.name! : '—';
+    final phone = (profile?.phone?.isNotEmpty ?? false) ? profile!.phone! : '—';
+    final email = (profile?.email?.isNotEmpty ?? false) ? profile!.email! : '—';
+
+    final address = profile?.address;
+    final location = (address?.formattedAddress?.isNotEmpty ?? false)
+        ? address!.formattedAddress!
+        : [address?.city, address?.state].where((e) => e != null).join(', ');
+    final displayLocation = location.isNotEmpty ? location : '—';
+
+    final isVerified = profile?.isVerified ?? false;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -149,8 +264,10 @@ class _AgentProfileCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            'Rahul Sharma',
+                            name,
                             style: text16(fontWeight: FontWeight.bold),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         Container(
@@ -159,13 +276,19 @@ class _AgentProfileCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.success.withOpacity(0.1),
+                            color:
+                                (isVerified
+                                        ? AppColors.success
+                                        : AppColors.warning)
+                                    .withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'Verified',
+                            isVerified ? 'Verified' : 'Unverified',
                             style: text10(
-                              color: AppColors.success,
+                              color: isVerified
+                                  ? AppColors.success
+                                  : AppColors.warning,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -174,7 +297,9 @@ class _AgentProfileCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Agent / Owner Profile',
+                      profile?.role != null
+                          ? '${_capitalize(profile!.role!)} Profile'
+                          : 'Profile',
                       style: text12(color: AppColors.textSecondary),
                     ),
                   ],
@@ -183,21 +308,13 @@ class _AgentProfileCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          _AgentInfoRow(
-            icon: Icons.badge_outlined,
-            text: 'RERA ID: UPRERA-AGT-240612',
-          ),
+          _AgentInfoRow(icon: Icons.call_outlined, text: phone),
           const SizedBox(height: 8),
-          _AgentInfoRow(icon: Icons.call_outlined, text: '+91 98765 43210'),
-          const SizedBox(height: 8),
-          _AgentInfoRow(
-            icon: Icons.mail_outline,
-            text: 'rahul.sharma@gharmb.in',
-          ),
+          _AgentInfoRow(icon: Icons.mail_outline, text: email),
           const SizedBox(height: 8),
           _AgentInfoRow(
             icon: Icons.location_on_outlined,
-            text: 'Meerut, Uttar Pradesh',
+            text: displayLocation,
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -206,7 +323,7 @@ class _AgentProfileCard extends StatelessWidget {
               onPressed: () => context.pushNamed(AppPage.profileEditName),
               icon: const Icon(Icons.edit_outlined, size: 18),
               label: Text(
-                'Edit Agent Profile',
+                'Edit Profile',
                 style: text13(fontWeight: FontWeight.w700),
               ),
               style: OutlinedButton.styleFrom(
@@ -223,6 +340,9 @@ class _AgentProfileCard extends StatelessWidget {
       ),
     );
   }
+
+  String _capitalize(String s) =>
+      s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}';
 }
 
 class _AgentInfoRow extends StatelessWidget {
@@ -502,7 +622,7 @@ class _PropertiesHeader extends StatelessWidget {
   }
 }
 
-// ─── Property Card ─────────────────────────────────────────────
+// ─── Status Filter Bar ──────────────────────────────────────────
 class _StatusFilterBar extends StatelessWidget {
   final String selected;
   final ValueChanged<String> onChanged;
@@ -541,6 +661,7 @@ class _StatusFilterBar extends StatelessWidget {
   }
 }
 
+// ─── Property Card ─────────────────────────────────────────────
 class _PropertyCard extends StatelessWidget {
   final PropertyModel property;
   const _PropertyCard({required this.property});
@@ -549,7 +670,7 @@ class _PropertyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        context.pushNamed(AppPage.myPropertyDetailsName);
+        context.pushNamed(AppPage.myPropertyDetailsName, extra: property.id);
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -570,21 +691,15 @@ class _PropertyCard extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                property.imageUrl,
-                width: 80,
-                height: 70,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  width: 80,
-                  height: 70,
-                  color: AppColors.grey200,
-                  child: const Icon(
-                    Icons.apartment_outlined,
-                    color: AppColors.grey400,
-                  ),
-                ),
-              ),
+              child: property.imageUrl.isNotEmpty
+                  ? Image.network(
+                      property.imageUrl,
+                      width: 80,
+                      height: 70,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => _placeholderImage(),
+                    )
+                  : _placeholderImage(),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -634,6 +749,15 @@ class _PropertyCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _placeholderImage() {
+    return Container(
+      width: 80,
+      height: 70,
+      color: AppColors.grey200,
+      child: const Icon(Icons.apartment_outlined, color: AppColors.grey400),
     );
   }
 }

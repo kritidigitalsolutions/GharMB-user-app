@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
+import 'package:gharmb_app/features/profile/provider/user_profile_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:go_router/go_router.dart';
 
@@ -67,11 +70,12 @@ const List<_ToolItem> _tools = [
 ];
 
 // ─── Main Page ─────────────────────────────────────────────────
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userAsync = ref.watch(userModelProvider);
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
@@ -91,7 +95,7 @@ class ProfilePage extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Text(
-                'SD',
+                userAsync?.name![0].toUpperCase() ?? 'N',
                 style: text14(
                   fontWeight: FontWeight.bold,
                   color: AppColors.white,
@@ -105,7 +109,7 @@ class ProfilePage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Rahul Sharma',
+                    userAsync?.name ?? 'No Name',
                     style: text16(
                       fontWeight: FontWeight.w600,
                       color: AppColors.white,
@@ -113,7 +117,7 @@ class ProfilePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Meerut, Uttar Pradesh',
+                    userAsync?.address?.fullAddress ?? 'No Address',
                     style: text12(color: AppColors.white.withOpacity(0.85)),
                   ),
                 ],
@@ -316,10 +320,11 @@ class _LogoutDialog extends StatelessWidget {
                 // Log Out
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
+                    onPressed: () async {
+                      await LocalStorageService.clearAuthData();
+                      // Navigator.of(context).pop();
                       // TODO: clear session & navigate to login
-                      // context.goNamed(AppPage.loginName);
+                      context.goNamed(AppPage.loginName);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.error,

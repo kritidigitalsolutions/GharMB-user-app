@@ -20,17 +20,27 @@ class _ReviewSubmitPageState extends ConsumerState<ReviewSubmitPage> {
   bool _isSubmitting = false;
 
   Future<void> _handleSubmit() async {
-    setState(() => _isSubmitting = true);
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
+    final notifier = ref.read(listPropertyProvider.notifier);
+
+    final success = await notifier.submitProperty();
+
     if (!mounted) return;
-    setState(() => _isSubmitting = false);
-    context.pushNamed(AppPage.propertySubmittedName);
+
+    if (success) {
+      context.pushNamed(AppPage.propertySubmittedName);
+    } else {
+      final error = ref.read(listPropertyProvider).submitError ??
+          'Failed to submit listing. Please try again.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error), backgroundColor: AppColors.error),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(listPropertyProvider);
+    final isSubmitting = state.isSubmitting; // <-- drives the button's loading state now
 
     // Summary rows
     final summaryRows = <_SummaryRow>[
@@ -314,10 +324,10 @@ class _ReviewSubmitPageState extends ConsumerState<ReviewSubmitPage> {
             children: [
               // Submit for verification
               AppButton(
-                title: "Submit for verification",
-                onTap: _isSubmitting ? null : _handleSubmit,
-                isLoading: _isSubmitting,
-              ),
+  title: "Submit for verification",
+  onTap: isSubmitting ? null : _handleSubmit,
+  isLoading: isSubmitting,
+),
 
               const SizedBox(height: 10),
 

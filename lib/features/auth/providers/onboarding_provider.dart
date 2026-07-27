@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/data/exception/app_exception.dart';
+import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
 import 'package:gharmb_app/features/auth/models/request/user_register_req_model.dart';
 import 'package:gharmb_app/features/auth/repo/auth_repo.dart';
 
@@ -314,7 +315,12 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
     try {
       await _authRepo.completedRegister(model);
+
+      // Persist onboarding completion so SplashScreen reads fresh state
+      await LocalStorageService.updateOnboardingStatus(true);
+
       state = state.copyWith(isLoading: false, clearError: true);
+
       onSuccess();
       return true;
     } on AppException catch (e) {

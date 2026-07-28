@@ -19,17 +19,17 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
   late final TextEditingController _emailCtrl;
   late final TextEditingController _phoneCtrl;
   late final TextEditingController _cityCtrl;
-  late final TextEditingController _bioCtrl;
+
+  bool _hydratedControllers = false;
 
   @override
   void initState() {
     super.initState();
-    final p = ref.read(profileProvider);
-    _nameCtrl = TextEditingController(text: p.name);
-    _emailCtrl = TextEditingController(text: p.email);
-    _phoneCtrl = TextEditingController(text: p.phone);
-    _cityCtrl = TextEditingController(text: p.city);
-    _bioCtrl = TextEditingController(text: p.bio);
+    // Start empty — real values get pushed in once fetch completes.
+    _nameCtrl = TextEditingController();
+    _emailCtrl = TextEditingController();
+    _phoneCtrl = TextEditingController();
+    _cityCtrl = TextEditingController();
   }
 
   @override
@@ -38,8 +38,23 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     _emailCtrl.dispose();
     _phoneCtrl.dispose();
     _cityCtrl.dispose();
-    _bioCtrl.dispose();
     super.dispose();
+  }
+
+  // Pushes fetched values into the controllers, once.
+  void _syncControllersOnce(ProfileState p) {
+    if (_hydratedControllers) return;
+    if (p.name.isEmpty &&
+        p.email.isEmpty &&
+        p.phone.isEmpty &&
+        p.city.isEmpty) {
+      return; // nothing to hydrate with yet
+    }
+    _nameCtrl.text = p.name;
+    _emailCtrl.text = p.email;
+    _phoneCtrl.text = p.phone;
+    _cityCtrl.text = p.city;
+    _hydratedControllers = true;
   }
 
   Future<void> _pickAvatar() async {
@@ -86,9 +101,6 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                   source: ImageSource.gallery,
                   imageQuality: 85,
                 );
-                if (img != null) {
-                  ref.read(profileProvider.notifier).setAvatar(File(img.path));
-                }
               },
             ),
             ListTile(
@@ -113,9 +125,6 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                   source: ImageSource.camera,
                   imageQuality: 85,
                 );
-                if (img != null) {
-                  ref.read(profileProvider.notifier).setAvatar(File(img.path));
-                }
               },
             ),
             const SizedBox(height: 12),
@@ -131,7 +140,6 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     notifier.setEmail(_emailCtrl.text);
     notifier.setPhone(_phoneCtrl.text);
     notifier.setCity(_cityCtrl.text);
-    notifier.setBio(_bioCtrl.text);
     final ok = await notifier.save();
     if (ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -153,7 +161,20 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Watching this triggers the actual fetch call (getUser()).
+    final userAsync = ref.watch(userProfileDataProvider);
+
+    // Push values into controllers as soon as they arrive.
+    ref.listen<ProfileState>(profileProvider, (previous, next) {
+      _syncControllersOnce(next);
+      if (mounted) setState(() {});
+    });
+
     final profile = ref.watch(profileProvider);
+    // Also try syncing right here in case listen already fired before build.
+    _syncControllersOnce(profile);
+
+    final isLoading = userAsync.isLoading && !_hydratedControllers;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -187,37 +208,32 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Avatar ──────────────────────────────────────────
-                  Center(
-                    child: Stack(
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 96,
-                          height: 96,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.primary.withOpacity(0.12),
-                            border: Border.all(
-                              color: AppColors.primary,
-                              width: 2.5,
-                            ),
-                          ),
-                          child: profile.avatar != null
-                              ? ClipOval(
-                                  child: Image.file(
-                                    profile.avatar!,
-                                    fit: BoxFit.cover,
+                        // ── Avatar ──────────────────────────────────
+                        Center(
+                          child: Stack(
+                            children: [
+                              Container(
+                                width: 96,
+                                height: 96,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: AppColors.primary.withOpacity(0.12),
+                                  border: Border.all(
+                                    color: AppColors.primary,
+                                    width: 2.5,
                                   ),
-                                )
-                              : Center(
+                                ),
+                                child: Center(
                                   child: Text(
                                     profile.name.isNotEmpty
                                         ? profile.name[0].toUpperCase()
@@ -229,130 +245,131 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                                     ),
                                   ),
                                 ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: _pickAvatar,
-                            child: Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
                               ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: AppColors.white,
-                                size: 14,
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: _pickAvatar,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(7),
+                                    decoration: const BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      color: AppColors.white,
+                                      size: 14,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
+                        const SizedBox(height: 6),
+                        Center(
+                          child: Text(
+                            'Tap camera to change photo',
+                            style: text11(color: AppColors.textSecondary),
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+
+                        // ── Form Fields ───────────────────────────────
+                        _FormSection(
+                          title: 'Personal Information',
+                          children: [
+                            _ProfileField(
+                              label: 'Full Name',
+                              hint: 'Enter your full name',
+                              controller: _nameCtrl,
+                              icon: Icons.person_outline,
+                            ),
+                            _ProfileField(
+                              label: 'Email Address',
+                              hint: 'Enter email',
+                              controller: _emailCtrl,
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                            _ProfileField(
+                              label: 'Mobile Number',
+                              hint: 'Enter mobile number',
+                              controller: _phoneCtrl,
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
+                            ),
+                            _ProfileField(
+                              label: 'City / Location',
+                              hint: 'Enter your city',
+                              controller: _cityCtrl,
+                              icon: Icons.location_on_outlined,
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 32),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Center(
-                    child: Text(
-                      'Tap camera to change photo',
-                      style: text11(color: AppColors.textSecondary),
-                    ),
-                  ),
-                  const SizedBox(height: 28),
+                ),
 
-                  // ── Form Fields ─────────────────────────────────────
-                  _FormSection(
-                    title: 'Personal Information',
-                    children: [
-                      _ProfileField(
-                        label: 'Full Name',
-                        hint: 'Enter your full name',
-                        controller: _nameCtrl,
-                        icon: Icons.person_outline,
-                      ),
-                      _ProfileField(
-                        label: 'Email Address',
-                        hint: 'Enter email',
-                        controller: _emailCtrl,
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      _ProfileField(
-                        label: 'Mobile Number',
-                        hint: 'Enter mobile number',
-                        controller: _phoneCtrl,
-                        icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                      ),
-                      _ProfileField(
-                        label: 'City / Location',
-                        hint: 'Enter your city',
-                        controller: _cityCtrl,
-                        icon: Icons.location_on_outlined,
+                // ── Save Button ──────────────────────────────────────
+                Container(
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    10,
+                    20,
+                    MediaQuery.of(context).padding.bottom + 12,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, -3),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ),
-          ),
-
-          // ── Save Button ─────────────────────────────────────────────
-          //AppButton(title: "Save Changes")
-          Container(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              10,
-              20,
-              MediaQuery.of(context).padding.bottom + 12,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 10,
-                  offset: const Offset(0, -3),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: profile.isSaving ? null : _save,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        disabledBackgroundColor: AppColors.primary.withOpacity(
+                          0.6,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: profile.isSaving
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                color: AppColors.white,
+                                strokeWidth: 2.5,
+                              ),
+                            )
+                          : Text(
+                              'Save Changes',
+                              style: text15(
+                                color: AppColors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                    ),
+                  ),
                 ),
               ],
             ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: profile.isSaving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  disabledBackgroundColor: AppColors.primary.withOpacity(0.6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: profile.isSaving
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          color: AppColors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : Text(
-                        'Save Changes',
-                        style: text15(
-                          color: AppColors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

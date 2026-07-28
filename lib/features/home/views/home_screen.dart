@@ -1125,7 +1125,7 @@ class _NewsCard extends ConsumerWidget {
       child: GestureDetector(
         onTap: () {
           final articles = ref.watch(filteredNewsProvider);
-          ref.read(selectedArticleProvider.notifier).state = articles[1];
+          // ref.read(selectedArticleProvider.notifier).state = articles[1];
           context.pushNamed(AppPage.newsDetailsName);
         },
         child: Container(

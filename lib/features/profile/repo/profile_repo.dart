@@ -3,6 +3,7 @@ import 'package:gharmb_app/core/data/network/network_api_service.dart';
 import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
 import 'package:gharmb_app/features/profile/models/dashboard_model.dart';
 import 'package:gharmb_app/features/profile/models/profile_model.dart';
+import 'package:gharmb_app/features/profile/models/update_profile_payload.dart';
 
 class ProfileRepo {
   final NetworkApiService _api = NetworkApiService();
@@ -33,5 +34,15 @@ class ProfileRepo {
       return null;
     }
     return UserProfileResponse.fromJson(res);
+  }
+
+  Future<UserProfileResponse?> updateProfile({
+    required UserProfilePayload payload,
+  }) async {
+    final url = await _api.pacthApi(AppUrls.updateUser, payload.toJson());
+    if (url == null) {
+      return null;
+    }
+    return UserProfileResponse.fromJson(url);
   }
 }

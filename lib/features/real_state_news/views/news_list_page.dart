@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/real_state_news/models/news_response_model.dart';
 import 'package:gharmb_app/features/real_state_news/providers/news_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
@@ -13,8 +14,9 @@ class RealEstateNewsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedCat = ref.watch(newsCategoryProvider);
-    final categories = ref.watch(newsCategoriesProvider);
-    final articles = ref.watch(filteredNewsProvider);
+    final rawCategories = ref.watch(newsCategoriesProvider);
+    final categoryLabels = ref.watch(newsCategoryLabelsProvider);
+    final articlesAsync = ref.watch(filteredNewsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -66,20 +68,23 @@ class RealEstateNewsPage extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // ── Category Chips ───────────────────────────────────
+            // ── Category Chips (dynamic, from the API's category field) ──
             SizedBox(
               height: 36,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 scrollDirection: Axis.horizontal,
-                itemCount: categories.length,
+                itemCount: rawCategories.length,
                 separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
-                  final cat = categories[i];
-                  final isSelected = cat == selectedCat;
+                  final rawCat = rawCategories[i];
+                  final label = i < categoryLabels.length
+                      ? categoryLabels[i]
+                      : rawCat;
+                  final isSelected = rawCat == selectedCat;
                   return GestureDetector(
                     onTap: () =>
-                        ref.read(newsCategoryProvider.notifier).state = cat,
+                        ref.read(newsCategoryProvider.notifier).state = rawCat,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       padding: const EdgeInsets.symmetric(
@@ -96,7 +101,7 @@ class RealEstateNewsPage extends ConsumerWidget {
                         ),
                       ),
                       child: Text(
-                        cat,
+                        label,
                         style: text12(
                           fontWeight: FontWeight.w600,
                           color: isSelected
@@ -113,24 +118,71 @@ class RealEstateNewsPage extends ConsumerWidget {
 
             // ── News List ────────────────────────────────────────
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(15, 0, 15, 20),
-                itemCount: articles.length + 1, // +1 for load more
-                separatorBuilder: (_, _) => const SizedBox(height: 14),
-                itemBuilder: (context, i) {
-                  if (i == articles.length) {
-                    return _LoadMoreButton();
+              child: articlesAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Could not load news',
+                          style: text14(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '$err',
+                          style: text12(color: AppColors.textSecondary),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton(
+                          onPressed: () {
+                            ref.invalidate(allNewsProvider);
+                            ref.invalidate(categoryNewsProvider(selectedCat));
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                data: (articles) {
+                  if (articles.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No news yet',
+                        style: text14(color: AppColors.textSecondary),
+                      ),
+                    );
                   }
-                  final article = articles[i];
-                  final isFirst = i == 0;
-                  return _NewsCard(
-                    article: article,
-                    isHighlighted: isFirst,
-                    onTap: () {
-                      ref.read(selectedArticleProvider.notifier).state =
-                          article;
-                      context.pushNamed(AppPage.newsDetailsName);
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      ref.invalidate(allNewsProvider);
+                      ref.invalidate(categoryNewsProvider(selectedCat));
                     },
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(15, 0, 15, 20),
+                      itemCount: articles.length + 1, // +1 for load more
+                      separatorBuilder: (_, _) => const SizedBox(height: 14),
+                      itemBuilder: (context, i) {
+                        if (i == articles.length) {
+                          return const _LoadMoreButton();
+                        }
+                        final article = articles[i];
+                        final isFirst = i == 0;
+                        return _NewsCard(
+                          article: article,
+                          isHighlighted: isFirst,
+                          onTap: () {
+                            ref.read(selectedNewsIdProvider.notifier).state =
+                                article.id;
+                            context.pushNamed(AppPage.newsDetailsName);
+                          },
+                        );
+                      },
+                    ),
                   );
                 },
               ),
@@ -144,7 +196,7 @@ class RealEstateNewsPage extends ConsumerWidget {
 
 // ─── News Card ─────────────────────────────────────────────────
 class _NewsCard extends StatelessWidget {
-  final NewsArticle article;
+  final News article;
   final bool isHighlighted;
   final VoidCallback onTap;
 
@@ -180,7 +232,7 @@ class _NewsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Image
-            _NewsImage(imageUrl: article.imageUrl),
+            _NewsImage(imageUrl: article.image),
             // Content
             Padding(
               padding: const EdgeInsets.all(12),
@@ -188,7 +240,7 @@ class _NewsCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    article.title,
+                    article.shortTitle,
                     style: text13(fontWeight: FontWeight.w600),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -203,7 +255,7 @@ class _NewsCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${article.timeAgo}  •  ${article.readTime}',
+                        '${article.formattedPublishedAt}  •  ${article.readTimeDisplay}',
                         style: text11(color: AppColors.grey400),
                       ),
                     ],
@@ -230,69 +282,95 @@ class _NewsImage extends StatelessWidget {
       width: double.infinity,
       color: const Color(0xFF1A1035),
       child: imageUrl.isNotEmpty
-          ? Image.network(imageUrl, fit: BoxFit.cover)
-          : Stack(
-              children: [
-                // Gradient background
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF1A1035),
-                        Color(0xFF4A2060),
-                        Color(0xFFE8956D),
-                      ],
-                    ),
+          ? Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const _NewsImagePlaceholder(),
+              loadingBuilder: (context, child, progress) {
+                if (progress == null) return child;
+                return const Center(
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                ),
-                // Placeholder text
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'THE NEW',
-                        style: text16(
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.white.withOpacity(0.9),
-                        ),
-                      ),
-                      Text(
-                        'BUSINESS',
-                        style: text20(
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.white.withOpacity(0.9),
-                        ),
-                      ),
-                      Text(
-                        'Era',
-                        style: appTextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w300,
-                          color: AppColors.white.withOpacity(0.7),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+                );
+              },
+            )
+          : const _NewsImagePlaceholder(),
+    );
+  }
+}
+
+class _NewsImagePlaceholder extends StatelessWidget {
+  const _NewsImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        // Gradient background
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF1A1035), Color(0xFF4A2060), Color(0xFFE8956D)],
             ),
+          ),
+        ),
+        // Placeholder text
+        Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'THE NEW',
+                style: text16(
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.white.withOpacity(0.9),
+                ),
+              ),
+              Text(
+                'BUSINESS',
+                style: text20(
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.white.withOpacity(0.9),
+                ),
+              ),
+              Text(
+                'Era',
+                style: appTextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w300,
+                  color: AppColors.white.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
 
 // ─── Load More Button ──────────────────────────────────────────
-class _LoadMoreButton extends StatelessWidget {
+class _LoadMoreButton extends ConsumerWidget {
+  const _LoadMoreButton();
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: SizedBox(
         width: double.infinity,
         child: OutlinedButton(
-          onPressed: () {},
+          onPressed: () {
+            // Bumps the page counter for when allNews/categoryNews grow a
+            // page param. Right now the repo calls don't take one, so this
+            // is a no-op placeholder wired up ahead of that backend change.
+            ref.read(newsPageProvider.notifier).state++;
+          },
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppColors.grey300),
             shape: RoundedRectangleBorder(

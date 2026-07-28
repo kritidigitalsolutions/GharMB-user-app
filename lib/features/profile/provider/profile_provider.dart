@@ -1,26 +1,48 @@
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/legacy.dart';
+import 'package:gharmb_app/features/profile/models/profile_model.dart';
+import 'package:gharmb_app/features/profile/models/update_profile_payload.dart';
+import 'package:gharmb_app/features/profile/repo/profile_repo.dart';
 
-// ─── Profile State ────────────────────────────────────────────────────────────
+// ─── Repo Provider ─────────────────────────────────────────────
+final profileRepoProvider = Provider<ProfileRepo>((ref) => ProfileRepo());
+
+// ─── Raw fetched user data (pre-update source of truth) ────────
+final userProfileDataProvider = FutureProvider<UserProfileResponse?>((
+  ref,
+) async {
+  final repo = ref.watch(profileRepoProvider);
+  return repo.getUser();
+});
+
+// ─── Convenience Provider — just the UserModel ─────────────────
+final userModelProvider = Provider<UserModel?>((ref) {
+  final asyncData = ref.watch(userProfileDataProvider);
+  return asyncData.value?.data?.user;
+});
+
+// ─── Editable Profile State (only fields present in payload) ───
 
 class ProfileState {
   final String name;
   final String email;
   final String phone;
   final String city;
-  final String bio;
-  final File? avatar;
+  // final String bio;
+  // final File? avatar;
   final bool isSaving;
+  final String? error;
 
   const ProfileState({
-    this.name = 'Rahul Sharma',
-    this.email = 'rahul.sharma@gmail.com',
-    this.phone = '+91 98765 43210',
-    this.city = 'Noida, Uttar Pradesh',
-    this.bio = 'Looking for a 3 BHK in Noida or Gurgaon.',
-    this.avatar,
+    this.name = '',
+    this.email = '',
+    this.phone = '',
+    this.city = '',
+    // this.bio = '',
+    // this.avatar,
     this.isSaving = false,
+    this.error,
   });
 
   ProfileState copyWith({
@@ -28,117 +50,87 @@ class ProfileState {
     String? email,
     String? phone,
     String? city,
-    String? bio,
-    File? avatar,
+    // String? bio,
+    // File? avatar,
     bool? isSaving,
+    String? error,
   }) => ProfileState(
     name: name ?? this.name,
     email: email ?? this.email,
     phone: phone ?? this.phone,
     city: city ?? this.city,
-    bio: bio ?? this.bio,
-    avatar: avatar ?? this.avatar,
+    // bio: bio ?? this.bio,
+    // avatar: avatar ?? this.avatar,
     isSaving: isSaving ?? this.isSaving,
+    error: error,
   );
 }
 
 class ProfileNotifier extends StateNotifier<ProfileState> {
-  ProfileNotifier() : super(const ProfileState());
+  final ProfileRepo _repo;
+  final Ref _ref;
+
+  ProfileNotifier(this._repo, this._ref) : super(const ProfileState());
+
+  // Pre-fills the editable form with data from the fetch API.
+  void hydrate(UserModel user) {
+    state = state.copyWith(
+      name: user.name ?? '',
+      email: user.email ?? '',
+      phone: user.phone ?? '',
+      city: user.address?.city ?? '',
+    );
+  }
 
   void setName(String v) => state = state.copyWith(name: v);
   void setEmail(String v) => state = state.copyWith(email: v);
   void setPhone(String v) => state = state.copyWith(phone: v);
   void setCity(String v) => state = state.copyWith(city: v);
-  void setBio(String v) => state = state.copyWith(bio: v);
-  void setAvatar(File f) => state = state.copyWith(avatar: f);
+  // void setBio(String v) => state = state.copyWith(bio: v);
+  // void setAvatar(File f) => state = state.copyWith(avatar: f);
 
   Future<bool> save() async {
-    state = state.copyWith(isSaving: true);
-    await Future.delayed(const Duration(seconds: 1));
+    state = state.copyWith(isSaving: true, error: null);
+
+    final payload = UserProfilePayload(
+      name: state.name,
+      email: state.email,
+      phone: state.phone,
+      city: state.city,
+    );
+
+    final result = await _repo.updateProfile(payload: payload);
+
     state = state.copyWith(isSaving: false);
+
+    if (result == null) {
+      state = state.copyWith(error: 'Failed to update profile');
+      return false;
+    }
+
+    // Refresh fetched data so userModelProvider reflects the latest values.
+    _ref.invalidate(userProfileDataProvider);
     return true;
   }
 }
 
-final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>(
-  (_) => ProfileNotifier(),
-);
+final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>((
+  ref,
+) {
+  final notifier = ProfileNotifier(ref.watch(profileRepoProvider), ref);
 
-// ─── My Properties State ──────────────────────────────────────────────────────
+  ref.listen<AsyncValue<UserProfileResponse?>>(userProfileDataProvider, (
+    previous,
+    next,
+  ) {
+    final user = next.value?.data?.user;
+    if (user != null) {
+      notifier.hydrate(user);
+    }
+  }, fireImmediately: true);
 
-enum MyPropertyStatus { live, pending, rejected }
-
-class MyPropertyModel {
-  final String id;
-  final String title;
-  final String location;
-  final String price;
-  final String type;
-  final MyPropertyStatus status;
-  final int views;
-  final int enquiries;
-  final int tokens;
-  final String postedOn;
-  final String gradientKey;
-
-  const MyPropertyModel({
-    required this.id,
-    required this.title,
-    required this.location,
-    required this.price,
-    required this.type,
-    required this.status,
-    required this.views,
-    required this.enquiries,
-    required this.tokens,
-    required this.postedOn,
-    required this.gradientKey,
-  });
-}
-
-final myPropertiesProvider = Provider<List<MyPropertyModel>>(
-  (_) => [
-    const MyPropertyModel(
-      id: 'mp1',
-      title: 'Skyline Heights — 3 BHK',
-      location: 'Sector 62, Noida',
-      price: '₹85 Lakhs',
-      type: '3 BHK Apartment',
-      status: MyPropertyStatus.live,
-      views: 156,
-      enquiries: 23,
-      tokens: 2,
-      postedOn: '12 Jun 2025',
-      gradientKey: 'blue',
-    ),
-    const MyPropertyModel(
-      id: 'mp2',
-      title: 'Green Valley — 2 BHK',
-      location: 'Sector 18, Noida',
-      price: '₹55 Lakhs',
-      type: '2 BHK Apartment',
-      status: MyPropertyStatus.pending,
-      views: 0,
-      enquiries: 0,
-      tokens: 0,
-      postedOn: '10 Jun 2025',
-      gradientKey: 'teal',
-    ),
-    const MyPropertyModel(
-      id: 'mp3',
-      title: 'Royal Residency — 4 BHK',
-      location: 'Greater Noida West',
-      price: '₹1.2 Cr',
-      type: '4 BHK Villa',
-      status: MyPropertyStatus.rejected,
-      views: 0,
-      enquiries: 0,
-      tokens: 0,
-      postedOn: '08 Jun 2025',
-      gradientKey: 'gold',
-    ),
-  ],
-);
+  return notifier;
+});
 
 // ─── Invite Friends State ─────────────────────────────────────────────────────
 

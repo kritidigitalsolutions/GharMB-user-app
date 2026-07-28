@@ -2,22 +2,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/project/model/propert_response_mode.dart';
+import 'package:gharmb_app/features/project/provider/all_project_provider.dart';
 import 'package:gharmb_app/features/project/provider/project_provider.dart';
 import 'package:gharmb_app/features/project/views/project_filter_page.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:go_router/go_router.dart';
+import 'package:riverpod/legacy.dart';
 
-class ProjectListPage extends ConsumerWidget {
+/// Holds whichever property card was last tapped, so the detail page knows
+/// what to display. Plain state provider — not related to demo/real data.
+final selectedProjectProvider = StateProvider<PropertyModel?>((ref) => null);
+
+class ProjectListPage extends ConsumerStatefulWidget {
   final String city;
   const ProjectListPage({super.key, this.city = 'Meerut'});
 
+  @override
+  ConsumerState<ProjectListPage> createState() => _ProjectListPageState();
+}
+
+class _ProjectListPageState extends ConsumerState<ProjectListPage> {
   static const _filters = ['All', '2 BHK', '3 BHK', '4 BHK', 'Ready to Move'];
+  String _selectedFilter = 'All';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(newProjectsProvider);
-    final notifier = ref.read(newProjectsProvider.notifier);
+  Widget build(BuildContext context) {
+    final asyncProjects = ref.watch(projectControllerProvider);
     final filterState = ref.watch(projectFilterProvider);
+
+    final apiProperties = asyncProjects.value?.data.properties ?? const [];
+    final usingDemoData = apiProperties.isEmpty;
+
+    final allProperties = usingDemoData ? _demoProperties : apiProperties;
+    final properties = _applyChipFilter(allProperties, _selectedFilter);
+    final isLoading = asyncProjects.isLoading;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -25,7 +44,7 @@ class ProjectListPage extends ConsumerWidget {
         child: Column(
           children: [
             // ── Top Bar ──────────────────────────────────────────────
-            _TopBar(city: city),
+            _TopBar(city: widget.city),
 
             // ── Search + Filter Row ──────────────────────────────────
             _SearchFilterRow(
@@ -36,40 +55,288 @@ class ProjectListPage extends ConsumerWidget {
             // ── Filter Chips ─────────────────────────────────────────
             _FilterChipsRow(
               filters: _filters,
-              selected: state.selectedFilter,
-              onSelect: notifier.setFilter,
+              selected: _selectedFilter,
+              onSelect: (f) => setState(() => _selectedFilter = f),
             ),
+
+            if (usingDemoData) ...[
+              const SizedBox(height: 8),
+              const _DemoDataBanner(),
+            ],
             const SizedBox(height: 8),
 
             // ── Projects List ─────────────────────────────────────────
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                itemCount: state.projects.length + 1,
-                itemBuilder: (ctx, i) {
-                  if (i == state.projects.length) {
-                    return _LoadMoreButton(
-                      isLoading: state.isLoading,
-                      onTap: notifier.loadMore,
-                    );
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: _ProjectCard(
-                      project: state.projects[i],
-                      onTap: () {
-                        ref.read(selectedProjectProvider.notifier).state =
-                            state.projects[i];
-                        context.pushNamed(AppPage.projectDetailName);
-                      },
-                    ),
-                  );
-                },
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () => ref
+                    .read(projectControllerProvider.notifier)
+                    .loadAllProperties(),
+                child: properties.isEmpty && !isLoading
+                    ? const _EmptyState()
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                        itemCount: properties.length + 1,
+                        itemBuilder: (ctx, i) {
+                          if (i == properties.length) {
+                            return _LoadStatusFooter(
+                              isLoading: isLoading,
+                              hasError: asyncProjects.hasError,
+                              onRetry: () => ref
+                                  .read(projectControllerProvider.notifier)
+                                  .loadAllProperties(),
+                            );
+                          }
+                          final property = properties[i];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: _ProjectCard(
+                              property: property,
+                              onTap: () {
+                                ref
+                                        .read(selectedProjectProvider.notifier)
+                                        .state =
+                                    property;
+                                context.pushNamed(AppPage.projectDetailName);
+                              },
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  List<PropertyModel> _applyChipFilter(
+    List<PropertyModel> properties,
+    String filter,
+  ) {
+    if (filter == 'All') return properties;
+    if (filter == 'Ready to Move') {
+      return properties.where((p) => p.isReadyToMove).toList();
+    }
+    // '2 BHK' / '3 BHK' / '4 BHK'
+    return properties.where((p) => p.bhkLabel.contains(filter[0])).toList();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Display helpers — computed straight off PropertyModel, no second model.
+// ─────────────────────────────────────────────────────────────────────────
+
+extension PropertyDisplay on PropertyModel {
+  bool get isReraApproved => approvalStatus.toLowerCase() == 'approved';
+
+  bool get isReadyToMove =>
+      ageOfProperty.toLowerCase().contains('ready') ||
+      ageOfProperty.trim() == '0';
+
+  String get locationLabel => locality.isNotEmpty ? '$locality, $city' : city;
+
+  String get bhkLabel => bedrooms.isNotEmpty ? '$bedrooms BHK' : '-';
+
+  String get possessionLabel =>
+      ageOfProperty.trim().isEmpty ? 'TBD' : ageOfProperty;
+
+  String get imageUrl => images.isNotEmpty ? images.first : '';
+
+  /// Deterministic gradient per property (no index needed).
+  String get gradientKey {
+    const gradients = ['dark_blue', 'dark_teal', 'dark_yellow'];
+    return gradients[id.hashCode.abs() % gradients.length];
+  }
+
+  String get startingPriceLabel {
+    if (price >= 10000000) {
+      return '₹${(price / 10000000).toStringAsFixed(2)} Cr';
+    } else if (price >= 100000) {
+      return '₹${(price / 100000).toStringAsFixed(1)} L';
+    }
+    return '₹$price';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Hardcoded demo data — real PropertyModel instances, used only when the
+// API has no properties yet (null response, empty list, loading, error).
+// ─────────────────────────────────────────────────────────────────────────
+
+PropertyModel _demoProperty({
+  required String id,
+  required String title,
+  required String city,
+  required String locality,
+  required String bedrooms,
+  required int price,
+  required String developer,
+  required String ageOfProperty,
+  required int tokensCount,
+  required int shortlistedCount,
+  required String approvalStatus,
+}) {
+  final now = DateTime.now();
+  return PropertyModel(
+    location: Location(type: 'Point', coordinates: const [0, 0]),
+    id: id,
+    mongoId: id,
+    listingAs: 'Owner',
+    category: 'Residential',
+    listingFor: 'Sale',
+    propertyType: 'Apartment',
+    title: title,
+    city: city,
+    locality: locality,
+    fullAddress: '$locality, $city',
+    pincode: '000000',
+    description: 'Sample listing shown while live projects are loading.',
+    bedrooms: bedrooms,
+    bathrooms: bedrooms,
+    carpetArea: 0,
+    builtUpArea: 0,
+    floorNo: '-',
+    totalFloors: '-',
+    ageOfProperty: ageOfProperty,
+    furnishing: '-',
+    facingDirection: '-',
+    parking: '-',
+    amenities: const [],
+    preferredTenants: const [],
+    petsAllowed: false,
+    smokingAllowed: false,
+    brokerageFree: true,
+    rentNegotiable: false,
+    images: const [],
+    price: price,
+    securityDeposit: 0,
+    maintenanceCharges: 0,
+    maintenanceIncludedInRent: false,
+    brokerageFee: 0,
+    otherCharges: 0,
+    vastuCompliant: false,
+    openToAllBuyers: true,
+    loanAssistanceNeeded: false,
+    listingTier: 'standard',
+    owner: Owner(
+      id: 'demo-owner-$id',
+      name: developer,
+      phone: '',
+      profilePicture: '',
+      isVerified: true,
+    ),
+    approvalStatus: approvalStatus,
+    isLive: true,
+    viewsCount: 0,
+    shortlistedCount: shortlistedCount,
+    inquiriesCount: 0,
+    tokensCount: tokensCount,
+    createdAt: now,
+    updatedAt: now,
+    submissionId: 'demo-$id',
+  );
+}
+
+final List<PropertyModel> _demoProperties = [
+  _demoProperty(
+    id: 'demo-1',
+    title: 'Shivalik Heights',
+    city: 'Meerut',
+    locality: 'Shastri Nagar',
+    bedrooms: '2',
+    price: 4250000,
+    developer: 'Shivalik Group',
+    ageOfProperty: 'Ready to Move',
+    tokensCount: 180,
+    shortlistedCount: 214,
+    approvalStatus: 'approved',
+  ),
+  _demoProperty(
+    id: 'demo-2',
+    title: 'Green Valley Residency',
+    city: 'Meerut',
+    locality: 'Delhi Road',
+    bedrooms: '3',
+    price: 6500000,
+    developer: 'Omaxe Ltd.',
+    ageOfProperty: 'Dec 2027',
+    tokensCount: 320,
+    shortlistedCount: 452,
+    approvalStatus: 'approved',
+  ),
+  _demoProperty(
+    id: 'demo-3',
+    title: 'Sunrise Enclave',
+    city: 'Meerut',
+    locality: 'Garh Road',
+    bedrooms: '1',
+    price: 2800000,
+    developer: 'Ansal Properties',
+    ageOfProperty: 'Ready to Move',
+    tokensCount: 96,
+    shortlistedCount: 89,
+    approvalStatus: 'pending',
+  ),
+];
+
+// ─── Demo data banner ──────────────────────────────────────────────────────
+
+class _DemoDataBanner extends StatelessWidget {
+  const _DemoDataBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.yellow.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'Showing sample projects — live listings will appear here once available.',
+          style: text11(color: AppColors.textSecondary),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Empty state ───────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      // wrapped in ListView so RefreshIndicator's pull-to-refresh still works
+      children: [
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.5,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.apartment_outlined,
+                  size: 48,
+                  color: AppColors.grey300,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'No projects found',
+                  style: text14(color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -209,7 +476,6 @@ class _SearchFilterRow extends StatelessWidget {
                     size: 20,
                   ),
                 ),
-                // Badge showing active filter count
                 if (activeFilterCount > 0)
                   Positioned(
                     top: -5,
@@ -263,7 +529,7 @@ class _FilterChipsRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: filters.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final f = filters[i];
           final sel = f == selected;
@@ -299,10 +565,10 @@ class _FilterChipsRow extends StatelessWidget {
 // ─── Project Card ─────────────────────────────────────────────────────────────
 
 class _ProjectCard extends StatelessWidget {
-  final ProjectModel project;
+  final PropertyModel property;
   final VoidCallback onTap;
 
-  const _ProjectCard({required this.project, required this.onTap});
+  const _ProjectCard({required this.property, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -333,27 +599,53 @@ class _ProjectCard extends StatelessWidget {
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
-                    gradient: _gradientFor(project.imageGradientKey),
+                    gradient: _gradientFor(property.gradientKey),
                   ),
                   child: ClipRRect(
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(16),
                     ),
-                    child: Image.asset(
-                      'assets/builder.png',
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Center(
-                        child: Icon(
-                          Icons.apartment_rounded,
-                          size: 72,
-                          color: Colors.white.withOpacity(0.12),
-                        ),
-                      ),
-                    ),
+                    child: property.imageUrl.isNotEmpty
+                        ? Image.network(
+                            property.imageUrl,
+                            width: double.infinity,
+                            height: 180,
+                            fit: BoxFit.cover,
+                            loadingBuilder: (context, child, progress) {
+                              if (progress == null) return child;
+                              return Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white.withOpacity(0.6),
+                                    value: progress.expectedTotalBytes != null
+                                        ? progress.cumulativeBytesLoaded /
+                                              progress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                ),
+                              );
+                            },
+                            errorBuilder: (_, __, ___) => Center(
+                              child: Icon(
+                                Icons.apartment_rounded,
+                                size: 72,
+                                color: Colors.white.withOpacity(0.12),
+                              ),
+                            ),
+                          )
+                        : Center(
+                            child: Icon(
+                              Icons.apartment_rounded,
+                              size: 72,
+                              color: Colors.white.withOpacity(0.12),
+                            ),
+                          ),
                   ),
                 ),
-                if (project.reraApproved)
+                if (property.isReraApproved)
                   Positioned(
                     bottom: 12,
                     left: 12,
@@ -362,7 +654,7 @@ class _ProjectCard extends StatelessWidget {
                       bg: AppColors.success,
                     ),
                   ),
-                if (project.readyToMove)
+                if (property.isReadyToMove)
                   Positioned(
                     bottom: 12,
                     right: 12,
@@ -385,12 +677,12 @@ class _ProjectCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          project.name,
+                          property.title,
                           style: text16(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          project.location,
+                          property.locationLabel,
                           style: text12(color: AppColors.textSecondary),
                         ),
                       ],
@@ -404,7 +696,7 @@ class _ProjectCard extends StatelessWidget {
                         style: text11(color: AppColors.textSecondary),
                       ),
                       Text(
-                        project.startingPrice,
+                        property.startingPriceLabel,
                         style: text16(
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -427,7 +719,7 @@ class _ProjectCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    'By ${project.developer}',
+                    'By ${property.owner.name}',
                     style: text14(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w600,
@@ -447,17 +739,17 @@ class _ProjectCard extends StatelessWidget {
               child: Row(
                 children: [
                   _StatCell(
-                    value: project.bhkTypes,
+                    value: property.bhkLabel,
                     label: 'BHK',
                     icon: Icons.bed_outlined,
                   ),
                   _StatCell(
-                    value: '${project.totalUnits}',
+                    value: '${property.tokensCount}',
                     label: 'Units',
                     icon: Icons.domain_outlined,
                   ),
                   _StatCell(
-                    value: project.possession,
+                    value: property.possessionLabel,
                     label: 'Possession',
                     icon: Icons.calendar_today_outlined,
                   ),
@@ -476,7 +768,7 @@ class _ProjectCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${project.interested} Interested',
+                    '${property.shortlistedCount} Interested',
                     style: text12(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w500,
@@ -489,10 +781,7 @@ class _ProjectCard extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 3),
-                  Text(
-                    project.distance,
-                    style: text11(color: AppColors.textSecondary),
-                  ),
+                  Text('-', style: text11(color: AppColors.textSecondary)),
                 ],
               ),
             ),
@@ -570,49 +859,66 @@ class _StatCell extends StatelessWidget {
   );
 }
 
-// ─── Load More Button ─────────────────────────────────────────────────────────
+// ─── Footer: loading / error-retry state ──────────────────────────────────────
+// (Replaces the old "Load More" button — there's no pagination on
+// allProperties(), so this now reflects fetch status instead.)
 
-class _LoadMoreButton extends StatelessWidget {
+class _LoadStatusFooter extends StatelessWidget {
   final bool isLoading;
-  final VoidCallback onTap;
-  const _LoadMoreButton({required this.isLoading, required this.onTap});
+  final bool hasError;
+  final VoidCallback onRetry;
+
+  const _LoadStatusFooter({
+    required this.isLoading,
+    required this.hasError,
+    required this.onRetry,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 4),
-      child: GestureDetector(
-        onTap: isLoading ? null : onTap,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.grey300),
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
+        child: Center(
+          child: SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.primary,
+            ),
           ),
-          child: isLoading
-              ? const Center(
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                )
-              : Center(
-                  child: Text(
-                    'Load More',
-                    style: text14(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
         ),
-      ),
-    );
+      );
+    }
+
+    if (hasError) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: GestureDetector(
+          onTap: onRetry,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.grey300),
+            ),
+            child: Center(
+              child: Text(
+                'Couldn\'t load latest projects — Tap to retry',
+                style: text14(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }

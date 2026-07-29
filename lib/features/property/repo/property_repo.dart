@@ -4,6 +4,7 @@ import 'package:gharmb_app/core/data/network/network_api_service.dart';
 import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
 import 'package:gharmb_app/features/property/models/owner_properties_listing_model.dart';
 import 'package:gharmb_app/features/property/models/payload/owner_propert_listing_payload.dart';
+import 'package:gharmb_app/features/property/models/response/near_properties_response.dart';
 
 class PropertyRepo {
   final NetworkApiService _api = NetworkApiService();
@@ -60,5 +61,14 @@ class PropertyRepo {
       print("Unexpected error in addPropertyListing: $e");
       throw FetchDataException("Failed to add property: ${e.toString()}");
     }
+  }
+
+  Future<NearPropertiesResponse?> nearAllProperties({String? city}) async {
+    final res = await _api.getApi(AppUrls.nearProperties(city));
+    if (res == null) {
+      print("not response!");
+      return null;
+    }
+    return NearPropertiesResponse.fromJson(res);
   }
 }

@@ -1,10 +1,6 @@
 import 'package:riverpod/legacy.dart';
 
-// ─── Models ───────────────────────────────────────────────────────────────────
-
 import 'package:flutter/material.dart';
-
-// ─── Models ───────────────────────────────────────────────────────────────────
 
 class ProjectModel {
   final String id;

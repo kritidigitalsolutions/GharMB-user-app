@@ -1,140 +1,112 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gharmb_app/features/real_state_news/repo/news_repo.dart';
 import 'package:riverpod/legacy.dart';
 
-// ─── Models ───────────────────────────────────────────────────
-class NewsArticle {
-  final String id;
-  final String title;
-  final String category;
-  final String timeAgo;
-  final String readTime;
-  final String imageUrl;
-  final String body;
-  final List<RelatedNews> relatedNews;
+import 'package:gharmb_app/features/real_state_news/models/news_response_model.dart';
+import 'package:gharmb_app/features/real_state_news/models/featured_news_response_model.dart';
+import 'package:gharmb_app/features/real_state_news/models/news_detail_response_model.dart';
 
-  const NewsArticle({
-    required this.id,
-    required this.title,
-    required this.category,
-    required this.timeAgo,
-    required this.readTime,
-    required this.imageUrl,
-    this.body = '',
-    this.relatedNews = const [],
-  });
-}
+// NOTE: adjust the `news_repo.dart` import path above to match wherever
+// NewsRepo actually lives in your project (e.g. .../repo/news_repo.dart).
 
-class RelatedNews {
-  final String id;
-  final String title;
-  const RelatedNews({required this.id, required this.title});
-}
+// ─── Repo provider ────────────────────────────────────────────────────────
 
-// ─── Providers ────────────────────────────────────────────────
-const _dummyBody =
-    "The Reserve Bank of India's Monetary Policy Committee (MPC) voted unanimously to hold "
-    "the repo rate at 6.5%, marking the 5th consecutive pause. This means home loan "
-    "borrowers on floating rates will see no change in their EMIs for at least the next quarter.\n\n"
-    "Banks like SBI, HDFC, and ICICI are expected to maintain their current home loan rates "
-    "ranging from 8.5% to 9.2%. Analysts believe this stability is encouraging fence-sitters to "
-    "commit to property purchases.";
+final newsRepoProvider = Provider<NewsRepo>((ref) => NewsRepo());
 
-const _articles = [
-  NewsArticle(
-    id: '1',
-    title:
-        'RBI holds repo rate at 6.5% — home loan EMIs stay stable this quarter',
-    category: 'Policy',
-    timeAgo: '2 hrs ago',
-    readTime: '3 min read',
-    imageUrl: '',
-    body: _dummyBody,
-    relatedNews: [
-      RelatedNews(
-        id: 'r1',
-        title: 'Budget 2025 — home loan deduction raised to ₹75L',
-      ),
-      RelatedNews(id: 'r2', title: 'Noida prices up 12% — should you buy now?'),
-    ],
-  ),
-  NewsArticle(
-    id: '2',
-    title:
-        'RBI holds repo rate at 6.5% — home loan EMIs stay stable this quarter',
-    category: 'Prices',
-    timeAgo: '2 hrs ago',
-    readTime: '3 min read',
-    imageUrl: '',
-    body: _dummyBody,
-    relatedNews: [
-      RelatedNews(
-        id: 'r1',
-        title: 'Budget 2025 — home loan deduction raised to ₹75L',
-      ),
-      RelatedNews(id: 'r2', title: 'Noida prices up 12% — should you buy now?'),
-    ],
-  ),
-  NewsArticle(
-    id: '3',
-    title:
-        'RBI holds repo rate at 6.5% — home loan EMIs stay stable this quarter',
-    category: 'New launches',
-    timeAgo: '2 hrs ago',
-    readTime: '3 min read',
-    imageUrl: '',
-    body: _dummyBody,
-    relatedNews: [
-      RelatedNews(
-        id: 'r1',
-        title: 'Budget 2025 — home loan deduction raised to ₹75L',
-      ),
-      RelatedNews(id: 'r2', title: 'Noida prices up 12% — should you buy now?'),
-    ],
-  ),
-  NewsArticle(
-    id: '4',
-    title:
-        'RBI holds repo rate at 6.5% — home loan EMIs stay stable this quarter',
-    category: 'RBI & rates',
-    timeAgo: '2 hrs ago',
-    readTime: '3 min read',
-    imageUrl: '',
-    body: _dummyBody,
-    relatedNews: [
-      RelatedNews(
-        id: 'r1',
-        title: 'Budget 2025 — home loan deduction raised to ₹75L',
-      ),
-      RelatedNews(id: 'r2', title: 'Noida prices up 12% — should you buy now?'),
-    ],
-  ),
-];
+// ─── UI selection state ───────────────────────────────────────────────────
 
-const _categories = [
-  'Policy',
-  'Prices',
-  'New launches',
-  'RBI & rates',
-  'Market',
-];
+/// Selected category tab. "All" is a synthetic value meaning "no filter" —
+/// every other value is one of the *raw* category strings returned by the
+/// API (e.g. `policy`, `prices`, `rbi_rates`...), never hardcoded.
+final newsCategoryProvider = StateProvider<String>((ref) => 'All');
 
-// Selected category tab
-final newsCategoryProvider = StateProvider<String>((ref) => 'Policy');
+/// Id of the article currently open on the detail page. The detail page
+/// reads this id and watches `newsDetailProvider(id)` to fetch real data.
+final selectedNewsIdProvider = StateProvider<String?>((ref) => null);
 
-// Selected article (for detail page)
-final selectedArticleProvider = StateProvider<NewsArticle?>((ref) => null);
+/// Simple page counter, kept for "load more" UI. Wire it into
+/// `NewsRepo.allNews()` / `categoryNews()` once those endpoints support a
+/// page/limit query param — the repo above doesn't take one yet.
+final newsPageProvider = StateProvider<int>((ref) => 1);
 
-// All articles
-final newsArticlesProvider = Provider<List<NewsArticle>>((ref) => _articles);
+// ─── Data providers (real API, no dummy data) ─────────────────────────────
 
-// Filtered articles by category
-final filteredNewsProvider = Provider<List<NewsArticle>>((ref) {
-  final cat = ref.watch(newsCategoryProvider);
-  return _articles; // In real app, filter by category
+/// All news, straight from `NewsRepo.allNews()`.
+final allNewsProvider = FutureProvider<List<News>>((ref) async {
+  final repo = ref.watch(newsRepoProvider);
+  final response = await repo.allNews();
+  return response?.data.news ?? [];
 });
 
-// Categories list
-final newsCategoriesProvider = Provider<List<String>>((ref) => _categories);
+/// Featured news, straight from `NewsRepo.allFeaturedNews()`.
+final featuredNewsProvider = FutureProvider<List<FeaturedNews>>((ref) async {
+  final repo = ref.watch(newsRepoProvider);
+  final response = await repo.allFeaturedNews();
+  return response?.data.news ?? [];
+});
 
-// Load more state
-final newsPageProvider = StateProvider<int>((ref) => 1);
+/// News for one specific category, straight from `NewsRepo.categoryNews()`.
+/// Only hit when the user picks a real category (not "All").
+final categoryNewsProvider = FutureProvider.family<List<News>, String>((
+  ref,
+  categoryId,
+) async {
+  final repo = ref.watch(newsRepoProvider);
+  final response = await repo.categoryNews(categoryId: categoryId);
+  return response?.data.news ?? [];
+});
+
+/// Full detail for a single article, straight from `NewsRepo.newsDetail()`.
+final newsDetailProvider = FutureProvider.family<NewsDetail?, String>((
+  ref,
+  id,
+) async {
+  final repo = ref.watch(newsRepoProvider);
+  final response = await repo.newsDetail(id: id);
+  return response?.data.news;
+});
+
+// ─── Categories, derived from real data (no hardcoded list) ───────────────
+
+/// The category chips shown in the UI. Built from the *actual* `category`
+/// field on whatever `allNews` returned, de-duplicated, so if the backend
+/// adds/removes a category the app just picks it up — nothing to edit here.
+final newsCategoriesProvider = Provider<List<String>>((ref) {
+  final newsAsync = ref.watch(allNewsProvider);
+
+  return newsAsync.when(
+    data: (newsList) {
+      final rawCategories = newsList.map((n) => n.category).toSet().toList()
+        ..sort();
+      return ['All', ...rawCategories];
+    },
+    loading: () => const ['All'],
+    error: (_, __) => const ['All'],
+  );
+});
+
+/// Same as above, but as display-friendly labels (e.g. "RBI Rates" instead
+/// of "rbi_rates") using the `NewsCategoryExtension` from the news model.
+/// Pair this with `newsCategoriesProvider` (raw values) 1:1 by index if you
+/// need to show a pretty label but filter on the raw value.
+final newsCategoryLabelsProvider = Provider<List<String>>((ref) {
+  final rawCategories = ref.watch(newsCategoriesProvider);
+  return rawCategories.map((c) {
+    if (c == 'All') return 'All';
+    return c.toNewsCategory().displayName;
+  }).toList();
+});
+
+// ─── Filtered feed, respecting the selected category ──────────────────────
+
+/// The list actually shown on the feed screen. "All" reuses `allNewsProvider`;
+/// any real category re-fetches from the server via `categoryNewsProvider`
+/// so filtering isn't just client-side guesswork.
+final filteredNewsProvider = Provider<AsyncValue<List<News>>>((ref) {
+  final selectedCategory = ref.watch(newsCategoryProvider);
+
+  if (selectedCategory == 'All') {
+    return ref.watch(allNewsProvider);
+  }
+  return ref.watch(categoryNewsProvider(selectedCategory));
+});

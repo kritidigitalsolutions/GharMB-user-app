@@ -3,6 +3,7 @@ import 'package:gharmb_app/core/data/network/network_api_service.dart';
 import 'package:gharmb_app/features/developer/model/payload/agent_register_payload.dart';
 import 'package:gharmb_app/features/developer/model/payload/developer_register_payload.dart';
 import 'package:gharmb_app/features/developer/model/response/agent_response.dart';
+import 'package:gharmb_app/features/developer/model/response/all_developer_response.dart';
 import 'package:gharmb_app/features/developer/model/response/developer_register_response.dart';
 
 import '../../../core/utils/local_storage/auth_storage.dart';
@@ -64,5 +65,14 @@ class DeveloperRepo {
       print("Error in registerAgent: $e");
       return null;
     }
+  }
+
+  Future<AllDeveloperResponse?> allDevelopers() async {
+    final res = await _api.getApi(AppUrls.allDeveloper);
+    if (res == null) {
+      print("null datat");
+      return null;
+    }
+    return AllDeveloperResponse.fromJson(res);
   }
 }

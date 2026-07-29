@@ -5,25 +5,53 @@ import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/home/providers/notification_provider.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 
-class NotificationsPage extends ConsumerWidget {
+class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final notifications = ref.watch(notificationProvider);
-    final unread = ref.watch(unreadCountProvider);
-    final notifier = ref.read(notificationProvider.notifier);
+  ConsumerState<NotificationsPage> createState() => _NotificationsPageState();
+}
 
-    // Group into Today, Yesterday, Earlier
-    final today = notifications
-        .where((n) => n.timeAgo.contains('min') || n.timeAgo.contains('hr'))
-        .toList();
-    final yesterday = notifications
-        .where((n) => n.timeAgo == 'Yesterday')
-        .toList();
-    final earlier = notifications
-        .where((n) => n.timeAgo.contains('days'))
-        .toList();
+class _NotificationsPageState extends ConsumerState<NotificationsPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Load notifications when page opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(notificationProvider.notifier).fetchNotifications();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(notificationProvider);
+    final notifications = state.notifications;
+    final unread = state.unreadCount;
+    final notifier = ref.read(notificationProvider.notifier);
+    final isLoading = state.isLoading;
+    final error = state.error;
+
+    // Group notifications by date
+    final now = DateTime.now();
+    final today = notifications.where((n) {
+      final diff = now.difference(n.createdAt);
+      return diff.inDays == 0;
+    }).toList();
+
+    final yesterday = notifications.where((n) {
+      final diff = now.difference(n.createdAt);
+      return diff.inDays == 1;
+    }).toList();
+
+    final earlier = notifications.where((n) {
+      final diff = now.difference(n.createdAt);
+      return diff.inDays >= 2 && diff.inDays < 7;
+    }).toList();
+
+    final older = notifications.where((n) {
+      final diff = now.difference(n.createdAt);
+      return diff.inDays >= 7;
+    }).toList();
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -35,7 +63,7 @@ class NotificationsPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Row(
                 children: [
-                  CustomBackButton(),
+                  const CustomBackButton(),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Row(
@@ -69,63 +97,140 @@ class NotificationsPage extends ConsumerWidget {
                   ),
                   if (unread > 0)
                     GestureDetector(
-                      onTap: () => notifier.markAllAsRead(),
-                      child: Text(
-                        'Mark all read',
-                        style: text12(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      onTap: state.isMarkingAll
+                          ? null
+                          : () => notifier.markAllAsRead(),
+                      child: state.isMarkingAll
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
+                            )
+                          : Text(
+                              'Mark all read',
+                              style: text12(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
+            // ── Error State ─────────────────────────────────────
+            if (error != null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: AppColors.error,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          error,
+                          style: text12(color: AppColors.error),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => notifier.clearError(),
+                        child: Icon(
+                          Icons.close,
+                          color: AppColors.error,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
             // ── List ────────────────────────────────────────────
             Expanded(
-              child: notifications.isEmpty
+              child: isLoading && notifications.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : notifications.isEmpty
                   ? _EmptyState()
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                      children: [
-                        if (today.isNotEmpty) ...[
-                          _SectionLabel(label: 'Today'),
-                          const SizedBox(height: 10),
-                          ...today.map(
-                            (n) => _NotificationCard(
-                              notification: n,
-                              onTap: () => notifier.markAsRead(n.id),
-                              onDelete: () => notifier.delete(n.id),
+                  : RefreshIndicator(
+                      onRefresh: () => notifier.refresh(),
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          if (today.isNotEmpty) ...[
+                            _SectionLabel(label: 'Today'),
+                            const SizedBox(height: 10),
+                            ...today.map(
+                              (n) => _NotificationCard(
+                                notification: n,
+                                onTap: () => notifier.markAsRead(n.id),
+                                onDelete: () =>
+                                    notifier.deleteNotification(n.id),
+                              ),
                             ),
-                          ),
-                        ],
-                        if (yesterday.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _SectionLabel(label: 'Yesterday'),
-                          const SizedBox(height: 10),
-                          ...yesterday.map(
-                            (n) => _NotificationCard(
-                              notification: n,
-                              onTap: () => notifier.markAsRead(n.id),
-                              onDelete: () => notifier.delete(n.id),
+                          ],
+                          if (yesterday.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            _SectionLabel(label: 'Yesterday'),
+                            const SizedBox(height: 10),
+                            ...yesterday.map(
+                              (n) => _NotificationCard(
+                                notification: n,
+                                onTap: () => notifier.markAsRead(n.id),
+                                onDelete: () =>
+                                    notifier.deleteNotification(n.id),
+                              ),
                             ),
-                          ),
-                        ],
-                        if (earlier.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _SectionLabel(label: 'Earlier'),
-                          const SizedBox(height: 10),
-                          ...earlier.map(
-                            (n) => _NotificationCard(
-                              notification: n,
-                              onTap: () => notifier.markAsRead(n.id),
-                              onDelete: () => notifier.delete(n.id),
+                          ],
+                          if (earlier.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            _SectionLabel(label: 'This Week'),
+                            const SizedBox(height: 10),
+                            ...earlier.map(
+                              (n) => _NotificationCard(
+                                notification: n,
+                                onTap: () => notifier.markAsRead(n.id),
+                                onDelete: () =>
+                                    notifier.deleteNotification(n.id),
+                              ),
                             ),
-                          ),
+                          ],
+                          if (older.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            _SectionLabel(label: 'Older'),
+                            const SizedBox(height: 10),
+                            ...older.map(
+                              (n) => _NotificationCard(
+                                notification: n,
+                                onTap: () => notifier.markAsRead(n.id),
+                                onDelete: () =>
+                                    notifier.deleteNotification(n.id),
+                              ),
+                            ),
+                          ],
+                          if (isLoading && notifications.isNotEmpty)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
                         ],
-                      ],
+                      ),
                     ),
             ),
           ],
@@ -251,7 +356,7 @@ class _NotificationCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      notification.subtitle,
+                      notification.message,
                       style: text12(color: AppColors.textSecondary),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -289,6 +394,8 @@ class _NotifIcon extends StatelessWidget {
         return Icons.trending_down_rounded;
       case NotificationType.system:
         return Icons.settings_outlined;
+      case NotificationType.unknown:
+        return Icons.notifications_outlined;
     }
   }
 
@@ -304,6 +411,8 @@ class _NotifIcon extends StatelessWidget {
         return AppColors.success.withOpacity(0.1);
       case NotificationType.system:
         return AppColors.grey200;
+      case NotificationType.unknown:
+        return AppColors.grey200;
     }
   }
 
@@ -318,6 +427,8 @@ class _NotifIcon extends StatelessWidget {
       case NotificationType.priceAlert:
         return AppColors.success;
       case NotificationType.system:
+        return AppColors.grey600;
+      case NotificationType.unknown:
         return AppColors.grey600;
     }
   }

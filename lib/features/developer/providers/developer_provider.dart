@@ -1,5 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:gharmb_app/core/data/network/network_api_service.dart';
+import 'package:gharmb_app/features/developer/model/response/all_developer_response.dart';
+import 'package:gharmb_app/features/developer/repo/developer_repo.dart';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
@@ -55,140 +58,68 @@ class ReviewModel {
   });
 }
 
-// ─── Dummy Data ───────────────────────────────────────────────────────────────
+// ─── Demo reviews (API doesn't return reviews yet — kept for the rating UI) ───
 
-final _developers = [
-  DeveloperModel(
-    id: 'd1',
-    name: 'Godrej Properties',
-    coverage: 'Pan India · 80+ projects',
-    projects: 80,
-    rating: 4.9,
-    reviewCount: '12K reviews',
-    reraApproved: true,
-    isoCertified: true,
-    bseListed: true,
-    established: 'Est. 1990 · BSE listed',
-    unitsDelivered: 15000,
-    cities: 12,
-    about:
-        'Godrej Properties brings the Godrej Group philosophy of innovation, sustainability and excellence to the real estate industry. They have won over 250 awards for excellence in construction, design and delivery. All projects are IGBC green-rated.',
-    reviews: const [
-      ReviewModel(
-        name: 'Anil Verma',
-        initials: 'AV',
-        rating: 5.0,
-        review:
-            'Excellent construction quality. Delivered on time. The admin team at NestKey made the entire process smooth.',
-        projectBought: 'Bought Godrej Meridian',
-        timeAgo: '2 weeks ago',
-      ),
-      ReviewModel(
-        name: 'Priya Sharma',
-        initials: 'PS',
-        rating: 4.5,
-        review:
-            'Great project. Construction quality is top-notch. Would highly recommend to anyone looking for premium homes.',
-        projectBought: 'Bought Godrej Palm Grove',
-        timeAgo: '1 month ago',
-      ),
-    ],
+const _demoReviews = [
+  ReviewModel(
+    name: 'Anil Verma',
+    initials: 'AV',
+    rating: 5.0,
+    review:
+        'Excellent construction quality. Delivered on time. The admin team at NestKey made the entire process smooth.',
+    projectBought: 'Bought a premium project',
+    timeAgo: '2 weeks ago',
   ),
-  DeveloperModel(
-    id: 'd2',
-    name: 'Godrej Properties',
-    coverage: 'Pan India · 80+ projects',
-    projects: 80,
-    rating: 4.9,
-    reviewCount: '12K reviews',
-    reraApproved: true,
-    isoCertified: true,
-    bseListed: false,
-    established: 'Est. 1990',
-    unitsDelivered: 15000,
-    cities: 12,
-    about:
-        'Godrej Properties brings the Godrej Group philosophy of innovation, sustainability and excellence to the real estate industry.',
-    reviews: const [
-      ReviewModel(
-        name: 'Rahul Gupta',
-        initials: 'RG',
-        rating: 4.5,
-        review: 'Good construction quality. On-time delivery.',
-        projectBought: 'Bought Godrej Heights',
-        timeAgo: '3 weeks ago',
-      ),
-    ],
-  ),
-  DeveloperModel(
-    id: 'd3',
-    name: 'Godrej Properties',
-    coverage: 'Pan India · 80+ projects',
-    projects: 80,
-    rating: 4.9,
-    reviewCount: '12K reviews',
-    reraApproved: true,
-    isoCertified: true,
-    bseListed: false,
-    established: 'Est. 1990',
-    unitsDelivered: 15000,
-    cities: 12,
-    about: 'Award-winning real estate developer with presence across India.',
-    reviews: const [],
-  ),
-  DeveloperModel(
-    id: 'd4',
-    name: 'Godrej Properties',
-    coverage: 'Pan India · 80+ projects',
-    projects: 80,
-    rating: 4.9,
-    reviewCount: '12K reviews',
-    reraApproved: true,
-    isoCertified: true,
-    bseListed: false,
-    established: 'Est. 1990',
-    unitsDelivered: 15000,
-    cities: 12,
-    about: 'Delivering quality homes for over 30 years.',
-    reviews: const [],
-  ),
-  DeveloperModel(
-    id: 'd5',
-    name: 'Godrej Properties',
-    coverage: 'Pan India · 80+ projects',
-    projects: 80,
-    rating: 4.9,
-    reviewCount: '12K reviews',
-    reraApproved: true,
-    isoCertified: true,
-    bseListed: false,
-    established: 'Est. 1990',
-    unitsDelivered: 15000,
-    cities: 12,
-    about: 'Green-rated projects with world-class amenities.',
-    reviews: const [],
-  ),
-  DeveloperModel(
-    id: 'd6',
-    name: 'Godrej Properties',
-    coverage: 'Pan India · 80+ projects',
-    projects: 80,
-    rating: 4.9,
-    reviewCount: '12K reviews',
-    reraApproved: true,
-    isoCertified: true,
-    bseListed: false,
-    established: 'Est. 1990',
-    unitsDelivered: 15000,
-    cities: 12,
-    about: 'Trusted by millions of homebuyers across the country.',
-    reviews: const [],
+  ReviewModel(
+    name: 'Priya Sharma',
+    initials: 'PS',
+    rating: 4.5,
+    review:
+        'Great project. Construction quality is top-notch. Would highly recommend to anyone looking for premium homes.',
+    projectBought: 'Bought a premium project',
+    timeAgo: '1 month ago',
   ),
 ];
+
+// ─── Mapper: API Developer -> DeveloperModel ──────────────────────────────────
+
+DeveloperModel _mapDeveloper(Developer d) {
+  return DeveloperModel(
+    id: d.id,
+    name: d.companyName.isNotEmpty ? d.companyName : d.name,
+    coverage: '${d.cityOfOperation} · ${d.projectCountDisplay}',
+    projects: d.projectCount,
+    rating: d.rating,
+    reviewCount: '${d.reviewCount} reviews',
+    // Not returned by the API yet — kept as demo flags for the badges UI.
+    reraApproved: true,
+    isoCertified: true,
+    bseListed: false,
+    established: 'Est. ${d.yearsInBusiness}',
+    unitsDelivered: 0,
+    cities: 1,
+    about:
+        '${d.name} has been delivering quality projects across ${d.cityOfOperation} for ${d.yearsInBusiness}.',
+    // API has no reviews field yet — demo rating section preserved here.
+    reviews: _demoReviews,
+  );
+}
 
 // ─── Providers ────────────────────────────────────────────────────────────────
 
 final _cities = ['All India', 'Noida', 'Gurgaon', 'Mumbai', 'Bangalore'];
+
+final developerRepoProvider = Provider<DeveloperRepo>(
+  (ref) => DeveloperRepo(networkApiService: NetworkApiService()),
+);
+
+// Raw API call
+final allDevelopersDataProvider = FutureProvider<AllDeveloperResponse?>((
+  ref,
+) async {
+  final repo = ref.watch(developerRepoProvider);
+  return repo.allDevelopers();
+});
 
 class DeveloperListState {
   final List<DeveloperModel> developers;
@@ -216,16 +147,33 @@ class DeveloperListState {
 }
 
 class DeveloperListNotifier extends StateNotifier<DeveloperListState> {
-  DeveloperListNotifier() : super(DeveloperListState(developers: _developers));
+  DeveloperListNotifier() : super(const DeveloperListState());
 
   void setCity(String c) => state = state.copyWith(selectedCity: c);
   void toggleShowAll() => state = state.copyWith(showAll: !state.showAll);
+
+  // Called once the API data resolves.
+  void hydrate(List<DeveloperModel> developers) {
+    state = state.copyWith(developers: developers);
+  }
 }
 
 final developerListProvider =
-    StateNotifierProvider<DeveloperListNotifier, DeveloperListState>(
-      (_) => DeveloperListNotifier(),
-    );
+    StateNotifierProvider<DeveloperListNotifier, DeveloperListState>((ref) {
+      final notifier = DeveloperListNotifier();
+
+      ref.listen<AsyncValue<AllDeveloperResponse?>>(allDevelopersDataProvider, (
+        previous,
+        next,
+      ) {
+        final list = next.value?.data.developers;
+        if (list != null) {
+          notifier.hydrate(list.map(_mapDeveloper).toList());
+        }
+      }, fireImmediately: true);
+
+      return notifier;
+    });
 
 final selectedDeveloperProvider = StateProvider<DeveloperModel?>((ref) => null);
 

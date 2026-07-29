@@ -7,14 +7,29 @@ import 'package:go_router/go_router.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 
-class TopDevelopersPage extends ConsumerWidget {
+class TopDevelopersPage extends ConsumerStatefulWidget {
   const TopDevelopersPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TopDevelopersPage> createState() => _TopDevelopersPageState();
+}
+
+class _TopDevelopersPageState extends ConsumerState<TopDevelopersPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Kick off the API call as soon as the page mounts.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(allDevelopersDataProvider);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(developerListProvider);
     final notifier = ref.read(developerListProvider.notifier);
     final cities = ref.watch(citiesProvider);
+    final developersAsync = ref.watch(allDevelopersDataProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -72,40 +87,87 @@ class TopDevelopersPage extends ConsumerWidget {
 
             // ── Developer List ───────────────────────────────────────
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                children: [
-                  ...state.visibleDevelopers.asMap().entries.map(
-                    (e) => Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: _DeveloperCard(
-                        rank: e.key + 1,
-                        developer: e.value,
-                        onTap: () {
-                          ref.read(selectedDeveloperProvider.notifier).state =
-                              e.value;
-                          context.pushNamed(AppPage.developerDetailName);
-                        },
-                      ),
+              child: developersAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, _) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Failed to load developers',
+                          style: text14(fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '$err',
+                          textAlign: TextAlign.center,
+                          style: text12(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 12),
+                        GestureDetector(
+                          onTap: () =>
+                              ref.invalidate(allDevelopersDataProvider),
+                          child: Text(
+                            'Retry',
+                            style: text13(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  // View all / View less
-                  Center(
-                    child: GestureDetector(
-                      onTap: notifier.toggleShowAll,
+                ),
+                data: (_) {
+                  if (state.developers.isEmpty) {
+                    return Center(
                       child: Text(
-                        state.showAll
-                            ? 'View less ↑'
-                            : 'View all ${state.developers.length} developers ↓',
-                        style: text13(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
+                        'No developers found',
+                        style: text13(color: AppColors.textSecondary),
+                      ),
+                    );
+                  }
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                    children: [
+                      ...state.visibleDevelopers.asMap().entries.map(
+                        (e) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _DeveloperCard(
+                            rank: e.key + 1,
+                            developer: e.value,
+                            onTap: () {
+                              ref
+                                      .read(selectedDeveloperProvider.notifier)
+                                      .state =
+                                  e.value;
+                              context.pushNamed(AppPage.developerDetailName);
+                            },
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                      const SizedBox(height: 4),
+                      // View all / View less
+                      Center(
+                        child: GestureDetector(
+                          onTap: notifier.toggleShowAll,
+                          child: Text(
+                            state.showAll
+                                ? 'View less ↑'
+                                : 'View all ${state.developers.length} developers ↓',
+                            style: text13(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],

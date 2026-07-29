@@ -35,7 +35,7 @@ class PropertyData {
 
   factory PropertyData.fromJson(Map<String, dynamic> json) {
     return PropertyData(
-      properties: (json['properties'] as List? ?? [])
+      properties: (json['properties'] as List<dynamic>? ?? [])
           .map((e) => Property.fromJson(e))
           .toList(),
     );
@@ -156,8 +156,8 @@ class Property {
   factory Property.fromJson(Map<String, dynamic> json) {
     return Property(
       location: Location.fromJson(json['location'] ?? {}),
-      mongoId: json['_id'] ?? '',
       id: json['id'] ?? '',
+      mongoId: json['_id'] ?? '',
       listingAs: json['listingAs'] ?? '',
       category: json['category'] ?? '',
       listingFor: json['listingFor'] ?? '',
@@ -273,7 +273,7 @@ class Location {
   factory Location.fromJson(Map<String, dynamic> json) {
     return Location(
       type: json['type'] ?? '',
-      coordinates: (json['coordinates'] as List? ?? [])
+      coordinates: (json['coordinates'] as List<dynamic>? ?? [])
           .map((e) => (e as num).toDouble())
           .toList(),
     );

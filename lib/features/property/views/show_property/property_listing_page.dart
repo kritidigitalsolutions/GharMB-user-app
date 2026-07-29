@@ -2,18 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
-import 'package:gharmb_app/features/property/providers/property_listing_provider.dart';
+import 'package:gharmb_app/features/property/models/response/near_properties_response.dart';
+import 'package:gharmb_app/features/property/providers/property_listing_near_by_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
+import 'package:riverpod/legacy.dart';
+
+// local filter chips state (kept simple, no separate provider file needed)
+final activeFiltersProvider = StateProvider<List<String>>(
+  (_) => ['Ready to move', 'Verified', '2-4 BHK'],
+);
 
 class VerifiedListingsPage extends ConsumerWidget {
   const VerifiedListingsPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(listingsProvider);
-    final notifier = ref.read(listingsProvider.notifier);
+    final nearPropertiesAsync = ref.watch(nearPropertiesProvider);
     final filters = ref.watch(activeFiltersProvider);
 
     return Scaffold(
@@ -45,63 +51,107 @@ class VerifiedListingsPage extends ConsumerWidget {
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(20),
                   ),
-                  child: CustomScrollView(
-                    slivers: [
-                      // Verified badge + filter chips + count
-                      SliverToBoxAdapter(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 16),
+                  child: RefreshIndicator(
+                    onRefresh: () =>
+                        ref.read(nearPropertiesProvider.notifier).refresh(),
+                    child: nearPropertiesAsync.when(
+                      loading: () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.only(top: 60),
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                      error: (err, _) => Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            'Failed to load listings: $err',
+                            style: text13(color: AppColors.textSecondary),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                      data: (response) {
+                        final properties = response?.data.properties ?? [];
+                        final totalCount = response?.totalCount ?? 0;
 
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              child: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: '1,247 ',
-                                      style: text13(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: 'verified homes',
-                                      style: text13(color: AppColors.primary),
-                                    ),
-                                  ],
-                                ),
+                        if (properties.isEmpty) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 60),
+                              child: Text(
+                                'No properties found nearby.',
+                                style: text13(color: AppColors.textSecondary),
                               ),
                             ),
-                            const SizedBox(height: 12),
-                          ],
-                        ),
-                      ),
+                          );
+                        }
 
-                      // Property cards list
-                      SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (ctx, i) => Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            child: _PropertyCard(listing: state.visible[i]),
-                          ),
-                          childCount: state.visible.length,
-                        ),
-                      ),
+                        return CustomScrollView(
+                          slivers: [
+                            // Count header
+                            SliverToBoxAdapter(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 16),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    child: RichText(
+                                      text: TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text: '$totalCount ',
+                                            style: text13(
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          TextSpan(
+                                            text: 'verified homes',
+                                            style: text13(
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
+                              ),
+                            ),
 
-                      // Load more / end
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                          child: state.hasMore
-                              ? _LoadMoreButton(
-                                  isLoading: state.isLoading,
-                                  onTap: notifier.loadMore,
-                                )
-                              : Center(
+                            // Property cards list
+                            SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (ctx, i) => Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    0,
+                                    16,
+                                    16,
+                                  ),
+                                  child: _PropertyCard(property: properties[i]),
+                                ),
+                                childCount: properties.length,
+                              ),
+                            ),
+
+                            // End marker (no server-side pagination available)
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  32,
+                                ),
+                                child: Center(
                                   child: Padding(
                                     padding: const EdgeInsets.all(12),
                                     child: Text(
@@ -112,9 +162,12 @@ class VerifiedListingsPage extends ConsumerWidget {
                                     ),
                                   ),
                                 ),
-                        ),
-                      ),
-                    ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -246,7 +299,6 @@ class _FilterChipsRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          // Filters button
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
@@ -268,7 +320,6 @@ class _FilterChipsRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // Active filter chips
           ...filters.map(
             (f) => Padding(
               padding: const EdgeInsets.only(right: 8),
@@ -309,14 +360,33 @@ class _FilterChipsRow extends StatelessWidget {
 // ─── Property Card ────────────────────────────────────────────────────────────
 
 class _PropertyCard extends StatelessWidget {
-  final ListingModel listing;
+  final Property property;
 
-  const _PropertyCard({required this.listing});
+  const _PropertyCard({required this.property});
 
   @override
   Widget build(BuildContext context) {
-    final isRent = listing.tag == 'For Rent';
+    final isRent = property.listingFor.toLowerCase().contains('rent');
+    final tagLabel = isRent ? 'For Rent' : 'For Sale';
     final tagBg = isRent ? AppColors.success : AppColors.blue;
+    final priceSuffix = isRent ? '/month' : '';
+
+    final area = property.carpetArea > 0
+        ? property.carpetArea
+        : property.builtUpArea;
+
+    final restrictions = <String>[
+      property.preferredTenants.isNotEmpty
+          ? property.preferredTenants.join(', ')
+          : 'Any',
+      property.petsAllowed ? 'Pets OK' : 'No Pets',
+      property.smokingAllowed ? 'Smoking OK' : 'No Smoking',
+    ];
+    final restrictionIcons = <String>[
+      property.preferredTenants.isNotEmpty ? '👨‍👩‍👧' : '✅',
+      property.petsAllowed ? '🐾' : '🚫',
+      property.smokingAllowed ? '🚬' : '🥦',
+    ];
 
     return GestureDetector(
       onTap: () {
@@ -347,20 +417,31 @@ class _PropertyCard extends StatelessWidget {
                       top: Radius.circular(16),
                     ),
                     gradient: LinearGradient(
-                      colors: _gradientForIndex(listing.id),
+                      colors: _gradientForIndex(property.id),
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
                   child: ClipRRect(
-                    borderRadius: BorderRadiusGeometry.vertical(
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(14),
                     ),
-                    child: Image.asset(
-                      "assets/builder.png",
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                    ),
+                    child: property.images.isNotEmpty
+                        ? Image.network(
+                            property.images.first,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (ctx, err, stack) => Image.asset(
+                              "assets/builder.png",
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
+                          )
+                        : Image.asset(
+                            "assets/builder.png",
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          ),
                   ),
                 ),
                 // Tag chip
@@ -377,7 +458,7 @@ class _PropertyCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      listing.tag,
+                      tagLabel,
                       style: text12(
                         color: AppColors.white,
                         fontWeight: FontWeight.w600,
@@ -385,30 +466,6 @@ class _PropertyCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Verified badge
-                // if (listing.isVerified)
-                //   Positioned(
-                //     top: 14,
-                //     right: 14,
-                //     child: Container(
-                //       padding: const EdgeInsets.all(6),
-                //       decoration: BoxDecoration(
-                //         color: AppColors.white,
-                //         shape: BoxShape.circle,
-                //         boxShadow: [
-                //           BoxShadow(
-                //             color: Colors.black.withOpacity(0.1),
-                //             blurRadius: 6,
-                //           ),
-                //         ],
-                //       ),
-                //       child: const Icon(
-                //         Icons.verified,
-                //         color: AppColors.success,
-                //         size: 16,
-                //       ),
-                //     ),
-                //   ),
                 // Wishlist
                 Positioned(
                   bottom: 12,
@@ -447,7 +504,7 @@ class _PropertyCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          listing.name,
+                          property.title,
                           style: text18(fontWeight: FontWeight.bold),
                         ),
                       ),
@@ -456,14 +513,14 @@ class _PropertyCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            listing.type,
+                            '${property.bedrooms} BHK ${property.propertyType}',
                             style: text12(
                               fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary,
                             ),
                           ),
                           Text(
-                            listing.society,
+                            property.locality,
                             style: text11(color: AppColors.textSecondary),
                           ),
                         ],
@@ -481,23 +538,12 @@ class _PropertyCard extends StatelessWidget {
                         color: AppColors.textSecondary,
                       ),
                       const SizedBox(width: 3),
-                      Text(
-                        listing.location,
-                        style: text12(color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        width: 3,
-                        height: 3,
-                        decoration: const BoxDecoration(
-                          color: AppColors.grey400,
-                          shape: BoxShape.circle,
+                      Expanded(
+                        child: Text(
+                          '${property.locality}, ${property.city}',
+                          style: text12(color: AppColors.textSecondary),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        listing.distance,
-                        style: text12(color: AppColors.textSecondary),
                       ),
                     ],
                   ),
@@ -507,14 +553,14 @@ class _PropertyCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        listing.price,
+                        '₹${property.price}',
                         style: text20(
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
                       ),
                       Text(
-                        listing.priceSuffix,
+                        priceSuffix,
                         style: text13(color: AppColors.textSecondary),
                       ),
                     ],
@@ -528,19 +574,19 @@ class _PropertyCard extends StatelessWidget {
                     children: [
                       _MetaItem(
                         icon: Icons.crop_square_rounded,
-                        label: listing.area,
+                        label: '$area sqft',
                       ),
                       _MetaItem(
                         icon: Icons.chair_outlined,
-                        label: listing.furnishing,
+                        label: property.furnishing,
                       ),
                       _MetaItem(
                         icon: Icons.bathtub_outlined,
-                        label: listing.bathrooms,
+                        label: '${property.bathrooms} Bathroom(s)',
                       ),
                       _MetaItem(
                         icon: Icons.local_parking_outlined,
-                        label: listing.parking,
+                        label: property.parking,
                       ),
                     ],
                   ),
@@ -552,10 +598,10 @@ class _PropertyCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: List.generate(
-                      listing.restrictions.length,
+                      restrictions.length,
                       (i) => _RestrictionItem(
-                        emoji: listing.restrictionIcons[i],
-                        label: listing.restrictions[i],
+                        emoji: restrictionIcons[i],
+                        label: restrictions[i],
                       ),
                     ),
                   ),
@@ -717,60 +763,6 @@ class _ActionBtn extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ─── Load More Button ─────────────────────────────────────────────────────────
-
-class _LoadMoreButton extends StatelessWidget {
-  final bool isLoading;
-  final VoidCallback onTap;
-
-  const _LoadMoreButton({required this.isLoading, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: isLoading ? null : onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.primary, width: 1.5),
-        ),
-        child: isLoading
-            ? const Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: AppColors.primary,
-                    strokeWidth: 2,
-                  ),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    'Load more',
-                    style: text14(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  const Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppColors.primary,
-                    size: 18,
-                  ),
-                ],
-              ),
       ),
     );
   }

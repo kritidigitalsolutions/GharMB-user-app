@@ -9,6 +9,11 @@ import 'package:gharmb_app/features/real_state_news/providers/news_provider.dart
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../developer/providers/developer_provider.dart';
+import '../../property/models/response/near_properties_response.dart';
+import '../../property/providers/property_listing_near_by_provider.dart';
+import '../../real_state_news/models/news_response_model.dart';
+
 // ─── Dummy Data Models ────────────────────────────────────────────────────────
 
 class DeveloperModel {
@@ -100,6 +105,8 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final latestNewsAsync = ref.watch(filteredNewsProvider); // add this
+    final nearPropertiesAsync = ref.watch(nearPropertiesProvider);
     final filterState = ref.watch(filterProvider);
 
     return Scaffold(
@@ -188,7 +195,25 @@ class HomePage extends ConsumerWidget {
                           },
                         ),
                         const SizedBox(height: 12),
-                        _PropertiesList(properties: _properties),
+                        nearPropertiesAsync.when(
+                          loading: () => const SizedBox(
+                            height: 200,
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                          error: (err, stack) => const SizedBox(
+                            height: 200,
+                            child: Center(
+                              child: Text('Failed to load properties'),
+                            ),
+                          ),
+                          data: (response) {
+                            final properties = response?.data.properties ?? [];
+                            if (properties.isEmpty) {
+                              return SizedBox.shrink();
+                            }
+                            return _PropertiesList(properties: properties);
+                          },
+                        ),
                         const SizedBox(height: 20),
 
                         // Commercial Spaces
@@ -249,6 +274,7 @@ class HomePage extends ConsumerWidget {
                         const SizedBox(height: 20),
 
                         // Real Estate News
+                        // Real Estate News
                         _SectionHeader(
                           title: 'Real estate news',
                           subtitle: 'Stay ahead of the market',
@@ -257,7 +283,36 @@ class HomePage extends ConsumerWidget {
                           },
                         ),
                         const SizedBox(height: 12),
-                        _NewsCard(),
+                        latestNewsAsync.when(
+                          loading: () => const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16),
+                            child: SizedBox(
+                              height: 200,
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                          ),
+                          error: (_, __) => const SizedBox.shrink(),
+                          data: (articles) {
+                            if (articles.isEmpty)
+                              return const SizedBox.shrink();
+                            final article = articles.first;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              child: _NewsCard(
+                                article: article,
+                                onTap: () {
+                                  ref
+                                          .read(selectedNewsIdProvider.notifier)
+                                          .state =
+                                      article.id;
+                                  context.pushNamed(AppPage.newsDetailsName);
+                                },
+                              ),
+                            );
+                          },
+                        ),
                         const SizedBox(height: 8),
                       ],
                     ),
@@ -649,34 +704,97 @@ class _SectionHeader extends StatelessWidget {
 
 // ─── Top Developers ───────────────────────────────────────────────────────────
 
-class _TopDevelopersList extends StatelessWidget {
+class _TopDevelopersList extends ConsumerWidget {
+  const _TopDevelopersList();
+
   @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 70,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: 4,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncValue = ref.watch(allDevelopersDataProvider);
 
-        itemBuilder: (_, i) => GestureDetector(
-          onTap: () {
-            context.pushNamed(AppPage.developerDetailName);
-          },
-          child: Container(
-            padding: EdgeInsets.only(right: 10),
-            width: 100,
-            height: 65,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10)),
-
-            child: Image.asset("assets/auth/1.png", fit: BoxFit.cover),
+    return asyncValue.when(
+      loading: () => const SizedBox(
+        height: 70,
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, stack) => const SizedBox(
+        height: 70,
+        child: Center(
+          child: Text(
+            'Failed to load developers',
+            style: TextStyle(color: AppColors.textSecondary),
           ),
         ),
       ),
+      data: (response) {
+        final developers = response?.data.developers ?? [];
+        final top = developers.take(4).toList();
+
+        if (top.isEmpty) {
+          return const SizedBox(
+            height: 70,
+            child: Center(
+              child: Text(
+                'No developers found',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: 70,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: top.length,
+            itemBuilder: (_, i) {
+              final dev = top[i];
+              return GestureDetector(
+                onTap: () {
+                  // Navigate to detail page – pass the developer ID
+                  context.pushNamed(
+                    AppPage.developerDetailName,
+                    extra: dev.id, // or pathParameters
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.only(right: 10),
+                  width: 100,
+                  height: 65,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: dev.logo.isNotEmpty
+                        ? Image.network(
+                            dev.logo,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                const _ConstructionLogoPlaceholder(),
+                          )
+                        : const _ConstructionLogoPlaceholder(),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
 
+// ─── Placeholder ────────────────────────────────────────────────────────
+class _ConstructionLogoPlaceholder extends StatelessWidget {
+  const _ConstructionLogoPlaceholder();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFF5F0E8),
+      child: const Center(
+        child: Icon(Icons.construction, color: Color(0xFF8B6914), size: 28),
+      ),
+    );
+  }
+}
 // ─── Filter Sort Row ──────────────────────────────────────────────────────────
 
 class _FilterSortRow extends StatelessWidget {
@@ -754,7 +872,7 @@ class _SmallChip extends StatelessWidget {
 // ─── Properties List ──────────────────────────────────────────────────────────
 
 class _PropertiesList extends StatelessWidget {
-  final List<PropertyModel> properties;
+  final List<Property> properties;
   const _PropertiesList({required this.properties});
 
   @override
@@ -765,7 +883,7 @@ class _PropertiesList extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: properties.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (_, i) => _PropertyCard(property: properties[i]),
       ),
     );
@@ -773,49 +891,120 @@ class _PropertiesList extends StatelessWidget {
 }
 
 class _PropertyCard extends StatelessWidget {
-  final PropertyModel property;
+  final Property property;
   const _PropertyCard({required this.property});
 
   @override
   Widget build(BuildContext context) {
-    //final idx = property.name.hashCode % 3;
+    final isRent = property.listingFor.toLowerCase().contains('rent');
+    final tagLabel = isRent ? 'For Rent' : 'For Sale';
+    final tagBg = isRent ? AppColors.success : AppColors.blue;
+    final area = property.carpetArea > 0
+        ? property.carpetArea
+        : property.builtUpArea;
+    final priceSuffix = isRent ? '/mo' : '';
+    final imageUrl = property.images.isNotEmpty ? property.images.first : null;
+
     return GestureDetector(
       onTap: () {
-        context.pushNamed(AppPage.propertyDetailsName);
+        context.pushNamed(AppPage.propertyDetailsName, extra: property.id);
       },
       child: Container(
-        width: 140,
+        width: 160,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.grey200),
+          color: AppColors.white,
           boxShadow: [
-            // BoxShadow(
-            //   color: Colors.black.withOpacity(0.08),
-            //   blurRadius: 10,
-            //   spreadRadius: 1,
-            //   offset: const Offset(2, 0), // shadow नीचे की तरफ
-            // ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadiusGeometry.vertical(
+            Stack(
+              children: [
+                Container(
+                  height: 100,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(12),
                     ),
-                    child: Image.asset(
-                      width: double.infinity,
-                      height: double.infinity,
-                      "assets/builder.png",
-                      fit: BoxFit.cover,
+                    gradient: LinearGradient(
+                      colors: _gradientForIndex(property.id),
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
                   ),
-                ],
-              ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                    child: imageUrl != null
+                        ? Image.network(
+                            imageUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              "assets/builder.png",
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            ),
+                          )
+                        : Image.asset(
+                            "assets/builder.png",
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: tagBg,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      tagLabel,
+                      style: text10(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 6,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.favorite_border,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
             ),
             Padding(
               padding: const EdgeInsets.all(10),
@@ -823,20 +1012,24 @@ class _PropertyCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    property.price,
-                    style: text13(
+                    '₹${property.price}$priceSuffix',
+                    style: text14(
                       fontWeight: FontWeight.bold,
                       color: AppColors.primary,
                     ),
                   ),
+                  const SizedBox(height: 3),
                   Text(
-                    property.name,
-                    style: text11(color: AppColors.textPrimary),
+                    property.title,
+                    style: text12(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    property.location,
+                    property.locality,
                     style: text10(color: AppColors.textSecondary),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -844,17 +1037,20 @@ class _PropertyCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(
-                        Icons.bed_outlined,
-                        size: 11,
-                        color: AppColors.textSecondary,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        property.beds,
-                        style: text10(color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(width: 6),
+                      if (int.tryParse(property.bedrooms) != null &&
+                          int.parse(property.bedrooms) > 0) ...[
+                        Icon(
+                          Icons.bed_outlined,
+                          size: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          property.bedrooms,
+                          style: text10(color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
                       Icon(
                         Icons.crop_square,
                         size: 11,
@@ -862,9 +1058,23 @@ class _PropertyCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        property.area,
+                        '$area sqft',
                         style: text10(color: AppColors.textSecondary),
                       ),
+                      const SizedBox(width: 6),
+                      if (int.tryParse(property.bathrooms) != null &&
+                          int.parse(property.bathrooms) > 0) ...[
+                        Icon(
+                          Icons.bathtub_outlined,
+                          size: 11,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          property.bathrooms,
+                          style: text10(color: AppColors.textSecondary),
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -875,8 +1085,20 @@ class _PropertyCard extends StatelessWidget {
       ),
     );
   }
-}
 
+  List<Color> _gradientForIndex(String id) {
+    final idx = id.hashCode % 6;
+    const gradients = [
+      [Color(0xFF1A3A5C), Color(0xFF2D6A9F)],
+      [Color(0xFF1B4332), Color(0xFF40916C)],
+      [Color(0xFF4A1942), Color(0xFF9B2335)],
+      [Color(0xFF1A1A4E), Color(0xFF3D3DAA)],
+      [Color(0xFF3B2F00), Color(0xFF8B6914)],
+      [Color(0xFF002B36), Color(0xFF004D5E)],
+    ];
+    return gradients[idx.abs()].map((c) => c).toList();
+  }
+}
 // ─── Commercial Spaces ────────────────────────────────────────────────────────
 
 class _CommercialList extends StatelessWidget {
@@ -1117,62 +1339,126 @@ class _QuickAccessGrid extends StatelessWidget {
 
 // ─── News Card ────────────────────────────────────────────────────────────────
 
-class _NewsCard extends ConsumerWidget {
+// ─── News Card ─────────────────────────────────────────────────
+class _NewsCard extends StatelessWidget {
+  final News article;
+  final VoidCallback onTap;
+
+  const _NewsCard({required this.article, required this.onTap});
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: GestureDetector(
-        onTap: () {
-          final articles = ref.watch(filteredNewsProvider);
-          // ref.read(selectedArticleProvider.notifier).state = articles[1];
-          context.pushNamed(AppPage.newsDetailsName);
-        },
-        child: Container(
-          height: 200,
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(14),
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+                child: article.image.isNotEmpty
+                    ? Image.network(
+                        article.image,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            const _NewsImagePlaceholder(),
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        },
+                      )
+                    : const _NewsImagePlaceholder(),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    article.shortTitle,
+                    style: text12(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${article.formattedPublishedAt} · ${article.readTimeDisplay}',
+                    style: text10(color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NewsImagePlaceholder extends StatelessWidget {
+  const _NewsImagePlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF1A1035), Color(0xFF4A2060), Color(0xFFE8956D)],
+            ),
           ),
+        ),
+        Center(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadiusGeometry.vertical(
-                    top: Radius.circular(12),
-                  ),
-                  child: Image.asset(
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    "assets/builder.png",
-                  ),
+              Text(
+                'THE NEW',
+                style: text16(
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.white.withOpacity(0.9),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'RBI holds repo rate at 6.5% — home loan EMIs will stay stable this quarter',
-                      style: text12(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '3 hrs ago · 2 min read',
-                      style: text10(color: AppColors.textSecondary),
-                    ),
-                  ],
+              Text(
+                'BUSINESS',
+                style: text20(
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.white.withOpacity(0.9),
+                ),
+              ),
+              Text(
+                'Era',
+                style: appTextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w300,
+                  color: AppColors.white.withOpacity(0.7),
                 ),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

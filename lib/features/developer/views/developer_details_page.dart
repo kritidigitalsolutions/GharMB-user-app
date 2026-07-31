@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gharmb_app/core/constants/app_colors.dart';
+import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/developer/providers/developer_provider.dart';
+import 'package:gharmb_app/features/developer/providers/enquiry_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gharmb_app/core/constants/app_colors.dart';
-import 'package:gharmb_app/core/theme/text_style.dart';
 
 class DeveloperDetailPage extends ConsumerWidget {
   const DeveloperDetailPage({super.key});
@@ -31,7 +32,7 @@ class DeveloperDetailPage extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
               child: Row(
                 children: [
-                  CustomBackButton(),
+                  const CustomBackButton(),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -158,7 +159,7 @@ class DeveloperDetailPage extends ConsumerWidget {
                               Expanded(
                                 child: _StatChip(
                                   value:
-                                      '${(dev.unitsDelivered / 1000).toStringAsFixed(0)}K+',
+                                  '${(dev.unitsDelivered / 1000).toStringAsFixed(0)}K+',
                                   label: 'Units delivered',
                                 ),
                               ),
@@ -199,7 +200,16 @@ class DeveloperDetailPage extends ConsumerWidget {
                     const SizedBox(height: 20),
 
                     // ── Enquire Now ──────────────────────────────────
-                    AppButton(title: "Enquire now", onTap: () {}),
+                    AppButton(
+                      title: "Enquire now",
+                      onTap: () {
+                        _showEnquiryBottomSheet(
+                          context,
+                          ref,
+                          developerId: dev.id,
+                        );
+                      },
+                    ),
                     const SizedBox(height: 22),
 
                     // ── Buyer Reviews ────────────────────────────────
@@ -224,7 +234,7 @@ class DeveloperDetailPage extends ConsumerWidget {
                             children: [
                               Text(
                                 dev.rating.toStringAsFixed(1),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 42,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.textPrimary,
@@ -234,7 +244,7 @@ class DeveloperDetailPage extends ConsumerWidget {
                               Row(
                                 children: List.generate(
                                   5,
-                                  (i) => Icon(
+                                      (i) => Icon(
                                     i < dev.rating.floor()
                                         ? Icons.star_rounded
                                         : Icons.star_border_rounded,
@@ -267,7 +277,7 @@ class DeveloperDetailPage extends ConsumerWidget {
 
                     // ── Review Cards ─────────────────────────────────
                     ...dev.reviews.map(
-                      (r) => Padding(
+                          (r) => Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: _ReviewCard(review: r),
                       ),
@@ -288,6 +298,155 @@ class DeveloperDetailPage extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  // ─── Bottom Sheet for Enquiry ──────────────────────────────────────
+  void _showEnquiryBottomSheet(
+      BuildContext context,
+      WidgetRef ref, {
+        required String developerId,
+      }) {
+    final TextEditingController messageController = TextEditingController();
+    bool isLoading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    Text(
+                      'Send Enquiry',
+                      style: text18(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Your message will be sent to the developer.',
+                      style: text13(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Message TextField
+                    TextField(
+                      controller: messageController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: 'Write your message here...',
+                        hintStyle: text15(color: AppColors.hintText),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.grey300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.grey300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppColors.primary),
+                        ),
+                        filled: true,
+                        fillColor: AppColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Submit Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : ElevatedButton(
+                        onPressed: () async {
+                          final message = messageController.text.trim();
+                          if (message.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Please enter a message.'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          setState(() => isLoading = true);
+
+                          final enquiryNotifier =
+                          ref.read(enquiryProvider.notifier);
+                          final success =
+                          await enquiryNotifier.submitEnquiry(
+                            developerId: developerId,
+                            message: message,
+                          );
+
+                          setState(() => isLoading = false);
+
+                          // Close bottom sheet
+                          Navigator.pop(context);
+
+                          // Show feedback
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Enquiry submitted successfully!',
+                                ),
+                                backgroundColor: AppColors.success,
+                              ),
+                            );
+                          } else {
+                            final error = ref
+                                .read(enquiryProvider)
+                                .errorMessage ??
+                                'Something went wrong.';
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(error),
+                                backgroundColor: AppColors.error,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: Text(
+                          'Submit',
+                          style: text16(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -451,7 +610,7 @@ class _ReviewCard extends StatelessWidget {
               Row(
                 children: List.generate(
                   5,
-                  (i) => Icon(
+                      (i) => Icon(
                     i < review.rating.floor()
                         ? Icons.star_rounded
                         : Icons.star_border_rounded,
@@ -503,14 +662,14 @@ const _defaultDeveloper = DeveloperModel(
   unitsDelivered: 15000,
   cities: 12,
   about:
-      'Godrej Properties brings the Godrej Group philosophy of innovation, sustainability and excellence to the real estate industry. They have won over 250 awards for excellence in construction, design and delivery. All projects are IGBC green-rated.',
+  'Godrej Properties brings the Godrej Group philosophy of innovation, sustainability and excellence to the real estate industry. They have won over 250 awards for excellence in construction, design and delivery. All projects are IGBC green-rated.',
   reviews: [
     ReviewModel(
       name: 'Anil Verma',
       initials: 'AV',
       rating: 5.0,
       review:
-          'Excellent construction quality. Delivered on time. The admin team at NestKey made the entire process smooth.',
+      'Excellent construction quality. Delivered on time. The admin team at NestKey made the entire process smooth.',
       projectBought: 'Bought Godrej Meridian',
       timeAgo: '2 weeks ago',
     ),

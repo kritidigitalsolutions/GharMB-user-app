@@ -63,8 +63,22 @@ class PropertyRepo {
     }
   }
 
-  Future<NearPropertiesResponse?> nearAllProperties({String? city}) async {
-    final res = await _api.getApi(AppUrls.nearProperties(city));
+  Future<NearPropertiesResponse?> nearAllProperties({
+    String? city,
+    required double lat,
+    required double lng,
+    double radius = 50,
+    String radiusUnit = 'km',
+  }) async {
+    final res = await _api.getApi(
+      AppUrls.nearProperties(
+        city: city ?? '',
+        lat: lat,
+        lng: lng,
+        radius: radius,
+        radiusUnit: radiusUnit,
+      ),
+    );
     if (res == null) {
       print("not response!");
       return null;

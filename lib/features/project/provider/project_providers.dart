@@ -129,51 +129,8 @@ extension _PossessionLabel on PropertyModel {
 // ─────────────────────────────────────────────────────────────────────────
 
 final List<ProjectModel> demoProjects = [
-  const ProjectModel(
-    id: 'demo-1',
-    imageGradientKey: 'dark_blue',
-    reraApproved: true,
-    readyToMove: true,
-    name: 'Shivalik Heights',
-    location: 'Shastri Nagar, Meerut',
-    startingPrice: '₹42.5 L',
-    developer: 'Shivalik Group',
-    bhkTypes: '2, 3 BHK',
-    totalUnits: 180,
-    possession: 'Ready to Move',
-    interested: 214,
-    distance: '2.4 km away',
-  ),
-  const ProjectModel(
-    id: 'demo-2',
-    imageGradientKey: 'dark_teal',
-    reraApproved: true,
-    readyToMove: false,
-    name: 'Green Valley Residency',
-    location: 'Delhi Road, Meerut',
-    startingPrice: '₹65 L',
-    developer: 'Omaxe Ltd.',
-    bhkTypes: '3, 4 BHK',
-    totalUnits: 320,
-    possession: 'Dec 2027',
-    interested: 452,
-    distance: '5.1 km away',
-  ),
-  const ProjectModel(
-    id: 'demo-3',
-    imageGradientKey: 'dark_yellow',
-    reraApproved: false,
-    readyToMove: true,
-    name: 'Sunrise Enclave',
-    location: 'Garh Road, Meerut',
-    startingPrice: '₹28 L',
-    developer: 'Ansal Properties',
-    bhkTypes: '1, 2 BHK',
-    totalUnits: 96,
-    possession: 'Ready to Move',
-    interested: 89,
-    distance: '3.8 km away',
-  ),
+  
+
 ];
 
 // ─────────────────────────────────────────────────────────────────────────

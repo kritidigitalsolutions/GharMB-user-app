@@ -8,6 +8,8 @@ import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/utils/local_storage/auth_storage.dart';
+
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   const OtpVerificationScreen({super.key});
 
@@ -20,7 +22,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   final List<TextEditingController> _controllers = List.generate(
     6,
-    (_) => TextEditingController(),
+        (_) => TextEditingController(),
   );
 
   @override
@@ -47,10 +49,20 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         _focusNodes[index + 1].requestFocus();
       } else {
         _focusNodes[index].unfocus();
-        notifier.verify(() {
-          context.pushNamed(AppPage.roleSelectionName);
-        });
+        notifier.verify(_navigateAfterVerification);
       }
+    }
+  }
+  Future<void> _navigateAfterVerification() async {
+    final user = await LocalStorageService.getUser();
+    final bool isOnboardingCompleted = user?.isOnboardingCompleted ?? false;
+
+    if (!mounted) return;
+
+    if (isOnboardingCompleted) {
+      context.pushReplacementNamed(AppPage.myHomeName);
+    } else {
+      context.pushNamed(AppPage.roleSelectionName);
     }
   }
 
@@ -83,7 +95,6 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 32),
-
               Text(
                 'Verify Your Number',
                 style: text24(color: AppColors.textPrimary),
@@ -182,43 +193,43 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               Center(
                 child: state.isResending
                     ? SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.primary,
-                        ),
-                      )
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.primary,
+                  ),
+                )
                     : GestureDetector(
-                        onTap: state.resendCountdown == 0
-                            ? notifier.resend
-                            : null,
-                        child: RichText(
-                          text: TextSpan(
-                            style: text13(color: AppColors.textSecondary),
-                            children: [
-                              const TextSpan(text: "Didn't receive code? "),
-                              if (state.resendCountdown > 0)
-                                TextSpan(
-                                  text:
-                                      'Resend OTP in ${_formatSeconds(state.resendCountdown)}',
-                                  style: text13(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primary,
-                                  ),
-                                )
-                              else
-                                TextSpan(
-                                  text: 'Resend OTP',
-                                  style: text13(
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                            ],
+                  onTap: state.resendCountdown == 0
+                      ? notifier.resend
+                      : null,
+                  child: RichText(
+                    text: TextSpan(
+                      style: text13(color: AppColors.textSecondary),
+                      children: [
+                        const TextSpan(text: "Didn't receive code? "),
+                        if (state.resendCountdown > 0)
+                          TextSpan(
+                            text:
+                            'Resend OTP in ${_formatSeconds(state.resendCountdown)}',
+                            style: text13(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        else
+                          TextSpan(
+                            text: 'Resend OTP',
+                            style: text13(
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
+                            ),
                           ),
-                        ),
-                      ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
 
               const Spacer(),
@@ -228,14 +239,10 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 title: 'Continue',
                 onTap: (state.isFilled && !state.isLoading && !state.isVerified)
                     ? () {
-                        notifier.verify(() {
-                          // Navigate to next step
-                        });
-                      }
+                  notifier.verify(_navigateAfterVerification);
+                }
                     : state.isVerified
-                    ? () {
-                        context.pushNamed(AppPage.roleSelectionName);
-                      }
+                    ? _navigateAfterVerification
                     : null,
                 isLoading: state.isLoading,
               ),

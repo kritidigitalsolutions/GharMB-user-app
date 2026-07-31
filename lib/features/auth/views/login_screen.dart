@@ -219,6 +219,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             .trim();
                                         context.pushNamed(AppPage.otpName);
                                       },
+
                                     )
                                   : null,
                               style: ElevatedButton.styleFrom(

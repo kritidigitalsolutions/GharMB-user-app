@@ -1,5 +1,5 @@
 class AppUrls {
-  static const serverUrl = "http://192.168.1.31:5001";
+  static const serverUrl = "http://192.168.1.23:5001";
   static const baseUrl = "$serverUrl/api";
 
   // --------------------------------------
@@ -33,19 +33,21 @@ class AppUrls {
   }) =>
       "$baseUrl/properties/near-me?city=$city&lat=$lat&lng=$lng&radius=$radius&radiusUnit=$radiusUnit";
   static const allNotifications = "$baseUrl/notifications";
-  static readNotification({required String id}) =>
+  static String readNotification({required String id}) =>
       "$baseUrl/notifications/$id/read";
   static const markAllNofication = "$baseUrl/notifications/mark-all-read";
   static const allNews = "$baseUrl/news";
-  static categoryNews({required String id}) => "$baseUrl/news/category/$id";
+  static String categoryNews({required String id}) =>
+      "$baseUrl/news/category/$id";
   static const featuredNews = "$baseUrl/news/featured";
-  static newsDetail({required String id}) => "$baseUrl/news/$id";
-  static developerDetail({required String id}) => "$baseUrl/developers/$id";
-  static enquiry({required String developerId}) =>
+  static String newsDetail({required String id}) => "$baseUrl/news/$id";
+  static String developerDetail({required String id}) =>
+      "$baseUrl/developers/$id";
+  static String enquiry({required String developerId}) =>
       "$baseUrl/users/enquiries/developer";
-  static submitReview({required String developerId}) =>
+  static String submitReview({required String developerId}) =>
       "$baseUrl/users/developers/$developerId/reviews";
-  static getDeveloperReview({
+  static String getDeveloperReview({
     required String developerId,
     required int pageNo,
     required int pageSize,

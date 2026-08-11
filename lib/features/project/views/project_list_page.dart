@@ -61,7 +61,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
 
             if (usingDemoData) ...[
               const SizedBox(height: 8),
-              const _DemoDataBanner(),
+              //const _DemoDataBanner(),
             ],
             const SizedBox(height: 8),
 
@@ -283,28 +283,28 @@ final List<PropertyModel> _demoProperties = [
 
 // ─── Demo data banner ──────────────────────────────────────────────────────
 
-class _DemoDataBanner extends StatelessWidget {
-  const _DemoDataBanner();
+// class _DemoDataBanner extends StatelessWidget {
+//   const _DemoDataBanner();
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.yellow.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          'Showing sample projects — live listings will appear here once available.',
-          style: text11(color: AppColors.textSecondary),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: const EdgeInsets.symmetric(horizontal: 16),
+//       child: Container(
+//         width: double.infinity,
+//         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+//         decoration: BoxDecoration(
+//           color: AppColors.yellow.withOpacity(0.12),
+//           borderRadius: BorderRadius.circular(8),
+//         ),
+//         child: Text(
+//           'Showing sample projects — live listings will appear here once available.',
+//           style: text11(color: AppColors.textSecondary),
+//         ),
+//       ),
+//     );
+//   }
+// }
 
 // ─── Empty state ───────────────────────────────────────────────────────────
 
@@ -529,7 +529,7 @@ class _FilterChipsRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: filters.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final f = filters[i];
           final sel = f == selected;
@@ -628,7 +628,7 @@ class _ProjectCard extends StatelessWidget {
                                 ),
                               );
                             },
-                            errorBuilder: (_, __, ___) => Center(
+                            errorBuilder: (_, _, _) => Center(
                               child: Icon(
                                 Icons.apartment_rounded,
                                 size: 72,

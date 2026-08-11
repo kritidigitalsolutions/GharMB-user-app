@@ -128,10 +128,7 @@ extension _PossessionLabel on PropertyModel {
 // (null response, empty properties list, or a load error).
 // ─────────────────────────────────────────────────────────────────────────
 
-final List<ProjectModel> demoProjects = [
-  
-
-];
+final List<ProjectModel> demoProjects = [];
 
 // ─────────────────────────────────────────────────────────────────────────
 // Derived provider: what the page actually renders.
@@ -153,7 +150,7 @@ final displayedProjectsProvider = Provider<List<ProjectModel>>((ref) {
       ];
     },
     loading: () => demoProjects,
-    error: (_, __) => demoProjects,
+    error: (_, _) => demoProjects,
   );
 });
 
@@ -164,7 +161,7 @@ final isShowingDemoDataProvider = Provider<bool>((ref) {
   return async.when(
     data: (response) => (response?.data.properties ?? const []).isEmpty,
     loading: () => true,
-    error: (_, __) => true,
+    error: (_, _) => true,
   );
 });
 

@@ -42,7 +42,7 @@ class NearPropertiesNotifier extends AsyncNotifier<NearPropertiesResponse?> {
 
   @override
   Future<NearPropertiesResponse?> build() async {
-    return await _fetch(); refresh();
+    return await _fetch();
   }
 
   // Main fetch with optional radius/unit override
@@ -67,19 +67,13 @@ class NearPropertiesNotifier extends AsyncNotifier<NearPropertiesResponse?> {
   }
 
   // Public refresh – can optionally accept new radius/unit
-  Future<void> refresh({
-    double? radius,
-    String? radiusUnit,
-  }) async {
+  Future<void> refresh({double? radius, String? radiusUnit}) async {
     this.radius = radius ?? this.radius;
     this.radiusUnit = radiusUnit ?? this.radiusUnit;
 
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(
-          () => _fetch(
-        overrideRadius: this.radius,
-        overrideUnit: this.radiusUnit,
-      ),
+      () => _fetch(overrideRadius: this.radius, overrideUnit: this.radiusUnit),
     );
   }
 }
@@ -87,6 +81,6 @@ class NearPropertiesNotifier extends AsyncNotifier<NearPropertiesResponse?> {
 // ──────────── Provider ────────────
 
 final nearPropertiesProvider =
-AsyncNotifierProvider<NearPropertiesNotifier, NearPropertiesResponse?>(
+    AsyncNotifierProvider<NearPropertiesNotifier, NearPropertiesResponse?>(
       () => NearPropertiesNotifier(),
-);
+    );

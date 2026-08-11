@@ -697,7 +697,7 @@ class _PropertyCard extends StatelessWidget {
                       width: 80,
                       height: 70,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholderImage(),
+                      errorBuilder: (_, _, _) => _placeholderImage(),
                     )
                   : _placeholderImage(),
             ),

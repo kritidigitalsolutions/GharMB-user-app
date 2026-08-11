@@ -1,9 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/features/profile/provider/profile_provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 
@@ -58,7 +56,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
   }
 
   Future<void> _pickAvatar() async {
-    final picker = ImagePicker();
+    //final picker = ImagePicker();
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.white,
@@ -97,10 +95,10 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
               ),
               onTap: () async {
                 Navigator.pop(context);
-                final img = await picker.pickImage(
-                  source: ImageSource.gallery,
-                  imageQuality: 85,
-                );
+                // final img = await picker.pickImage(
+                //   source: ImageSource.gallery,
+                //   imageQuality: 85,
+                // );
               },
             ),
             ListTile(
@@ -121,10 +119,10 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
               ),
               onTap: () async {
                 Navigator.pop(context);
-                final img = await picker.pickImage(
-                  source: ImageSource.camera,
-                  imageQuality: 85,
-                );
+                // final img = await picker.pickImage(
+                //   source: ImageSource.camera,
+                //   imageQuality: 85,
+                // );
               },
             ),
             const SizedBox(height: 12),

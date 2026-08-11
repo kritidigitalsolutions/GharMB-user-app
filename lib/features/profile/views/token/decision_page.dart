@@ -12,7 +12,7 @@ class DecisionPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final detail = ref.watch(selectedTokenDetailProvider);
-    final action = ref.watch(decisionActionProvider);
+    // final action = ref.watch(decisionActionProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,

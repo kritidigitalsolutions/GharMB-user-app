@@ -10,7 +10,7 @@ enum NotificationType { token, property, news, system, priceAlert, unknown }
 // Extension to convert string to NotificationType
 extension NotificationTypeExtension on String {
   NotificationType toNotificationType() {
-    switch (this.toLowerCase()) {
+    switch (toLowerCase()) {
       case 'token':
         return NotificationType.token;
       case 'property':
@@ -136,8 +136,9 @@ class AppNotification {
       if (difference.inDays == 1) return 'Yesterday';
       if (difference.inDays < 7) return '${difference.inDays} days ago';
       if (difference.inDays < 30) return '${difference.inDays ~/ 7} weeks ago';
-      if (difference.inDays < 365)
+      if (difference.inDays < 365) {
         return '${difference.inDays ~/ 30} months ago';
+      }
       return '${difference.inDays ~/ 365} years ago';
     } else if (difference.inHours > 0) {
       return '${difference.inHours} hr${difference.inHours > 1 ? 's' : ''} ago';

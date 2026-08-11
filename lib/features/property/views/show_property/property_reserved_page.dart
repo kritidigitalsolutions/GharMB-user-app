@@ -283,10 +283,10 @@ class _GmailPainter extends CustomPainter {
 
     // Envelope background
     final bgPaint = Paint()..color = Colors.white;
-    final borderPaint = Paint()
-      ..color = const Color(0xFFEA4335)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
+    // final borderPaint = Paint()
+    //   ..color = const Color(0xFFEA4335)
+    //   ..style = PaintingStyle.stroke
+    //   ..strokeWidth = 1.2;
 
     final rect = RRect.fromRectAndRadius(
       Rect.fromLTWH(0, 0, w, h),

@@ -45,8 +45,8 @@ class ListingModel {
 // ─── Dummy Data ───────────────────────────────────────────────────────────────
 
 List<ListingModel> _generateListings() {
-  final tags = ['For Rent', 'For Sale'];
-  final tagColors = ['green', 'blue'];
+  // final tags = ['For Rent', 'For Sale'];
+  // final tagColors = ['green', 'blue'];
   final types = [
     '3 BHK Apartment',
     '2 BHK Apartment',

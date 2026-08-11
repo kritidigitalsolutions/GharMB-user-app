@@ -5,28 +5,22 @@ class PropertyListingResponse {
   final String? message;
   final PropertyListingData? data;
 
-  PropertyListingResponse({
-    this.status,
-    this.message,
-    this.data,
-  });
+  PropertyListingResponse({this.status, this.message, this.data});
 
   factory PropertyListingResponse.fromJson(Map<String, dynamic> json) {
     return PropertyListingResponse(
       status: json["status"]?.toString(),
       message: json["message"]?.toString(),
       data: json["data"] is Map
-          ? PropertyListingData.fromJson(Map<String, dynamic>.from(json["data"]))
+          ? PropertyListingData.fromJson(
+              Map<String, dynamic>.from(json["data"]),
+            )
           : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      "status": status,
-      "message": message,
-      "data": data?.toJson(),
-    };
+    return {"status": status, "message": message, "data": data?.toJson()};
   }
 }
 
@@ -34,10 +28,7 @@ class PropertyListingData {
   final String? submissionId;
   final PropertyModel? property;
 
-  PropertyListingData({
-    this.submissionId,
-    this.property,
-  });
+  PropertyListingData({this.submissionId, this.property});
 
   factory PropertyListingData.fromJson(Map<String, dynamic> json) {
     return PropertyListingData(
@@ -49,10 +40,7 @@ class PropertyListingData {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      "submissionId": submissionId,
-      "property": property?.toJson(),
-    };
+    return {"submissionId": submissionId, "property": property?.toJson()};
   }
 }
 
@@ -70,15 +58,15 @@ class PropertyModel {
   final String? fullAddress;
   final String? pincode;
   final String? description;
-  
+
   // Room Details
   final String? bedrooms;
   final String? bathrooms;
-  
+
   // Area Details
   final int? carpetArea;
   final int? builtUpArea;
-  
+
   // Floor Details
   final String? floorNo;
   final String? totalFloors;
@@ -86,22 +74,22 @@ class PropertyModel {
   final String? furnishing;
   final String? facingDirection;
   final String? parking;
-  
+
   // Amenities & Preferences
   final List<String>? amenities;
   final List<String>? preferredTenants;
   final bool? petsAllowed;
   final bool? smokingAllowed;
-  
+
   // Rental Details
   final String? noticePeriod;
   final bool? brokerageFree;
   final bool? rentNegotiable;
   final String? availableFrom;
-  
+
   // Images
   final List<String>? images;
-  
+
   // Pricing
   final int? price;
   final int? securityDeposit;
@@ -109,27 +97,27 @@ class PropertyModel {
   final bool? maintenanceIncludedInRent;
   final int? brokerageFee;
   final int? otherCharges;
-  
+
   // Additional Features
   final bool? vastuCompliant;
   final bool? openToAllBuyers;
   final bool? loanAssistanceNeeded;
   final String? listingTier;
-  
+
   // Location
   final LocationModel? location;
-  
+
   // Owner & Status
   final String? owner;
   final String? approvalStatus;
   final bool? isLive;
-  
+
   // Analytics
   final int? viewsCount;
   final int? shortlistedCount;
   final int? inquiriesCount;
   final int? tokensCount;
-  
+
   // Timestamps
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -226,9 +214,7 @@ class PropertyModel {
       brokerageFree: json["brokerageFree"] as bool?,
       rentNegotiable: json["rentNegotiable"] as bool?,
       availableFrom: json["availableFrom"]?.toString(),
-      images: json["images"] is List
-          ? List<String>.from(json["images"])
-          : null,
+      images: json["images"] is List ? List<String>.from(json["images"]) : null,
       price: json["price"] as int?,
       securityDeposit: json["securityDeposit"] as int?,
       maintenanceCharges: json["maintenanceCharges"] as int?,
@@ -321,15 +307,15 @@ class PropertyModel {
   bool get isApproved => approvalStatus?.toLowerCase() == 'approved';
   bool get isPending => approvalStatus?.toLowerCase() == 'pending';
   bool get isRejected => approvalStatus?.toLowerCase() == 'rejected';
-  
+
   String get formattedPrice {
     if (price == null) return '₹0';
     return '₹${price!.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}';
   }
-  
+
   String get formattedArea {
     if (carpetArea == null) return '0 sq.ft';
-    return '${carpetArea} sq.ft';
+    return '$carpetArea sq.ft';
   }
 }
 
@@ -337,28 +323,22 @@ class LocationModel {
   final String? type;
   final List<double>? coordinates;
 
-  const LocationModel({
-    this.type,
-    this.coordinates,
-  });
+  const LocationModel({this.type, this.coordinates});
 
   factory LocationModel.fromJson(Map<String, dynamic> json) {
     return LocationModel(
       type: json["type"]?.toString(),
       coordinates: json["coordinates"] is List
           ? (json["coordinates"] as List)
-              .whereType<num>()
-              .map((value) => value.toDouble())
-              .toList()
+                .whereType<num>()
+                .map((value) => value.toDouble())
+                .toList()
           : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      "type": type,
-      "coordinates": coordinates,
-    };
+    return {"type": type, "coordinates": coordinates};
   }
 
   double? get longitude {

@@ -285,7 +285,7 @@ class _NewsImage extends StatelessWidget {
           ? Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const _NewsImagePlaceholder(),
+              errorBuilder: (_, _, _) => const _NewsImagePlaceholder(),
               loadingBuilder: (context, child, progress) {
                 if (progress == null) return child;
                 return const Center(

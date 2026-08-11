@@ -1,5 +1,4 @@
 // enquiry_provider.dart (or add to your existing provider file)
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/features/developer/repo/developer_repo.dart';
 
@@ -84,7 +83,9 @@ class EnquiryNotifier extends StateNotifier<EnquiryState> {
 // ---------------------------------------------------------------------------
 // Enquiry Provider
 // ---------------------------------------------------------------------------
-final enquiryProvider = StateNotifierProvider<EnquiryNotifier, EnquiryState>((ref) {
+final enquiryProvider = StateNotifierProvider<EnquiryNotifier, EnquiryState>((
+  ref,
+) {
   final repo = ref.watch(developerRepoProvider);
   return EnquiryNotifier(repo);
 });

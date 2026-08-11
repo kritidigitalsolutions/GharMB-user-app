@@ -229,7 +229,7 @@ class _RelatedNewsSection extends ConsumerWidget {
       // Keep the detail page uncluttered if related news is still loading
       // or failed — the article itself already rendered above.
       loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
       data: (allNews) {
         final related = allNews
             .where((n) => n.category == category && n.id != currentId)
@@ -294,7 +294,7 @@ class _ArticleImage extends StatelessWidget {
         height: 190,
         width: double.infinity,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const _ArticleImagePlaceholder(),
+        errorBuilder: (_, _, _) => const _ArticleImagePlaceholder(),
         loadingBuilder: (context, child, progress) {
           if (progress == null) return child;
           return const SizedBox(

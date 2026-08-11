@@ -67,36 +67,6 @@ class HomePage extends ConsumerWidget {
 
   static final _propertyTypes = ['Buy', 'Rent', 'Sell', 'Apartment', 'Villa'];
 
-  static final _properties = [
-    PropertyModel(
-      name: 'Skyline Heights',
-      tag: 'RSBL',
-      price: '₹82L',
-      location: 'Sector 21, Noida',
-      beds: '2 BHK',
-      area: '1250 sqft',
-      imageAsset: '',
-    ),
-    PropertyModel(
-      name: 'Street Valley Vills',
-      tag: '31.1Cr',
-      price: '₹82L',
-      location: 'Sector 44, Noida',
-      beds: '3 BHK',
-      area: '1800 sqft',
-      imageAsset: '',
-    ),
-    PropertyModel(
-      name: 'Skyline Heights',
-      tag: 'RSBL',
-      price: '₹82L',
-      location: 'Sec 62, Noida',
-      beds: '2 BHK',
-      area: '1100 sqft',
-      imageAsset: '',
-    ),
-  ];
-
   static final _commercials = [
     CommercialModel('Shop', Icons.storefront_outlined),
     CommercialModel('Office Space', Icons.business_center_outlined),
@@ -291,10 +261,11 @@ class HomePage extends ConsumerWidget {
                               child: Center(child: CircularProgressIndicator()),
                             ),
                           ),
-                          error: (_, __) => const SizedBox.shrink(),
+                          error: (_, _) => const SizedBox.shrink(),
                           data: (articles) {
-                            if (articles.isEmpty)
+                            if (articles.isEmpty) {
                               return const SizedBox.shrink();
+                            }
                             final article = articles.first;
                             return Padding(
                               padding: const EdgeInsets.symmetric(
@@ -767,7 +738,7 @@ class _TopDevelopersList extends ConsumerWidget {
                         ? Image.network(
                             dev.logo,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
+                            errorBuilder: (_, _, _) =>
                                 const _ConstructionLogoPlaceholder(),
                           )
                         : const _ConstructionLogoPlaceholder(),
@@ -883,7 +854,7 @@ class _PropertiesList extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: properties.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (_, i) => _PropertyCard(property: properties[i]),
       ),
     );
@@ -948,7 +919,7 @@ class _PropertyCard extends StatelessWidget {
                             imageUrl,
                             fit: BoxFit.cover,
                             width: double.infinity,
-                            errorBuilder: (_, __, ___) => Image.asset(
+                            errorBuilder: (_, _, _) => Image.asset(
                               "assets/builder.png",
                               fit: BoxFit.cover,
                               width: double.infinity,
@@ -1368,7 +1339,7 @@ class _NewsCard extends StatelessWidget {
                         article.image,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             const _NewsImagePlaceholder(),
                         loadingBuilder: (context, child, progress) {
                           if (progress == null) return child;

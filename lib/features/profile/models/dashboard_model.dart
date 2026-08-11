@@ -508,7 +508,7 @@ class PropertyDashboardItem {
 
   String get formattedArea {
     if (carpetArea == null) return '0 sq.ft';
-    return '${carpetArea} sq.ft';
+    return '$carpetArea sq.ft';
   }
 
   String get statusDisplay {

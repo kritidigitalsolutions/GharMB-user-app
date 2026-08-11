@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/features/developer/model/payload/review_payload.dart';
 import 'package:gharmb_app/features/developer/repo/developer_repo.dart';
@@ -46,11 +45,7 @@ class ReviewNotifier extends StateNotifier<ReviewState> {
     required ReviewPayload payload,
   }) async {
     // Reset state and show loading
-    state = state.copyWith(
-      isLoading: true,
-      isSuccess: false,
-      clearError: true,
-    );
+    state = state.copyWith(isLoading: true, isSuccess: false, clearError: true);
 
     try {
       final success = await _repo.addReviewDeveloper(
@@ -88,7 +83,11 @@ class ReviewNotifier extends StateNotifier<ReviewState> {
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
-final reviewProvider = StateNotifierProvider<ReviewNotifier, ReviewState>((ref) {
-  final repo = ref.watch(developerRepoProvider); // make sure this provider exists
+final reviewProvider = StateNotifierProvider<ReviewNotifier, ReviewState>((
+  ref,
+) {
+  final repo = ref.watch(
+    developerRepoProvider,
+  ); // make sure this provider exists
   return ReviewNotifier(repo);
 });

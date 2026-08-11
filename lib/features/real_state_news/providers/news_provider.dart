@@ -81,7 +81,7 @@ final newsCategoriesProvider = Provider<List<String>>((ref) {
       return ['All', ...rawCategories];
     },
     loading: () => const ['All'],
-    error: (_, __) => const ['All'],
+    error: (_, _) => const ['All'],
   );
 });
 

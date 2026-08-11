@@ -1,7 +1,5 @@
 // user_profile_response.dart
 
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 class UserProfileResponse {

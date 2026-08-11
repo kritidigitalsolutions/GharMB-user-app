@@ -1,5 +1,5 @@
 class AppUrls {
-  static const serverUrl = "http://192.168.1.27:5001";
+  static const serverUrl = "http://192.168.1.31:5001";
   static const baseUrl = "$serverUrl/api";
 
   // --------------------------------------
@@ -25,13 +25,13 @@ class AppUrls {
   // ... existing constants ...
 
   static String nearProperties({
-   String? city,
-  required double lat,
-  required double lng,
-  double radius = 50,      // default, can be overridden
-  String radiusUnit = 'km', // default, can be overridden
+    String? city,
+    required double lat,
+    required double lng,
+    double radius = 50, // default, can be overridden
+    String radiusUnit = 'km', // default, can be overridden
   }) =>
-  "$baseUrl/properties/near-me?city=$city&lat=$lat&lng=$lng&radius=$radius&radiusUnit=$radiusUnit";
+      "$baseUrl/properties/near-me?city=$city&lat=$lat&lng=$lng&radius=$radius&radiusUnit=$radiusUnit";
   static const allNotifications = "$baseUrl/notifications";
   static readNotification({required String id}) =>
       "$baseUrl/notifications/$id/read";
@@ -40,8 +40,15 @@ class AppUrls {
   static categoryNews({required String id}) => "$baseUrl/news/category/$id";
   static const featuredNews = "$baseUrl/news/featured";
   static newsDetail({required String id}) => "$baseUrl/news/$id";
-  static developerDetail({required String id})=>"$baseUrl/developers/$id";
-  static enquiry({required String developerId})=>"$baseUrl/users/enquiries/developer";
-  static submitReview({required String developerId})=>"$baseUrl/users/developers/$developerId/reviews";
-  static getDeveloperReview({required String developerId ,required int pageNo,required int pageSize})=>"$baseUrl/users/developers/$developerId/reviews?page=$pageNo&limit=$pageSize";
+  static developerDetail({required String id}) => "$baseUrl/developers/$id";
+  static enquiry({required String developerId}) =>
+      "$baseUrl/users/enquiries/developer";
+  static submitReview({required String developerId}) =>
+      "$baseUrl/users/developers/$developerId/reviews";
+  static getDeveloperReview({
+    required String developerId,
+    required int pageNo,
+    required int pageSize,
+  }) =>
+      "$baseUrl/users/developers/$developerId/reviews?page=$pageNo&limit=$pageSize";
 }

@@ -864,6 +864,12 @@ class _BuyerPreferencesSection extends StatelessWidget {
           onChanged: notifier.setVastu,
         ),
         _PreferenceSwitchRow(
+          title: 'Key Handover',
+          subtitle: 'Indicate if keys are ready for immediate handover',
+          value: state.keyHandover,
+          onChanged: notifier.setKeyHandover,
+        ),
+        _PreferenceSwitchRow(
           title: 'Open to all buyers',
           subtitle: 'No religion / community restriction',
           value: state.openToAllBuyers,

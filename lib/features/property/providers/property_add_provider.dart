@@ -146,6 +146,7 @@ class ListPropertyState {
   final String rentEscalation;
   final PossessionStatus possession;
   final bool vastuCompliant;
+  final bool keyHandover;
   final bool openToAllBuyers;
   final bool loanAssistanceNeeded;
   final bool taxIncluded;
@@ -256,6 +257,7 @@ class ListPropertyState {
     this.isSubmitting = false,
     this.submitError,
     this.submissionId,
+    this.keyHandover = false,
   });
 
   bool get isResidential => category == PropertyCategory.residential;
@@ -340,6 +342,7 @@ class ListPropertyState {
     String? rentEscalation,
     PossessionStatus? possession,
     bool? vastuCompliant,
+    bool? keyHandover,
     bool? openToAllBuyers,
     bool? loanAssistanceNeeded,
     bool? taxIncluded,
@@ -423,6 +426,7 @@ class ListPropertyState {
       rentEscalation: rentEscalation ?? this.rentEscalation,
       possession: possession ?? this.possession,
       vastuCompliant: vastuCompliant ?? this.vastuCompliant,
+      keyHandover: keyHandover ?? this.keyHandover,
       openToAllBuyers: openToAllBuyers ?? this.openToAllBuyers,
       loanAssistanceNeeded: loanAssistanceNeeded ?? this.loanAssistanceNeeded,
       taxIncluded: taxIncluded ?? this.taxIncluded,
@@ -592,6 +596,8 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
   void setPossession(PossessionStatus v) =>
       state = state.copyWith(possession: v);
   void setVastu(bool v) => state = state.copyWith(vastuCompliant: v);
+  void setKeyHandover(bool v) => state = state.copyWith(keyHandover: v);
+
   void setOpenToAll(bool v) => state = state.copyWith(openToAllBuyers: v);
   void setLoanAssistance(bool v) =>
       state = state.copyWith(loanAssistanceNeeded: v);
@@ -716,6 +722,7 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
       maintenanceIncludedInRent: s.maintenanceIncluded,
       brokerageFee: _parseInt(s.brokerageAmount),
       vastuCompliant: s.vastuCompliant,
+      // keyHandover: s.keyHandover,
       openToAllBuyers: s.openToAllBuyers,
       loanAssistanceNeeded: s.loanAssistanceNeeded,
       listingTier: s.listingType.tierLabel,

@@ -8,14 +8,56 @@ import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
 
-class BasicInfoScreen extends ConsumerWidget {
+class BasicInfoScreen extends ConsumerStatefulWidget {
   const BasicInfoScreen({super.key});
 
   @override
+  ConsumerState<BasicInfoScreen> createState() => _BasicInfoScreenState();
+}
+
+class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _addressController;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    final state = ref.read(basicInfoProvider);
+    _nameController = TextEditingController(text: state.fullName);
+    _emailController = TextEditingController(text: state.email);
+    _phoneController = TextEditingController(text: state.phone);
+    _addressController = TextEditingController(text: state.address);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(basicInfoProvider);
     final notifier = ref.read(basicInfoProvider.notifier);
+
+    // Keep controllers in sync if updated from location or Google prefill
+    if (_nameController.text != state.fullName && state.fullName.isNotEmpty) {
+      _nameController.text = state.fullName;
+    }
+    if (_emailController.text != state.email && state.email.isNotEmpty) {
+      _emailController.text = state.email;
+    }
+    if (_phoneController.text != state.phone && state.phone.isNotEmpty) {
+      _phoneController.text = state.phone;
+    }
+    if (_addressController.text != state.address && state.address.isNotEmpty) {
+      _addressController.text = state.address;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -51,6 +93,7 @@ class BasicInfoScreen extends ConsumerWidget {
               const SizedBox(height: 28),
 
               _FormField(
+                controller: _nameController,
                 label: 'Full name',
                 hint: 'Enter your full name',
                 icon: Icons.person_outline,
@@ -62,6 +105,7 @@ class BasicInfoScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               _FormField(
+                controller: _emailController,
                 label: 'Email address',
                 hint: 'Enter your email address',
                 icon: Icons.mail_outline,
@@ -73,6 +117,7 @@ class BasicInfoScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               _FormField(
+                controller: _phoneController,
                 label: 'Phone number',
                 hint: 'Enter your mobile number',
                 icon: Icons.phone_outlined,
@@ -83,7 +128,7 @@ class BasicInfoScreen extends ConsumerWidget {
 
               const SizedBox(height: 16),
 
-              // Address with dropdown arrow
+              // Address with location option
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -159,11 +204,7 @@ class BasicInfoScreen extends ConsumerWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: TextField(
-                                controller:
-                                    TextEditingController(text: state.address)
-                                      ..selection = TextSelection.collapsed(
-                                        offset: state.address.length,
-                                      ),
+                                controller: _addressController,
                                 onChanged: notifier.setAddress,
                                 maxLines: 3,
                                 minLines: 2,
@@ -268,11 +309,19 @@ class BasicInfoScreen extends ConsumerWidget {
                 title: "Continue",
                 onTap: (notifier.isFormValid && !state.isLoading)
                     ? () {
-                        ref.read(otpPhoneProvider.notifier).state = state.phone
-                            .trim();
-                        notifier.submit(() {
-                          context.pushNamed(AppPage.otpName);
-                        });
+                        notifier.submit(
+                          onSuccess: (String nextScreen) {
+                            if (nextScreen == 'role_selection') {
+                              context.pushNamed(AppPage.roleSelectionName);
+                            } else if (nextScreen == 'home' || nextScreen == 'dashboard') {
+                              context.pushReplacementNamed(AppPage.myHomeName);
+                            } else {
+                              ref.read(otpPhoneProvider.notifier).state =
+                                  state.phone.trim();
+                              context.pushNamed(AppPage.otpName);
+                            }
+                          },
+                        );
                       }
                     : null,
                 isLoading: state.isLoading,
@@ -288,6 +337,7 @@ class BasicInfoScreen extends ConsumerWidget {
 }
 
 class _FormField extends StatelessWidget {
+  final TextEditingController? controller;
   final String label;
   final String hint;
   final IconData icon;
@@ -296,6 +346,7 @@ class _FormField extends StatelessWidget {
   final TextInputAction textInputAction;
 
   const _FormField({
+    this.controller,
     required this.label,
     required this.hint,
     required this.icon,
@@ -331,6 +382,7 @@ class _FormField extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
+                  controller: controller,
                   onChanged: onChanged,
                   keyboardType: keyboardType,
                   textInputAction: textInputAction,

@@ -1,41 +1,52 @@
 class PrivacyPolicyResponse {
   final String status;
   final bool success;
-  final PrivacyPolicyData data;
+  final PrivacyPolicyData? data;
 
   PrivacyPolicyResponse({
     required this.status,
     required this.success,
-    required this.data,
+    this.data,
   });
 
-  factory PrivacyPolicyResponse.fromJson(Map<String, dynamic> json) {
+  factory PrivacyPolicyResponse.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return PrivacyPolicyResponse(status: '', success: false);
+    }
     return PrivacyPolicyResponse(
-      status: json['status'],
-      success: json['success'],
-      data: PrivacyPolicyData.fromJson(json['data']),
+      status: json['status']?.toString() ?? '',
+      success: json['success'] == true,
+      data: json['data'] != null && json['data'] is Map<String, dynamic>
+          ? PrivacyPolicyData.fromJson(json['data'] as Map<String, dynamic>)
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'status': status,
     'success': success,
-    'data': data.toJson(),
+    if (data != null) 'data': data!.toJson(),
   };
 }
 
 class PrivacyPolicyData {
-  final PrivacyContent legalContent;
+  final PrivacyContent? legalContent;
 
-  PrivacyPolicyData({required this.legalContent});
+  PrivacyPolicyData({this.legalContent});
 
-  factory PrivacyPolicyData.fromJson(Map<String, dynamic> json) {
+  factory PrivacyPolicyData.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return PrivacyPolicyData();
+    final contentJson = json['legalContent'] ?? json['pageContent'] ?? json['content'];
     return PrivacyPolicyData(
-      legalContent: PrivacyContent.fromJson(json['legalContent']),
+      legalContent: contentJson is Map<String, dynamic>
+          ? PrivacyContent.fromJson(contentJson)
+          : null,
     );
   }
 
-  Map<String, dynamic> toJson() => {'legalContent': legalContent.toJson()};
+  Map<String, dynamic> toJson() => {
+    if (legalContent != null) 'legalContent': legalContent!.toJson(),
+  };
 }
 
 class PrivacyContent {
@@ -43,32 +54,41 @@ class PrivacyContent {
   final String type;
   final String title;
   final String content;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final int version;
-  final LastUpdatedBy lastUpdatedBy;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final int? version;
+  final LastUpdatedBy? lastUpdatedBy;
 
   PrivacyContent({
-    required this.id,
-    required this.type,
-    required this.title,
-    required this.content,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.version,
-    required this.lastUpdatedBy,
+    this.id = '',
+    this.type = '',
+    this.title = '',
+    this.content = '',
+    this.createdAt,
+    this.updatedAt,
+    this.version,
+    this.lastUpdatedBy,
   });
 
-  factory PrivacyContent.fromJson(Map<String, dynamic> json) {
+  factory PrivacyContent.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return PrivacyContent();
     return PrivacyContent(
-      id: json['_id'],
-      type: json['type'],
-      title: json['title'],
-      content: json['content'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
-      version: json['__v'],
-      lastUpdatedBy: LastUpdatedBy.fromJson(json['lastUpdatedBy']),
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      type: json['type']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      content: json['content']?.toString() ?? '',
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'].toString())
+          : null,
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.tryParse(json['updatedAt'].toString())
+          : null,
+      version: json['__v'] is int
+          ? json['__v'] as int
+          : int.tryParse(json['__v']?.toString() ?? ''),
+      lastUpdatedBy: json['lastUpdatedBy'] is Map<String, dynamic>
+          ? LastUpdatedBy.fromJson(json['lastUpdatedBy'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -77,10 +97,10 @@ class PrivacyContent {
     'type': type,
     'title': title,
     'content': content,
-    'createdAt': createdAt.toIso8601String(),
-    'updatedAt': updatedAt.toIso8601String(),
-    '__v': version,
-    'lastUpdatedBy': lastUpdatedBy.toJson(),
+    if (createdAt != null) 'createdAt': createdAt!.toIso8601String(),
+    if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+    if (version != null) '__v': version,
+    if (lastUpdatedBy != null) 'lastUpdatedBy': lastUpdatedBy!.toJson(),
   };
 }
 
@@ -89,13 +109,18 @@ class LastUpdatedBy {
   final String name;
   final String email;
 
-  LastUpdatedBy({required this.id, required this.name, required this.email});
+  LastUpdatedBy({
+    this.id = '',
+    this.name = '',
+    this.email = '',
+  });
 
-  factory LastUpdatedBy.fromJson(Map<String, dynamic> json) {
+  factory LastUpdatedBy.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return LastUpdatedBy();
     return LastUpdatedBy(
-      id: json['_id'],
-      name: json['name'],
-      email: json['email'],
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
     );
   }
 

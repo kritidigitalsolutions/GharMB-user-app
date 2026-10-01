@@ -9,6 +9,7 @@ import 'package:gharmb_app/features/auth/providers/upload_provider.dart';
 import 'package:gharmb_app/features/property/providers/property_add_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:gharmb_app/shared/widget/custom_stepprogress.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -158,12 +159,11 @@ class _PhotosVideoPageState extends ConsumerState<PhotosVideoPage> {
       if (mounted) context.pushNamed(AppPage.pricingPreferencesName);
     } else if (uploadState.isError) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
+        AppSnackBar.showError(
+          context,
+          title: 'Upload Failed',
+          message:
               uploadState.errorMessage ?? 'Upload failed. Please try again.',
-            ),
-          ),
         );
       }
     }

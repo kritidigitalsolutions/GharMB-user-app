@@ -85,4 +85,30 @@ class PropertyRepo {
     }
     return NearPropertiesResponse.fromJson(res);
   }
+
+  Future<bool> toggleKeyHandover({
+    required String propertyId,
+    bool? keyHandover,
+  }) async {
+    try {
+      final String token = await LocalStorageService.getToken() ?? "";
+      if (token.isNotEmpty) {
+        _api.setToken(token);
+      }
+
+      final data = keyHandover != null ? {"keyHandover": keyHandover} : {};
+      final res = await _api.patchApi(
+        AppUrls.keyHandover(id: propertyId),
+        data,
+      );
+
+      if (res is Map<String, dynamic> && res['status'] == 'success') {
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print("Unexpected error in toggleKeyHandover: $e");
+      return false;
+    }
+  }
 }

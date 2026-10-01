@@ -74,6 +74,7 @@ final propertiesProvider = Provider<List<PropertyModel>>((ref) {
         imageUrl: (item.images != null && item.images!.isNotEmpty)
             ? item.images!.first
             : '',
+        keyHandover: item.keyHandover ?? false,
       );
     }).toList();
   }

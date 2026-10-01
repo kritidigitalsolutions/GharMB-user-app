@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/core/data/exception/app_exception.dart';
 import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
+import 'package:gharmb_app/features/auth/models/response/auth_response_model.dart';
 import 'package:gharmb_app/features/auth/repo/auth_repo.dart';
 
 // ---------------------------------------------------------------------------
@@ -92,17 +93,17 @@ class OtpNotifier extends StateNotifier<OtpState> {
     );
   }
 
-  Future<void> verify(VoidCallback onSuccess) async {
+  Future<void> verify(void Function(AuthResponseModel res) onSuccess) async {
     if (!state.isFilled) return;
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
       final res = await _authRepo.verifyOTP(phone, state.otpCode);
-      if (res.status == "success") {
+      if (res.token != null && res.token!.isNotEmpty) {
         await LocalStorageService.saveAuthResponse(res);
       }
       state = state.copyWith(isLoading: false, isVerified: true);
-      onSuccess();
+      onSuccess(res);
     } on AppException catch (e) {
       state = state.copyWith(
         isLoading: false,

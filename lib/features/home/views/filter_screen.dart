@@ -115,14 +115,18 @@ class FilterBottomSheet extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '₹${filter.budgetRange.start.toInt()}L',
+                              filter.budgetRange.start >= 100
+                                  ? '₹${(filter.budgetRange.start / 100).toStringAsFixed(1)}Cr'
+                                  : '₹${filter.budgetRange.start.toInt()}L',
                               style: text12(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
-                              '₹${filter.budgetRange.end.toInt()}Cr',
+                              filter.budgetRange.end >= 100
+                                  ? '₹${(filter.budgetRange.end / 100).toStringAsFixed(0)}Cr'
+                                  : '₹${filter.budgetRange.end.toInt()}L',
                               style: text12(
                                 color: AppColors.primary,
                                 fontWeight: FontWeight.w600,
@@ -143,9 +147,12 @@ class FilterBottomSheet extends ConsumerWidget {
                             trackHeight: 4,
                           ),
                           child: RangeSlider(
-                            min: 10,
+                            min: 0,
                             max: 500,
-                            values: filter.budgetRange,
+                            values: RangeValues(
+                              filter.budgetRange.start.clamp(0.0, 500.0),
+                              filter.budgetRange.end.clamp(0.0, 500.0),
+                            ),
                             onChanged: notifier.setBudget,
                             activeColor: AppColors.primary,
                             inactiveColor: AppColors.grey200,
@@ -155,7 +162,7 @@ class FilterBottomSheet extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Min ₹10L',
+                              'Min ₹0L',
                               style: text11(color: AppColors.textSecondary),
                             ),
                             Text(
@@ -242,7 +249,10 @@ class FilterBottomSheet extends ConsumerWidget {
                           child: RangeSlider(
                             min: 0,
                             max: 5000,
-                            values: filter.areaRange,
+                            values: RangeValues(
+                              filter.areaRange.start.clamp(0.0, 5000.0),
+                              filter.areaRange.end.clamp(0.0, 5000.0),
+                            ),
                             onChanged: notifier.setArea,
                             activeColor: AppColors.primary,
                             inactiveColor: AppColors.grey200,
@@ -256,7 +266,7 @@ class FilterBottomSheet extends ConsumerWidget {
                               style: text11(color: AppColors.textSecondary),
                             ),
                             Text(
-                              'Max 1400 sq ft',
+                              'Max 5000 sq ft',
                               style: text11(color: AppColors.textSecondary),
                             ),
                           ],
@@ -312,6 +322,12 @@ class FilterBottomSheet extends ConsumerWidget {
                           onChanged: notifier.toggleVastu,
                         ),
                         ToggleRow(
+                          title: 'Key Handover (Immediate)',
+                          subtitle: 'Keys ready for instant handover',
+                          value: filter.keyHandover,
+                          onChanged: notifier.toggleKeyHandover,
+                        ),
+                        ToggleRow(
                           title: 'Near metro / school',
                           subtitle: 'Nearby amenities preferred',
                           value: filter.nearMetroSchool,
@@ -340,11 +356,19 @@ class FilterBottomSheet extends ConsumerWidget {
                   ),
 
                   const SizedBox(height: 8),
-                  Center(
-                    child: Text(
-                      'Showing results for 231 properties',
-                      style: text12(color: AppColors.primary),
-                    ),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final filteredCount = ref.watch(filteredPropertiesProvider).length;
+                      return Center(
+                        child: Text(
+                          'Showing results for $filteredCount properties',
+                          style: text12(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                 ],

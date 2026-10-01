@@ -2,25 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/home/providers/filter_provider.dart';
+import 'package:gharmb_app/features/home/views/filter_screen.dart';
 import 'package:gharmb_app/features/property/models/response/near_properties_response.dart';
 import 'package:gharmb_app/features/property/providers/property_listing_near_by_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
-import 'package:riverpod/legacy.dart';
-
-// local filter chips state (kept simple, no separate provider file needed)
-final activeFiltersProvider = StateProvider<List<String>>(
-  (_) => ['Ready to move', 'Verified', '2-4 BHK'],
-);
 
 class VerifiedListingsPage extends ConsumerWidget {
   const VerifiedListingsPage({super.key});
 
+  void _openFilter(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const FilterBottomSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nearPropertiesAsync = ref.watch(nearPropertiesProvider);
-    final filters = ref.watch(activeFiltersProvider);
+    final filteredProperties = ref.watch(filteredPropertiesProvider);
+    final filterState = ref.watch(filterProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -31,14 +37,7 @@ class VerifiedListingsPage extends ConsumerWidget {
             _AppBar(),
             _VerifiedBadgeBanner(),
             const SizedBox(height: 14),
-            _FilterChipsRow(
-              filters: filters,
-              onRemove: (f) {
-                ref
-                    .read(activeFiltersProvider.notifier)
-                    .update((s) => s.where((e) => e != f).toList());
-              },
-            ),
+            _FilterChipsRow(onFilterTap: () => _openFilter(context)),
             const SizedBox(height: 10),
             // ── White Content ──────────────────────────────────────────
             Expanded(
@@ -74,16 +73,45 @@ class VerifiedListingsPage extends ConsumerWidget {
                         ),
                       ),
                       data: (response) {
-                        final properties = response?.data.properties ?? [];
-                        final totalCount = response?.totalCount ?? 0;
+                        final allProperties = response?.data.properties ?? [];
 
-                        if (properties.isEmpty) {
+                        if (allProperties.isEmpty) {
                           return Center(
                             child: Padding(
                               padding: const EdgeInsets.only(top: 60),
                               child: Text(
                                 'No properties found nearby.',
                                 style: text13(color: AppColors.textSecondary),
+                              ),
+                            ),
+                          );
+                        }
+
+                        if (filteredProperties.isEmpty) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 60),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.search_off, size: 40, color: AppColors.grey),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    'No properties match current filters.',
+                                    style: text13(color: AppColors.textSecondary),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ElevatedButton(
+                                    onPressed: () => ref.read(filterProvider.notifier).clearAll(),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: Text('Reset Filters', style: text12(color: AppColors.white)),
+                                  ),
+                                ],
                               ),
                             ),
                           );
@@ -105,14 +133,14 @@ class VerifiedListingsPage extends ConsumerWidget {
                                       text: TextSpan(
                                         children: [
                                           TextSpan(
-                                            text: '$totalCount ',
+                                            text: '${filteredProperties.length} ',
                                             style: text13(
                                               color: AppColors.primary,
                                               fontWeight: FontWeight.w600,
                                             ),
                                           ),
                                           TextSpan(
-                                            text: 'verified homes',
+                                            text: 'homes found (${allProperties.length} total)',
                                             style: text13(
                                               color: AppColors.primary,
                                             ),
@@ -136,13 +164,13 @@ class VerifiedListingsPage extends ConsumerWidget {
                                     16,
                                     16,
                                   ),
-                                  child: _PropertyCard(property: properties[i]),
+                                  child: _PropertyCard(property: filteredProperties[i]),
                                 ),
-                                childCount: properties.length,
+                                childCount: filteredProperties.length,
                               ),
                             ),
 
-                            // End marker (no server-side pagination available)
+                            // End marker
                             SliverToBoxAdapter(
                               child: Padding(
                                 padding: const EdgeInsets.fromLTRB(
@@ -286,42 +314,79 @@ class _VerifiedBadgeBanner extends StatelessWidget {
 
 // ─── Filter Chips Row ─────────────────────────────────────────────────────────
 
-class _FilterChipsRow extends StatelessWidget {
-  final List<String> filters;
-  final ValueChanged<String> onRemove;
+class _FilterChipsRow extends ConsumerWidget {
+  final VoidCallback onFilterTap;
 
-  const _FilterChipsRow({required this.filters, required this.onRemove});
+  const _FilterChipsRow({required this.onFilterTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filter = ref.watch(filterProvider);
+    final notifier = ref.read(filterProvider.notifier);
+
+    final activeChips = <_ActiveChipData>[];
+
+    for (final lf in filter.lookingFor) {
+      activeChips.add(_ActiveChipData(lf.label, () => notifier.toggleLookingFor(lf)));
+    }
+    for (final pt in filter.propertyTypes) {
+      activeChips.add(_ActiveChipData(pt.label, () => notifier.togglePropertyType(pt)));
+    }
+    for (final bd in filter.bedrooms) {
+      activeChips.add(_ActiveChipData(bd.label, () => notifier.toggleBedroom(bd)));
+    }
+    for (final fn in filter.furnishing) {
+      activeChips.add(_ActiveChipData(fn.label, () => notifier.toggleFurnishing(fn)));
+    }
+    if (filter.verifiedOnly) {
+      activeChips.add(_ActiveChipData('Verified Only', () => notifier.toggleVerified(false)));
+    }
+    if (filter.readyToMoveIn) {
+      activeChips.add(_ActiveChipData('Ready to Move', () => notifier.toggleReadyToMove(false)));
+    }
+    if (filter.vastuCompliant) {
+      activeChips.add(_ActiveChipData('Vastu Compliant', () => notifier.toggleVastu(false)));
+    }
+    if (filter.keyHandover) {
+      activeChips.add(_ActiveChipData('Key Handover', () => notifier.toggleKeyHandover(false)));
+    }
+    for (final am in filter.amenities) {
+      activeChips.add(_ActiveChipData(am.label, () => notifier.toggleAmenity(am)));
+    }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.tune, color: AppColors.white, size: 14),
-                const SizedBox(width: 6),
-                Text(
-                  'Filters',
-                  style: text13(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w500,
+          GestureDetector(
+            onTap: onFilterTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.tune, color: AppColors.white, size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    filter.activeFilterCount > 0
+                        ? 'Filters (${filter.activeFilterCount})'
+                        : 'Filters',
+                    style: text13(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 8),
-          ...filters.map(
-            (f) => Padding(
+          if (activeChips.isNotEmpty) const SizedBox(width: 8),
+          ...activeChips.map(
+            (chip) => Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -336,10 +401,10 @@ class _FilterChipsRow extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(f, style: text13(color: AppColors.textPrimary)),
+                    Text(chip.label, style: text13(color: AppColors.textPrimary)),
                     const SizedBox(width: 6),
                     GestureDetector(
-                      onTap: () => onRemove(f),
+                      onTap: chip.onRemove,
                       child: const Icon(
                         Icons.close,
                         size: 14,
@@ -355,6 +420,12 @@ class _FilterChipsRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ActiveChipData {
+  final String label;
+  final VoidCallback onRemove;
+  _ActiveChipData(this.label, this.onRemove);
 }
 
 // ─── Property Card ────────────────────────────────────────────────────────────

@@ -170,7 +170,13 @@ final developerListProvider =
         if (list != null) {
           notifier.hydrate(list.map(_mapDeveloper).toList());
         }
-      }, fireImmediately: true);
+      });
+
+      final initialList =
+          ref.read(allDevelopersDataProvider).value?.data.developers;
+      if (initialList != null) {
+        notifier.hydrate(initialList.map(_mapDeveloper).toList());
+      }
 
       return notifier;
     });

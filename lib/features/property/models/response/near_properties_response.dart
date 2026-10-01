@@ -84,6 +84,7 @@ class Property {
   final int brokerageFee;
   final int otherCharges;
   final bool vastuCompliant;
+  final bool keyHandover;
   final bool openToAllBuyers;
   final bool loanAssistanceNeeded;
   final String listingTier;
@@ -137,6 +138,7 @@ class Property {
     required this.brokerageFee,
     required this.otherCharges,
     required this.vastuCompliant,
+    this.keyHandover = false,
     required this.openToAllBuyers,
     required this.loanAssistanceNeeded,
     required this.listingTier,
@@ -192,6 +194,7 @@ class Property {
       brokerageFee: json['brokerageFee'] ?? 0,
       otherCharges: json['otherCharges'] ?? 0,
       vastuCompliant: json['vastuCompliant'] ?? false,
+      keyHandover: json['keyHandover'] ?? false,
       openToAllBuyers: json['openToAllBuyers'] ?? false,
       loanAssistanceNeeded: json['loanAssistanceNeeded'] ?? false,
       listingTier: json['listingTier'] ?? '',
@@ -247,6 +250,7 @@ class Property {
     'brokerageFee': brokerageFee,
     'otherCharges': otherCharges,
     'vastuCompliant': vastuCompliant,
+    'keyHandover': keyHandover,
     'openToAllBuyers': openToAllBuyers,
     'loanAssistanceNeeded': loanAssistanceNeeded,
     'listingTier': listingTier,

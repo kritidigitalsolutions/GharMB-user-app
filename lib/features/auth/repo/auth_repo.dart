@@ -63,6 +63,68 @@ class AuthRepo {
     }
   }
 
+  // Google Login
+
+  Future<AuthResponseModel> googleLogin({
+    required String token,
+    String? email,
+    String? name,
+    String? photoUrl,
+  }) async {
+    try {
+      final payload = {
+        "idToken": token,
+        "token": token,
+        if (email != null) "email": email,
+        if (name != null) "name": name,
+        if (photoUrl != null) "photoUrl": photoUrl,
+      };
+      // print payload (masked token)
+      print('🚀 [AuthRepo.googleLogin] URL: ${AppUrls.googleAuth}');
+      print('📦 [AuthRepo.googleLogin] Payload: ${{
+        ...payload,
+        "token": token.isNotEmpty ? "${token.substring(0, token.length > 20 ? 20 : token.length)}..." : "EMPTY",
+        "idToken": token.isNotEmpty ? "${token.substring(0, token.length > 20 ? 20 : token.length)}..." : "EMPTY",
+      }}');
+
+      final res = await _api.postApi(AppUrls.googleAuth, payload);
+
+      print('📥 [AuthRepo.googleLogin] Raw Response: $res');
+
+      if (res is Map<String, dynamic>) {
+        return AuthResponseModel.fromJson(res);
+      }
+      return AuthResponseModel.fromJson({"data": res});
+    } on AppException catch (e) {
+      print('❌ [AuthRepo.googleLogin] AppException: ${e.message}');
+      rethrow;
+    } catch (e) {
+      print('❌ [AuthRepo.googleLogin] Exception: $e');
+      throw FetchDataException(e.toString());
+    }
+  }
+
+  // Submit Basic Info (Screen 1: Let's set up your profile)
+
+  Future<AuthResponseModel> submitBasicInfo(UserRegisterReqModel model) async {
+    try {
+      final String token = await LocalStorageService.getToken() ?? '';
+      if (token.isNotEmpty) {
+        _api.setToken(token);
+      }
+      final res = await _api.postApi(AppUrls.basicInfo, model.toJson());
+
+      if (res is Map<String, dynamic>) {
+        return AuthResponseModel.fromJson(res);
+      }
+      return AuthResponseModel.fromJson({"data": res});
+    } on AppException {
+      rethrow;
+    } catch (e) {
+      throw FetchDataException(e.toString());
+    }
+  }
+
   Future<Map<String, dynamic>> completedRegister(
     UserRegisterReqModel model,
   ) async {
@@ -87,6 +149,10 @@ class AuthRepo {
     required FileUploadRequest uploadRequest,
     void Function(int sent, int total)? onSendProgress,
   }) async {
+    final String token = await LocalStorageService.getToken() ?? '';
+    if (token.isNotEmpty) {
+      _api.setToken(token);
+    }
     final res = await _api.uploadMultipartApi(
       AppUrls.uploadFile,
       uploadRequest.fields,

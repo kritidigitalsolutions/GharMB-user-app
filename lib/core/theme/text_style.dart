@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 /// -------------------------------
 /// BASE TEXT STYLE (REUSABLE)
@@ -11,13 +10,18 @@ TextStyle appTextStyle({
   Color color = AppColors.textPrimary,
   double? letterSpacing,
   double? height,
+  FontStyle? fontStyle,
+  TextDecoration? decoration,
 }) {
-  return GoogleFonts.poppins(
+  return TextStyle(
+    fontFamily: 'Poppins',
     fontSize: fontSize,
     fontWeight: fontWeight,
     color: color,
     letterSpacing: letterSpacing,
     height: height,
+    fontStyle: fontStyle,
+    decoration: decoration,
   );
 }
 

@@ -39,6 +39,10 @@ class ProfileRepo {
   Future<UserProfileResponse?> updateProfile({
     required UserProfilePayload payload,
   }) async {
+    final String token = await LocalStorageService.getToken() ?? "";
+    if (token.isNotEmpty) {
+      _api.setToken(token);
+    }
     final url = await _api.pacthApi(AppUrls.updateUser, payload.toJson());
     if (url == null) {
       return null;

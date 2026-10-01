@@ -9,6 +9,7 @@ import 'package:gharmb_app/features/developer/model/response/agent_response.dart
 import 'package:gharmb_app/features/developer/model/response/developer_register_response.dart';
 import 'package:gharmb_app/features/developer/providers/register_provider.dart';
 import 'package:gharmb_app/features/developer/repo/developer_repo.dart';
+import 'package:gharmb_app/features/profile/provider/profile_provider.dart';
 import 'package:riverpod/legacy.dart';
 
 // ─── Repo provider ───────────────────────────────────────────────
@@ -168,6 +169,7 @@ class RegistrationSubmitNotifier
         isSuccess: true,
         developerResponse: res,
       );
+      ref.invalidate(userProfileDataProvider);
       return true;
     } else {
       final payload = AgentRegistrationPayload(
@@ -195,6 +197,7 @@ class RegistrationSubmitNotifier
         isSuccess: true,
         agentResponse: res,
       );
+      ref.invalidate(userProfileDataProvider);
       return true;
     }
   }

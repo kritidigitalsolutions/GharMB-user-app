@@ -100,6 +100,7 @@ class PropertyModel {
 
   // Additional Features
   final bool? vastuCompliant;
+  final bool? keyHandover;
   final bool? openToAllBuyers;
   final bool? loanAssistanceNeeded;
   final String? listingTier;
@@ -162,6 +163,7 @@ class PropertyModel {
     this.brokerageFee,
     this.otherCharges,
     this.vastuCompliant,
+    this.keyHandover,
     this.openToAllBuyers,
     this.loanAssistanceNeeded,
     this.listingTier,
@@ -222,6 +224,7 @@ class PropertyModel {
       brokerageFee: json["brokerageFee"] as int?,
       otherCharges: json["otherCharges"] as int?,
       vastuCompliant: json["vastuCompliant"] as bool?,
+      keyHandover: json["keyHandover"] as bool?,
       openToAllBuyers: json["openToAllBuyers"] as bool?,
       loanAssistanceNeeded: json["loanAssistanceNeeded"] as bool?,
       listingTier: json["listingTier"]?.toString(),
@@ -286,6 +289,7 @@ class PropertyModel {
       "brokerageFee": brokerageFee,
       "otherCharges": otherCharges,
       "vastuCompliant": vastuCompliant,
+      "keyHandover": keyHandover,
       "openToAllBuyers": openToAllBuyers,
       "loanAssistanceNeeded": loanAssistanceNeeded,
       "listingTier": listingTier,

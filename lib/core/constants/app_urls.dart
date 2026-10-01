@@ -1,5 +1,6 @@
 class AppUrls {
-  static const serverUrl = "http://192.168.1.23:5001";
+  // static const serverUrl = "https://server.gharmb.com";
+  static const serverUrl = "http://192.168.1.32:5001";
   static const baseUrl = "$serverUrl/api";
 
   // --------------------------------------
@@ -9,6 +10,8 @@ class AppUrls {
   static const register = "$baseUrl/user/auth/register";
   static const login = "$baseUrl/user/auth/send-otp";
   static const verifyOtp = "$baseUrl/user/auth/verify-otp";
+  static const googleAuth = "$baseUrl/user/auth/google";
+  static const basicInfo = "$baseUrl/user/auth/basic-info";
   static const addProperties = "$baseUrl/user/properties";
   static const dashBoardUrl = "$baseUrl/properties/my-dashboard";
   static const getProfile = "$baseUrl/users/me";
@@ -16,6 +19,8 @@ class AppUrls {
   static const uploadFile = "$baseUrl/user/upload/multiple";
   static const developerRegister = "$baseUrl/user/users/register-developer";
   static const allProperties = "$baseUrl/properties";
+  static String keyHandover({required String id}) =>
+      "$baseUrl/properties/$id/key-handover";
   static const legalTerms = "$serverUrl/api/legal/terms";
   static const legalPrivacyPolicy = "$serverUrl/api/legal/privacy-policy";
   static const legalAboutUs = "$serverUrl/api/pages/about-us";

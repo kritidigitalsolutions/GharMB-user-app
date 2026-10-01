@@ -34,6 +34,7 @@ class OwnerPropertListingPayload {
   final bool? maintenanceIncludedInRent;
   final int? brokerageFee;
   final bool? vastuCompliant;
+  final bool? keyHandover;
   final bool? openToAllBuyers;
   final bool? loanAssistanceNeeded;
   final String? listingTier;
@@ -73,6 +74,7 @@ class OwnerPropertListingPayload {
     this.maintenanceIncludedInRent,
     this.brokerageFee,
     this.vastuCompliant,
+    this.keyHandover,
     this.openToAllBuyers,
     this.loanAssistanceNeeded,
     this.listingTier,
@@ -120,6 +122,7 @@ class OwnerPropertListingPayload {
       maintenanceIncludedInRent: json["maintenanceIncludedInRent"] as bool?,
       brokerageFee: json["brokerageFee"] as int?,
       vastuCompliant: json["vastuCompliant"] as bool?,
+      keyHandover: json["keyHandover"] as bool?,
       openToAllBuyers: json["openToAllBuyers"] as bool?,
       loanAssistanceNeeded: json["loanAssistanceNeeded"] as bool?,
       listingTier: json["listingTier"]?.toString(),
@@ -164,6 +167,7 @@ class OwnerPropertListingPayload {
       "maintenanceIncludedInRent": maintenanceIncludedInRent,
       "brokerageFee": brokerageFee,
       "vastuCompliant": vastuCompliant,
+      "keyHandover": keyHandover,
       "openToAllBuyers": openToAllBuyers,
       "loanAssistanceNeeded": loanAssistanceNeeded,
       "listingTier": listingTier,
@@ -206,6 +210,7 @@ class OwnerPropertListingPayload {
     bool? maintenanceIncludedInRent,
     int? brokerageFee,
     bool? vastuCompliant,
+    bool? keyHandover,
     bool? openToAllBuyers,
     bool? loanAssistanceNeeded,
     String? listingTier,
@@ -245,6 +250,7 @@ class OwnerPropertListingPayload {
       maintenanceIncludedInRent: maintenanceIncludedInRent ?? this.maintenanceIncludedInRent,
       brokerageFee: brokerageFee ?? this.brokerageFee,
       vastuCompliant: vastuCompliant ?? this.vastuCompliant,
+      keyHandover: keyHandover ?? this.keyHandover,
       openToAllBuyers: openToAllBuyers ?? this.openToAllBuyers,
       loanAssistanceNeeded: loanAssistanceNeeded ?? this.loanAssistanceNeeded,
       listingTier: listingTier ?? this.listingTier,

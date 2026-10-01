@@ -9,6 +9,7 @@ import 'package:gharmb_app/features/real_state_news/providers/news_provider.dart
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:gharmb_app/features/home/providers/notification_provider.dart';
 import '../../developer/providers/developer_provider.dart';
 import '../../property/models/response/near_properties_response.dart';
 import '../../property/providers/property_listing_near_by_provider.dart';
@@ -65,7 +66,15 @@ class ProjectModel {
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
 
-  static final _propertyTypes = ['Buy', 'Rent', 'Sell', 'Apartment', 'Villa'];
+  static final _propertyTypes = [
+    'All',
+    'Buy',
+    'Rent',
+    'Sell',
+    'Apartment',
+    'Villa',
+    'House',
+  ];
 
   static final _commercials = [
     CommercialModel('Shop', Icons.storefront_outlined),
@@ -112,8 +121,8 @@ class HomePage extends ConsumerWidget {
 
                         // Top Developers
                         Container(
-                          margin: EdgeInsets.symmetric(horizontal: 12),
-                          padding: EdgeInsets.symmetric(vertical: 10),
+                          margin: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             color: AppColors.primary.withValues(alpha: 0.04),
@@ -127,20 +136,20 @@ class HomePage extends ConsumerWidget {
                                 },
                               ),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
                                 child: Row(
                                   children: [
                                     Container(
                                       width: 8,
                                       height: 8,
-                                      decoration: BoxDecoration(
+                                      decoration: const BoxDecoration(
                                         color: AppColors.success,
                                         shape: BoxShape.circle,
                                       ),
                                     ),
-                                    SizedBox(width: 2),
+                                    const SizedBox(width: 2),
                                     Text("Verified ·", style: text12()),
-                                    SizedBox(width: 2),
+                                    const SizedBox(width: 2),
                                     Text(
                                       "RERA registered · trusted",
                                       style: text12(),
@@ -149,12 +158,12 @@ class HomePage extends ConsumerWidget {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              _TopDevelopersList(),
+                              const _TopDevelopersList(),
                             ],
                           ),
                         ),
                         const SizedBox(height: 8),
-                        _FilterSortRow(),
+                        const _FilterSortRow(),
                         const SizedBox(height: 16),
 
                         // Properties Near Me
@@ -177,11 +186,64 @@ class HomePage extends ConsumerWidget {
                             ),
                           ),
                           data: (response) {
-                            final properties = response?.data.properties ?? [];
-                            if (properties.isEmpty) {
-                              return SizedBox.shrink();
+                            final allProperties = response?.data.properties ?? [];
+                            if (allProperties.isEmpty) {
+                              return const SizedBox(
+                                height: 100,
+                                child: Center(
+                                  child: Text('No properties found nearby'),
+                                ),
+                              );
                             }
-                            return _PropertiesList(properties: properties);
+                            final filteredProperties = ref.watch(filteredPropertiesProvider);
+                            if (filteredProperties.isEmpty) {
+                              return Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: AppColors.grey50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.grey200),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.search_off, size: 36, color: AppColors.grey),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'No properties match your search/filter',
+                                      style: text13(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        ref.read(searchQueryProvider.notifier).state = '';
+                                        ref.read(filterProvider.notifier).clearAll();
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Reset Filters',
+                                        style: text12(color: AppColors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return _PropertiesList(properties: filteredProperties);
                           },
                         ),
                         const SizedBox(height: 20),
@@ -421,12 +483,14 @@ void _openFilter(BuildContext context) {
 
 // ─── Top Bar ──────────────────────────────────────────────────────────────────
 
-class _TopBar extends StatelessWidget {
+class _TopBar extends ConsumerWidget {
   final int filterCount;
   const _TopBar({required this.filterCount});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unreadCount = ref.watch(unreadCountProvider);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -461,18 +525,19 @@ class _TopBar extends StatelessWidget {
                   ),
                 ),
               ),
-              Positioned(
-                right: 6,
-                top: 6,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primary,
-                    shape: BoxShape.circle,
+              if (unreadCount > 0)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           const SizedBox(width: 8),
@@ -496,12 +561,40 @@ class _TopBar extends StatelessWidget {
 
 // ─── Hero Search ──────────────────────────────────────────────────────────────
 
-class _HeroSearch extends StatelessWidget {
+class _HeroSearch extends ConsumerStatefulWidget {
   final VoidCallback onFilterTap;
   const _HeroSearch({required this.onFilterTap});
 
   @override
+  ConsumerState<_HeroSearch> createState() => _HeroSearchState();
+}
+
+class _HeroSearchState extends ConsumerState<_HeroSearch> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: ref.read(searchQueryProvider));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ref.listen<String>(searchQueryProvider, (previous, next) {
+      if (_controller.text != next) {
+        _controller.text = next;
+      }
+    });
+
+    final filterState = ref.watch(filterProvider);
+    final currentQuery = ref.watch(searchQueryProvider);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Column(
@@ -519,10 +612,8 @@ class _HeroSearch extends StatelessWidget {
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.05),
                     borderRadius: BorderRadius.circular(10),
@@ -533,30 +624,92 @@ class _HeroSearch extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.search, color: AppColors.grey, size: 18),
+                      const Icon(Icons.search, color: AppColors.grey, size: 20),
                       const SizedBox(width: 8),
-                      Text(
-                        'Search localities...',
-                        style: text13(color: AppColors.grey),
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          onChanged: (val) {
+                            ref.read(searchQueryProvider.notifier).state = val;
+                          },
+                          decoration: const InputDecoration(
+                            hintText: 'Search localities, properties, city...',
+                            hintStyle: TextStyle(
+                              color: AppColors.grey,
+                              fontSize: 13,
+                            ),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          style: text13(color: AppColors.textPrimary),
+                        ),
                       ),
+                      if (currentQuery.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _controller.clear();
+                            ref.read(searchQueryProvider.notifier).state = '';
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: AppColors.grey,
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               GestureDetector(
-                onTap: onFilterTap,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.tune,
-                    color: AppColors.white,
-                    size: 20,
-                  ),
+                onTap: widget.onFilterTap,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.tune,
+                        color: AppColors.white,
+                        size: 22,
+                      ),
+                    ),
+                    if (filterState.activeFilterCount > 0)
+                      Positioned(
+                        right: -3,
+                        top: -3,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.yellow,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 18,
+                            minHeight: 18,
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${filterState.activeFilterCount}',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ],
@@ -569,29 +722,61 @@ class _HeroSearch extends StatelessWidget {
 
 // ─── Property Type Chips ──────────────────────────────────────────────────────
 
-class _PropertyTypeChips extends StatefulWidget {
+class _PropertyTypeChips extends ConsumerWidget {
   final List<String> types;
   const _PropertyTypeChips({required this.types});
 
   @override
-  State<_PropertyTypeChips> createState() => _PropertyTypeChipsState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filter = ref.watch(filterProvider);
+    final notifier = ref.read(filterProvider.notifier);
 
-class _PropertyTypeChipsState extends State<_PropertyTypeChips> {
-  int _selected = 0;
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
       color: AppColors.white,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
-          children: List.generate(widget.types.length, (i) {
-            final sel = i == _selected;
+          children: List.generate(types.length, (i) {
+            final type = types[i];
+            final bool sel;
+            if (type == 'All') {
+              sel = filter.lookingFor.isEmpty && filter.propertyTypes.isEmpty;
+            } else if (type == 'Buy') {
+              sel = filter.lookingFor.contains(LookingFor.buy);
+            } else if (type == 'Rent') {
+              sel = filter.lookingFor.contains(LookingFor.rent);
+            } else if (type == 'Sell') {
+              sel = filter.lookingFor.contains(LookingFor.sell);
+            } else if (type == 'Apartment') {
+              sel = filter.propertyTypes.contains(PropertyType.apartment);
+            } else if (type == 'Villa') {
+              sel = filter.propertyTypes.contains(PropertyType.villa);
+            } else if (type == 'House') {
+              sel = filter.propertyTypes.contains(PropertyType.house);
+            } else {
+              sel = false;
+            }
+
             return GestureDetector(
-              onTap: () => setState(() => _selected = i),
+              onTap: () {
+                if (type == 'All') {
+                  notifier.setLookingFor({});
+                  notifier.setPropertyTypes({});
+                } else if (type == 'Buy') {
+                  notifier.setLookingFor(sel ? {} : {LookingFor.buy});
+                } else if (type == 'Rent') {
+                  notifier.setLookingFor(sel ? {} : {LookingFor.rent});
+                } else if (type == 'Sell') {
+                  notifier.setLookingFor(sel ? {} : {LookingFor.sell});
+                } else if (type == 'Apartment') {
+                  notifier.setPropertyTypes(sel ? {} : {PropertyType.apartment});
+                } else if (type == 'Villa') {
+                  notifier.setPropertyTypes(sel ? {} : {PropertyType.villa});
+                } else if (type == 'House') {
+                  notifier.setPropertyTypes(sel ? {} : {PropertyType.house});
+                }
+              },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 margin: const EdgeInsets.only(right: 8),
@@ -604,7 +789,7 @@ class _PropertyTypeChipsState extends State<_PropertyTypeChips> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  widget.types[i],
+                  type,
                   style: text13(
                     fontWeight: FontWeight.w500,
                     color: sel ? AppColors.white : AppColors.textSecondary,
@@ -768,23 +953,91 @@ class _ConstructionLogoPlaceholder extends StatelessWidget {
 }
 // ─── Filter Sort Row ──────────────────────────────────────────────────────────
 
-class _FilterSortRow extends StatelessWidget {
+class _FilterSortRow extends ConsumerWidget {
+  const _FilterSortRow();
+
+  void _showSortSheet(BuildContext context, WidgetRef ref) {
+    final currentSort = ref.read(sortByProvider);
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Text(
+                    'Sort By',
+                    style: text16(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                const Divider(),
+                ...SortOption.values.map((opt) {
+                  final isSelected = opt == currentSort;
+                  return ListTile(
+                    title: Text(
+                      opt.label,
+                      style: text14(
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                      ),
+                    ),
+                    trailing: isSelected
+                        ? const Icon(Icons.check, color: AppColors.primary)
+                        : null,
+                    onTap: () {
+                      ref.read(sortByProvider.notifier).state = opt;
+                      Navigator.pop(ctx);
+                    },
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final filterState = ref.watch(filterProvider);
+    final sortBy = ref.watch(sortByProvider);
+    final filteredList = ref.watch(filteredPropertiesProvider);
+    final allProperties = ref.watch(nearPropertiesProvider).value?.data.properties ?? [];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
           _SmallChip(
-            label: 'Filter',
+            label: filterState.activeFilterCount > 0
+                ? 'Filter (${filterState.activeFilterCount})'
+                : 'Filter',
             icon: Icons.tune,
-            isActive: true,
+            isActive: filterState.activeFilterCount > 0,
             onTap: () => _openFilter(context),
           ),
           const SizedBox(width: 8),
-          _SmallChip(label: 'Sort by', icon: Icons.sort, onTap: () {}),
+          _SmallChip(
+            label: sortBy == SortOption.defaultSort ? 'Sort by' : sortBy.label,
+            icon: Icons.sort,
+            isActive: sortBy != SortOption.defaultSort,
+            onTap: () => _showSortSheet(context, ref),
+          ),
           const Spacer(),
-          Text('1284 (2785)', style: text11(color: AppColors.textSecondary)),
+          Text(
+            '${filteredList.length} (${allProperties.length})',
+            style: text11(color: AppColors.textSecondary),
+          ),
         ],
       ),
     );

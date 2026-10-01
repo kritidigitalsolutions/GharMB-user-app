@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/home/providers/notification_provider.dart';
 import 'package:gharmb_app/features/real_state_news/models/news_response_model.dart';
 import 'package:gharmb_app/features/real_state_news/providers/news_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
@@ -50,17 +51,34 @@ class RealEstateNewsPage extends ConsumerWidget {
                     onTap: () {
                       context.pushNamed(AppPage.notificationName);
                     },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.notifications_outlined,
-                        size: 20,
-                        color: AppColors.primary,
-                      ),
+                    child: Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.notifications_outlined,
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        if (ref.watch(unreadCountProvider) > 0)
+                          Positioned(
+                            right: 4,
+                            top: 4,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],

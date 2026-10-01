@@ -6,6 +6,7 @@ import 'package:gharmb_app/features/property/providers/property_add_provider.dar
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:gharmb_app/shared/widget/custom_stepprogress.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 
@@ -32,8 +33,10 @@ class _ReviewSubmitPageState extends ConsumerState<ReviewSubmitPage> {
       final error =
           ref.read(listPropertyProvider).submitError ??
           'Failed to submit listing. Please try again.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: AppColors.error),
+      AppSnackBar.showError(
+        context,
+        title: 'Submission Failed',
+        message: error,
       );
     }
   }

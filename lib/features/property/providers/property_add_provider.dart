@@ -722,7 +722,7 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
       maintenanceIncludedInRent: s.maintenanceIncluded,
       brokerageFee: _parseInt(s.brokerageAmount),
       vastuCompliant: s.vastuCompliant,
-      // keyHandover: s.keyHandover,
+      keyHandover: s.keyHandover,
       openToAllBuyers: s.openToAllBuyers,
       loanAssistanceNeeded: s.loanAssistanceNeeded,
       listingTier: s.listingType.tierLabel,

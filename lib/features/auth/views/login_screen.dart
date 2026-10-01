@@ -3,10 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/auth/providers/basic_info_provider.dart';
+import 'package:gharmb_app/features/auth/providers/google_auth_provider.dart';
 import 'package:gharmb_app/features/auth/providers/login_provider.dart';
 import 'package:gharmb_app/features/auth/providers/otp_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -27,10 +30,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  void _showSuspendedDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Account Suspended'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(loginProvider);
     final notifier = ref.read(loginProvider.notifier);
+    final googleAuthState = ref.watch(googleAuthProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -219,7 +239,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                             .trim();
                                         context.pushNamed(AppPage.otpName);
                                       },
-
+                                      onAccountNotFound: (message) {
+                                        ref
+                                            .read(basicInfoProvider.notifier)
+                                            .setPhone(state.phone.trim());
+                                        context.pushNamed(AppPage.basicInfoName);
+                                        AppSnackBar.showInfo(
+                                          context,
+                                          title: 'New Account',
+                                          message: message,
+                                        );
+                                      },
+                                      onSuspended: (message) {
+                                        _showSuspendedDialog(message);
+                                      },
                                     )
                                   : null,
                               style: ElevatedButton.styleFrom(
@@ -266,6 +299,76 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
 
+                        const SizedBox(height: 20),
+
+                        // OR divider
+                        Row(
+                          children: [
+                            Expanded(child: Divider(color: AppColors.grey200)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                'or',
+                                style: text12(color: AppColors.textSecondary),
+                              ),
+                            ),
+                            Expanded(child: Divider(color: AppColors.grey200)),
+                          ],
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // Google button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: OutlinedButton(
+                            onPressed: googleAuthState.isLoading
+                                ? null
+                                : () {
+                                    ref
+                                        .read(googleAuthProvider.notifier)
+                                        .signInWithGoogle(
+                                          context: context,
+                                          ref: ref,
+                                        );
+                                  },
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: AppColors.grey300),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                            child: googleAuthState.isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.2,
+                                      color: AppColors.primary,
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Image.asset(
+                                        "assets/auth/google.png",
+                                        width: 22,
+                                        height: 22,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Continue with Google',
+                                        style: text14(
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+
                         const SizedBox(height: 24),
 
                         // Terms note
@@ -298,7 +401,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 28),
 
                         // Divider
                         Row(

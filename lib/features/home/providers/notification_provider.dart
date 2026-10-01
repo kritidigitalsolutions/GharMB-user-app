@@ -201,7 +201,9 @@ class NotificationState {
 class NotificationNotifier extends StateNotifier<NotificationState> {
   final HomeRepo _homeRepo;
 
-  NotificationNotifier(this._homeRepo) : super(const NotificationState());
+  NotificationNotifier(this._homeRepo) : super(const NotificationState()) {
+    fetchNotifications();
+  }
 
   // Fetch all notifications
   Future<void> fetchNotifications() async {

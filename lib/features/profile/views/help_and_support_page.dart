@@ -21,7 +21,7 @@ class HelpSupportPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
         data: (response) {
-          final content = response?.data.pageContent;
+          final content = response?.data?.pageContent;
           if (content == null) {
             return const Center(child: Text('No data found'));
           }

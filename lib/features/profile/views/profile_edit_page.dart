@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/features/profile/provider/profile_provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 
 class ProfileEditPage extends ConsumerStatefulWidget {
   const ProfileEditPage({super.key});
@@ -56,7 +60,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
   }
 
   Future<void> _pickAvatar() async {
-    //final picker = ImagePicker();
+    final picker = ImagePicker();
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.white,
@@ -95,10 +99,13 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
               ),
               onTap: () async {
                 Navigator.pop(context);
-                // final img = await picker.pickImage(
-                //   source: ImageSource.gallery,
-                //   imageQuality: 85,
-                // );
+                final img = await picker.pickImage(
+                  source: ImageSource.gallery,
+                  imageQuality: 85,
+                );
+                if (img != null) {
+                  ref.read(profileProvider.notifier).setAvatar(File(img.path));
+                }
               },
             ),
             ListTile(
@@ -119,10 +126,13 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
               ),
               onTap: () async {
                 Navigator.pop(context);
-                // final img = await picker.pickImage(
-                //   source: ImageSource.camera,
-                //   imageQuality: 85,
-                // );
+                final img = await picker.pickImage(
+                  source: ImageSource.camera,
+                  imageQuality: 85,
+                );
+                if (img != null) {
+                  ref.read(profileProvider.notifier).setAvatar(File(img.path));
+                }
               },
             ),
             const SizedBox(height: 12),
@@ -140,20 +150,20 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     notifier.setCity(_cityCtrl.text);
     final ok = await notifier.save();
     if (ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Profile updated!',
-            style: text13(color: AppColors.white),
-          ),
-          backgroundColor: AppColors.success,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      AppSnackBar.showSuccess(
+        context,
+        title: 'Success',
+        message: 'Profile updated successfully!',
       );
       context.pop();
+    } else if (!ok && mounted) {
+      final errorMsg =
+          ref.read(profileProvider).error ?? 'Failed to update profile';
+      AppSnackBar.showError(
+        context,
+        title: 'Update Failed',
+        message: errorMsg,
+      );
     }
   }
 
@@ -165,7 +175,6 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     // Push values into controllers as soon as they arrive.
     ref.listen<ProfileState>(profileProvider, (previous, next) {
       _syncControllersOnce(next);
-      if (mounted) setState(() {});
     });
 
     final profile = ref.watch(profileProvider);
@@ -231,17 +240,49 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                                     width: 2.5,
                                   ),
                                 ),
-                                child: Center(
-                                  child: Text(
-                                    profile.name.isNotEmpty
-                                        ? profile.name[0].toUpperCase()
-                                        : 'R',
-                                    style: TextStyle(
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
+                                child: ClipOval(
+                                  child: profile.localAvatar != null
+                                      ? Image.file(
+                                          profile.localAvatar!,
+                                          width: 96,
+                                          height: 96,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : (profile.profilePictureUrl != null &&
+                                            profile
+                                                .profilePictureUrl!
+                                                .isNotEmpty)
+                                      ? Image.network(
+                                          profile.profilePictureUrl!,
+                                          width: 96,
+                                          height: 96,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Center(
+                                            child: Text(
+                                              profile.name.isNotEmpty
+                                                  ? profile.name[0]
+                                                        .toUpperCase()
+                                                  : 'R',
+                                              style: const TextStyle(
+                                                fontSize: 36,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppColors.primary,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      : Center(
+                                          child: Text(
+                                            profile.name.isNotEmpty
+                                                ? profile.name[0].toUpperCase()
+                                                : 'R',
+                                            style: const TextStyle(
+                                              fontSize: 36,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.primary,
+                                            ),
+                                          ),
+                                        ),
                                 ),
                               ),
                               Positioned(

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/developer/providers/register_provider.dart';
+import 'package:gharmb_app/features/profile/models/profile_model.dart';
+import 'package:gharmb_app/features/profile/provider/user_profile_provider.dart';
 import 'package:gharmb_app/features/property/providers/property_add_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
@@ -15,6 +17,7 @@ class PropertyListType extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(listPropertyProvider);
     final notifier = ref.read(listPropertyProvider.notifier);
+    final user = ref.watch(userModelProvider);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -133,7 +136,7 @@ class PropertyListType extends ConsumerWidget {
                   // ── CTA button ───────────────────────────────────────────
                   AppButton(
                     title: "Continue as ${_roleLabel(state.role)}",
-                    onTap: () => _handleNavigation(context, state.role),
+                    onTap: () => _handleNavigation(context, state.role, user),
                   ),
                   const SizedBox(height: 10),
                 ],
@@ -146,29 +149,33 @@ class PropertyListType extends ConsumerWidget {
   }
 
   // ── Navigation logic ──────────────────────────────────────────────────────
-  void _handleNavigation(BuildContext context, ListingRole role) {
-    switch (role) {
-      case ListingRole.owner:
-        // Owner → direct to property listing flow
-        context.pushNamed(AppPage.basicDetailsName);
-        break;
-
-      case ListingRole.agentBroker:
+  void _handleNavigation(
+    BuildContext context,
+    ListingRole role,
+    UserModel? user,
+  ) {
+    if (role == ListingRole.agentBroker) {
+      final hasAgentRera = user?.hasAgentRera ?? false;
+      if (!hasAgentRera) {
         context.pushNamed(
           AppPage.devRegisterStep1Name,
           extra: RegistrationType.agent,
         );
-
-        break;
-
-      case ListingRole.developerBuilder:
+        return;
+      }
+    } else if (role == ListingRole.developerBuilder) {
+      final hasBuilderRera = user?.hasBuilderRera ?? false;
+      if (!hasBuilderRera) {
         context.pushNamed(
           AppPage.devRegisterStep1Name,
           extra: RegistrationType.developer,
         );
-
-        break;
+        return;
+      }
     }
+
+    // Owner or verified/submitted Agent/Developer proceed directly to listing flow
+    context.pushNamed(AppPage.basicDetailsName);
   }
 
   String _roleLabel(ListingRole r) => switch (r) {

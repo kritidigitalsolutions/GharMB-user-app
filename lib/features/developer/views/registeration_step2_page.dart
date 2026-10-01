@@ -6,6 +6,7 @@ import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/developer/providers/register_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -156,18 +157,11 @@ class RegistrationStep2Page extends ConsumerWidget {
                         extra: type,
                       )
                     : () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
+                        AppSnackBar.showWarning(
+                          context,
+                          title: 'Upload Incomplete',
+                          message:
                               'Please upload all required documents first.',
-                              style: text12(color: AppColors.white),
-                            ),
-                            backgroundColor: AppColors.error,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
                         );
                       },
               ),

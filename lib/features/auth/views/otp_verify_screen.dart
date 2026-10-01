@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/auth/models/response/auth_response_model.dart';
 import 'package:gharmb_app/features/auth/providers/otp_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
@@ -22,7 +23,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
   final List<TextEditingController> _controllers = List.generate(
     6,
-        (_) => TextEditingController(),
+    (_) => TextEditingController(),
   );
 
   @override
@@ -53,14 +54,20 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       }
     }
   }
-  Future<void> _navigateAfterVerification() async {
-    final user = await LocalStorageService.getUser();
-    final bool isOnboardingCompleted = user?.isOnboardingCompleted ?? false;
+
+  Future<void> _navigateAfterVerification(AuthResponseModel res) async {
+    final user = res.data?.user ?? await LocalStorageService.getUser();
+    final bool isOnboardingCompleted =
+        res.isOnboardingCompleted == true ||
+        (user?.isOnboardingCompleted ?? false);
+    final String nextScreen = res.nextScreen ?? '';
 
     if (!mounted) return;
 
-    if (isOnboardingCompleted) {
+    if (nextScreen == 'home' || isOnboardingCompleted) {
       context.pushReplacementNamed(AppPage.myHomeName);
+    } else if (nextScreen == 'basic_info' || res.needsBasicInfo == true) {
+      context.pushNamed(AppPage.basicInfoName);
     } else {
       context.pushNamed(AppPage.roleSelectionName);
     }
@@ -193,43 +200,43 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               Center(
                 child: state.isResending
                     ? SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.primary,
-                  ),
-                )
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.primary,
+                        ),
+                      )
                     : GestureDetector(
-                  onTap: state.resendCountdown == 0
-                      ? notifier.resend
-                      : null,
-                  child: RichText(
-                    text: TextSpan(
-                      style: text13(color: AppColors.textSecondary),
-                      children: [
-                        const TextSpan(text: "Didn't receive code? "),
-                        if (state.resendCountdown > 0)
-                          TextSpan(
-                            text:
-                            'Resend OTP in ${_formatSeconds(state.resendCountdown)}',
-                            style: text13(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
-                          )
-                        else
-                          TextSpan(
-                            text: 'Resend OTP',
-                            style: text13(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary,
-                            ),
+                        onTap: state.resendCountdown == 0
+                            ? notifier.resend
+                            : null,
+                        child: RichText(
+                          text: TextSpan(
+                            style: text13(color: AppColors.textSecondary),
+                            children: [
+                              const TextSpan(text: "Didn't receive code? "),
+                              if (state.resendCountdown > 0)
+                                TextSpan(
+                                  text:
+                                      'Resend OTP in ${_formatSeconds(state.resendCountdown)}',
+                                  style: text13(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                )
+                              else
+                                TextSpan(
+                                  text: 'Resend OTP',
+                                  style: text13(
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                            ],
                           ),
-                      ],
-                    ),
-                  ),
-                ),
+                        ),
+                      ),
               ),
 
               const Spacer(),
@@ -239,10 +246,18 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 title: 'Continue',
                 onTap: (state.isFilled && !state.isLoading && !state.isVerified)
                     ? () {
-                  notifier.verify(_navigateAfterVerification);
-                }
+                        notifier.verify(_navigateAfterVerification);
+                      }
                     : state.isVerified
-                    ? _navigateAfterVerification
+                    ? () async {
+                        final auth =
+                            await LocalStorageService.getAuthResponse();
+                        if (auth != null) {
+                          _navigateAfterVerification(auth);
+                        } else {
+                          context.pushReplacementNamed(AppPage.myHomeName);
+                        }
+                      }
                     : null,
                 isLoading: state.isLoading,
               ),

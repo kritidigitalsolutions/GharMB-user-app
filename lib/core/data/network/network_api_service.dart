@@ -82,14 +82,19 @@ class NetworkApiService extends BaseApiService {
 
   @override
   Future<dynamic> pacthApi(String url, dynamic data) async {
+    return patchApi(url, data);
+  }
+
+  @override
+  Future<dynamic> patchApi(String url, dynamic data) async {
     try {
-      debugPrint("POST API CALL => $url");
-      debugPrint("POST DATA => $data");
+      debugPrint("PATCH API CALL => $url");
+      debugPrint("PATCH DATA => $data");
 
       final response = await _dio.patch(url, data: data);
       return returnResponse(response);
     } on DioException catch (e) {
-      debugPrint("POST API ERROR => ${e.message}");
+      debugPrint("PATCH API ERROR => ${e.message}");
       throw _handleDioError(e);
     }
   }
@@ -188,16 +193,23 @@ class NetworkApiService extends BaseApiService {
 
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode ?? 0;
-        final message = _extractErrorMessage(error.response?.data);
+        final responseData = error.response?.data;
+        final message = _extractErrorMessage(responseData);
 
         if (statusCode == 400) {
-          return BadRequestException(message);
-        } else if (statusCode == 401 || statusCode == 403) {
-          return UnauthorizedException(message);
+          return BadRequestException(message, responseData, statusCode);
+        } else if (statusCode == 401) {
+          return UnauthorizedException(message, responseData, statusCode);
+        } else if (statusCode == 403) {
+          return ForbiddenException(message, responseData);
+        } else if (statusCode == 404) {
+          return NotFoundException(message, responseData);
+        } else if (statusCode == 409) {
+          return ConflictException(message, responseData);
         } else if (statusCode >= 500) {
-          return FetchDataException(message);
+          return FetchDataException(message, responseData, statusCode);
         } else {
-          return BadRequestException(message);
+          return BadRequestException(message, responseData, statusCode);
         }
 
       case DioExceptionType.cancel:

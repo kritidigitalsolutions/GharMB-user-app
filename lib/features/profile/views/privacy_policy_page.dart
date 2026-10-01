@@ -27,7 +27,7 @@ class PrivacyPolicyPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => _ErrorView(message: error.toString()),
         data: (response) {
-          final content = response?.data.legalContent;
+          final content = response?.data?.legalContent;
           if (content == null) {
             return const _ErrorView(message: 'No content available');
           }

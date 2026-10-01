@@ -1,22 +1,84 @@
 class AuthResponseModel {
   final String? status;
+  final String? message;
   final String? token;
+  final bool? needsBasicInfo;
+  final bool? isBasicInfoCompleted;
+  final bool? isOnboardingCompleted;
+  final bool? isNewUser;
+  final bool? accountNotFound;
+  final bool? accountExists;
+  final String? phone;
+  final String? otp;
+  final String? nextScreen;
   final AuthDataModel? data;
 
-  const AuthResponseModel({this.status, this.token, this.data});
+  const AuthResponseModel({
+    this.status,
+    this.message,
+    this.token,
+    this.needsBasicInfo,
+    this.isBasicInfoCompleted,
+    this.isOnboardingCompleted,
+    this.isNewUser,
+    this.accountNotFound,
+    this.accountExists,
+    this.phone,
+    this.otp,
+    this.nextScreen,
+    this.data,
+  });
 
   factory AuthResponseModel.fromJson(Map<String, dynamic> json) {
+    AuthDataModel? data;
+    if (json["data"] is Map) {
+      data = AuthDataModel.fromJson(Map<String, dynamic>.from(json["data"]));
+    } else if (json["user"] is Map) {
+      data = AuthDataModel(
+        user: AuthUserModel.fromJson(Map<String, dynamic>.from(json["user"])),
+      );
+    }
+
     return AuthResponseModel(
-      status: json["status"]?.toString(),
+      status:
+          json["status"]?.toString() ??
+          (json["success"] == true ? "success" : null),
+      message: json["message"]?.toString(),
       token: json["token"]?.toString(),
-      data: json["data"] is Map
-          ? AuthDataModel.fromJson(Map<String, dynamic>.from(json["data"]))
+      needsBasicInfo: json["needsBasicInfo"] is bool
+          ? json["needsBasicInfo"]
           : null,
+      isBasicInfoCompleted: json["isBasicInfoCompleted"] is bool
+          ? json["isBasicInfoCompleted"]
+          : null,
+      isOnboardingCompleted: json["isOnboardingCompleted"] is bool
+          ? json["isOnboardingCompleted"]
+          : null,
+      isNewUser: json["isNewUser"] is bool ? json["isNewUser"] : null,
+      accountNotFound: json["accountNotFound"] is bool
+          ? json["accountNotFound"]
+          : null,
+      accountExists: json["accountExists"] is bool
+          ? json["accountExists"]
+          : null,
+      phone: json["phone"]?.toString(),
+      otp: json["otp"]?.toString(),
+      nextScreen: json["nextScreen"]?.toString(),
+      data: data,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {"status": status, "token": token, "data": data?.toJson()};
+    return {
+      "status": status,
+      "message": message,
+      "token": token,
+      "needsBasicInfo": needsBasicInfo,
+      "isBasicInfoCompleted": isBasicInfoCompleted,
+      "isOnboardingCompleted": isOnboardingCompleted,
+      "nextScreen": nextScreen,
+      "data": data?.toJson(),
+    };
   }
 }
 
@@ -45,6 +107,7 @@ class AuthUserModel {
   final String? phone;
   final AddressModel? address;
   final LocationModel? location;
+  final bool? isBasicInfoCompleted;
   final bool? isOnboardingCompleted;
 
   const AuthUserModel({
@@ -54,12 +117,13 @@ class AuthUserModel {
     this.phone,
     this.address,
     this.location,
+    this.isBasicInfoCompleted,
     this.isOnboardingCompleted,
   });
 
   factory AuthUserModel.fromJson(Map<String, dynamic> json) {
     return AuthUserModel(
-      id: json["id"]?.toString(),
+      id: (json["id"] ?? json["_id"])?.toString(),
       name: json["name"]?.toString(),
       email: json["email"]?.toString(),
       phone: json["phone"]?.toString(),
@@ -68,6 +132,9 @@ class AuthUserModel {
           : null,
       location: json["location"] is Map
           ? LocationModel.fromJson(Map<String, dynamic>.from(json["location"]))
+          : null,
+      isBasicInfoCompleted: json["isBasicInfoCompleted"] is bool
+          ? json["isBasicInfoCompleted"]
           : null,
       isOnboardingCompleted: json["isOnboardingCompleted"] is bool
           ? json["isOnboardingCompleted"]
@@ -83,6 +150,7 @@ class AuthUserModel {
       "phone": phone,
       "address": address?.toJson(),
       "location": location?.toJson(),
+      "isBasicInfoCompleted": isBasicInfoCompleted,
       "isOnboardingCompleted": isOnboardingCompleted,
     };
   }

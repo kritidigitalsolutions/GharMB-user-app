@@ -48,6 +48,8 @@ class UserModel {
   final String? role;
   final String? agentVerificationStatus;
   final String? builderVerificationStatus;
+  final BuilderDocsModel? builderDocs;
+  final AgentDocsModel? agentDocs;
   final bool? isOnboardingCompleted;
   final String? profilePicture;
   final bool? isVerified;
@@ -69,6 +71,8 @@ class UserModel {
     this.role,
     this.agentVerificationStatus,
     this.builderVerificationStatus,
+    this.builderDocs,
+    this.agentDocs,
     this.isOnboardingCompleted,
     this.profilePicture,
     this.isVerified,
@@ -92,6 +96,18 @@ class UserModel {
       role: json["role"]?.toString(),
       agentVerificationStatus: json["agentVerificationStatus"]?.toString(),
       builderVerificationStatus: json["builderVerificationStatus"]?.toString(),
+      builderDocs: json["builderDocs"] is Map
+          ? BuilderDocsModel.fromJson(
+              Map<String, dynamic>.from(json["builderDocs"]),
+            )
+          : null,
+      agentDocs: (json["agentDocs"] ?? json["verificationDocs"]) is Map
+          ? AgentDocsModel.fromJson(
+              Map<String, dynamic>.from(
+                json["agentDocs"] ?? json["verificationDocs"],
+              ),
+            )
+          : null,
       isOnboardingCompleted: json["isOnboardingCompleted"] as bool?,
       profilePicture: json["profilePicture"]?.toString(),
       isVerified: json["isVerified"] as bool?,
@@ -135,6 +151,8 @@ class UserModel {
       "role": role,
       "agentVerificationStatus": agentVerificationStatus,
       "builderVerificationStatus": builderVerificationStatus,
+      "builderDocs": builderDocs?.toJson(),
+      "agentDocs": agentDocs?.toJson(),
       "isOnboardingCompleted": isOnboardingCompleted,
       "profilePicture": profilePicture,
       "isVerified": isVerified,
@@ -152,13 +170,49 @@ class UserModel {
 
   // Helper methods
   bool get isBuyer => role?.toLowerCase() == 'buyer';
-  bool get isAgent => role?.toLowerCase() == 'agent';
-  bool get isBuilder => role?.toLowerCase() == 'builder';
 
-  bool get isAgentVerified =>
-      agentVerificationStatus?.toLowerCase() == 'verified';
-  bool get isBuilderVerified =>
-      builderVerificationStatus?.toLowerCase() == 'verified';
+  bool get isAgentVerified {
+    final status = agentVerificationStatus?.toLowerCase();
+    return status == 'verified' || status == 'approved';
+  }
+
+  bool get isBuilderVerified {
+    final status = builderVerificationStatus?.toLowerCase();
+    return status == 'verified' || status == 'approved';
+  }
+
+  bool get isAgentUnderReview {
+    final status = agentVerificationStatus?.toLowerCase();
+    return status == 'under_review' || status == 'pending';
+  }
+
+  bool get isBuilderUnderReview {
+    final status = builderVerificationStatus?.toLowerCase();
+    return status == 'under_review' || status == 'pending';
+  }
+
+  bool get hasBuilderRera =>
+      (builderDocs?.hasRera == true) ||
+      isBuilderVerified ||
+      isBuilderUnderReview;
+
+  bool get hasAgentRera =>
+      (agentDocs?.hasRera == true) ||
+      isAgentVerified ||
+      isAgentUnderReview;
+
+  bool get isAgent =>
+      role?.toLowerCase() == 'agent' ||
+      isAgentVerified ||
+      isAgentUnderReview ||
+      (agentDocs?.hasAnyDoc == true);
+
+  bool get isBuilder =>
+      role?.toLowerCase() == 'builder' ||
+      role?.toLowerCase() == 'developer' ||
+      isBuilderVerified ||
+      isBuilderUnderReview ||
+      (builderDocs?.hasAnyDoc == true);
 
   bool get hasCompletedOnboarding => isOnboardingCompleted ?? false;
 
@@ -168,11 +222,81 @@ class UserModel {
 
   String get verificationStatus {
     if (isAgentVerified) return 'Agent Verified';
-    if (isBuilderVerified) return 'Builder Verified';
-    if (role?.toLowerCase() == 'agent') return 'Agent (Unverified)';
-    if (role?.toLowerCase() == 'builder') return 'Builder (Unverified)';
-    return 'Verified User';
+    if (isBuilderVerified) return 'Developer Verified';
+    if (isAgentUnderReview) return 'Agent (Under Review)';
+    if (isBuilderUnderReview) return 'Developer (Under Review)';
+    if (isAgent) return 'Agent (Unverified)';
+    if (isBuilder) return 'Developer (Unverified)';
+    return 'Buyer';
   }
+}
+
+class BuilderDocsModel {
+  final String? reraCertificate;
+  final String? panCard;
+  final String? companyLogo;
+
+  BuilderDocsModel({
+    this.reraCertificate,
+    this.panCard,
+    this.companyLogo,
+  });
+
+  factory BuilderDocsModel.fromJson(Map<String, dynamic> json) {
+    return BuilderDocsModel(
+      reraCertificate: json['reraCertificate']?.toString(),
+      panCard: json['panCard']?.toString(),
+      companyLogo: json['companyLogo']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'reraCertificate': reraCertificate,
+      'panCard': panCard,
+      'companyLogo': companyLogo,
+    };
+  }
+
+  bool get hasRera => reraCertificate != null && reraCertificate!.isNotEmpty;
+  bool get hasAnyDoc =>
+      (reraCertificate?.isNotEmpty == true) ||
+      (panCard?.isNotEmpty == true) ||
+      (companyLogo?.isNotEmpty == true);
+}
+
+class AgentDocsModel {
+  final String? reraCertificate;
+  final String? aadhaarCard;
+  final String? profilePhoto;
+
+  AgentDocsModel({
+    this.reraCertificate,
+    this.aadhaarCard,
+    this.profilePhoto,
+  });
+
+  factory AgentDocsModel.fromJson(Map<String, dynamic> json) {
+    return AgentDocsModel(
+      reraCertificate: json['reraCertificate']?.toString(),
+      aadhaarCard: json['aadhaarCard']?.toString(),
+      profilePhoto: json['profilePhoto']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'reraCertificate': reraCertificate,
+      'aadhaarCard': aadhaarCard,
+      'profilePhoto': profilePhoto,
+    };
+  }
+
+  bool get hasRera => reraCertificate != null && reraCertificate!.isNotEmpty;
+  bool get hasAnyDoc =>
+      (reraCertificate?.isNotEmpty == true) ||
+      (aadhaarCard?.isNotEmpty == true) ||
+      (profilePhoto?.isNotEmpty == true);
 }
 
 class AddressModel {

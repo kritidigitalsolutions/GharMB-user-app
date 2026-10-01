@@ -4,6 +4,7 @@ import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/developer/providers/project_add_provider.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:gharmb_app/shared/widget/custom_stepprogress.dart';
 import 'package:go_router/go_router.dart';
 
@@ -76,10 +77,10 @@ class DevProjectReviewSubmitPage extends ConsumerWidget {
             AppButton(
               title: 'Submit project',
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Project submitted for admin review.'),
-                  ),
+                AppSnackBar.showSuccess(
+                  context,
+                  title: 'Project Submitted',
+                  message: 'Project submitted for admin review.',
                 );
               },
             ),

@@ -6,6 +6,7 @@ import 'package:gharmb_app/features/developer/providers/developer_provider.dart'
 import 'package:gharmb_app/features/developer/providers/enquiry_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:go_router/go_router.dart';
 
 class DeveloperDetailPage extends ConsumerWidget {
@@ -375,10 +376,10 @@ class DeveloperDetailPage extends ConsumerWidget {
                         onPressed: () async {
                           final message = messageController.text.trim();
                           if (message.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter a message.'),
-                              ),
+                            AppSnackBar.showWarning(
+                              context,
+                              title: 'Required',
+                              message: 'Please enter a message.',
                             );
                             return;
                           }
@@ -400,24 +401,20 @@ class DeveloperDetailPage extends ConsumerWidget {
 
                           // Show feedback
                           if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Enquiry submitted successfully!',
-                                ),
-                                backgroundColor: AppColors.success,
-                              ),
+                            AppSnackBar.showSuccess(
+                              context,
+                              title: 'Success',
+                              message: 'Enquiry submitted successfully!',
                             );
                           } else {
                             final error = ref
                                 .read(enquiryProvider)
                                 .errorMessage ??
                                 'Something went wrong.';
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(error),
-                                backgroundColor: AppColors.error,
-                              ),
+                            AppSnackBar.showError(
+                              context,
+                              title: 'Error',
+                              message: error,
                             );
                           }
                         },

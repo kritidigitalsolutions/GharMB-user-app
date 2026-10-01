@@ -4,6 +4,7 @@ import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/profile/provider/token_provider.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:gharmb_app/shared/widget/custom_widget.dart';
 
 class DecisionPage extends ConsumerWidget {
@@ -143,10 +144,10 @@ class DecisionPage extends ConsumerWidget {
                 onTap: () {
                   ref.read(decisionActionProvider.notifier).state =
                       DecisionAction.accepted;
-                  _showConfirmSnack(
+                  AppSnackBar.showSuccess(
                     context,
-                    'Token Accepted!',
-                    AppColors.success,
+                    title: 'Token Accepted',
+                    message: 'Token Accepted successfully!',
                   );
                 },
                 color: AppColors.success,
@@ -158,7 +159,11 @@ class DecisionPage extends ConsumerWidget {
                 onTap: () {
                   ref.read(decisionActionProvider.notifier).state =
                       DecisionAction.rejected;
-                  _showConfirmSnack(context, 'Token Rejected', AppColors.error);
+                  AppSnackBar.showError(
+                    context,
+                    title: 'Token Rejected',
+                    message: 'Token has been rejected.',
+                  );
                 },
                 color: AppColors.error,
               ),
@@ -180,18 +185,6 @@ class DecisionPage extends ConsumerWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showConfirmSnack(BuildContext context, String msg, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: text13(color: AppColors.white)),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        duration: const Duration(seconds: 2),
       ),
     );
   }

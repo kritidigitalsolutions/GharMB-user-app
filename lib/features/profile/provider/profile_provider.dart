@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/legacy.dart';
+import 'package:gharmb_app/core/data/network/base_api_service.dart';
+import 'package:gharmb_app/features/auth/models/request/upload_request.dart';
+import 'package:gharmb_app/features/auth/repo/auth_repo.dart';
 import 'package:gharmb_app/features/profile/models/profile_model.dart';
 import 'package:gharmb_app/features/profile/models/update_profile_payload.dart';
 import 'package:gharmb_app/features/profile/repo/profile_repo.dart';
@@ -28,8 +32,8 @@ class ProfileState {
   final String email;
   final String phone;
   final String city;
-  // final String bio;
-  // final File? avatar;
+  final String? profilePictureUrl;
+  final File? localAvatar;
   final bool isSaving;
   final String? error;
 
@@ -38,8 +42,8 @@ class ProfileState {
     this.email = '',
     this.phone = '',
     this.city = '',
-    // this.bio = '',
-    // this.avatar,
+    this.profilePictureUrl,
+    this.localAvatar,
     this.isSaving = false,
     this.error,
   });
@@ -49,8 +53,9 @@ class ProfileState {
     String? email,
     String? phone,
     String? city,
-    // String? bio,
-    // File? avatar,
+    String? profilePictureUrl,
+    File? localAvatar,
+    bool clearLocalAvatar = false,
     bool? isSaving,
     String? error,
   }) => ProfileState(
@@ -58,8 +63,8 @@ class ProfileState {
     email: email ?? this.email,
     phone: phone ?? this.phone,
     city: city ?? this.city,
-    // bio: bio ?? this.bio,
-    // avatar: avatar ?? this.avatar,
+    profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
+    localAvatar: clearLocalAvatar ? null : (localAvatar ?? this.localAvatar),
     isSaving: isSaving ?? this.isSaving,
     error: error,
   );
@@ -78,6 +83,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       email: user.email ?? '',
       phone: user.phone ?? '',
       city: user.address?.city ?? '',
+      profilePictureUrl: user.profilePicture,
     );
   }
 
@@ -85,17 +91,47 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   void setEmail(String v) => state = state.copyWith(email: v);
   void setPhone(String v) => state = state.copyWith(phone: v);
   void setCity(String v) => state = state.copyWith(city: v);
-  // void setBio(String v) => state = state.copyWith(bio: v);
-  // void setAvatar(File f) => state = state.copyWith(avatar: f);
+  void setAvatar(File f) => state = state.copyWith(localAvatar: f);
 
   Future<bool> save() async {
     state = state.copyWith(isSaving: true, error: null);
+
+    String? uploadedAvatarUrl = state.profilePictureUrl;
+
+    if (state.localAvatar != null) {
+      try {
+        final authRepo = AuthRepo();
+        final fileName = state.localAvatar!.path.split('/').last;
+        final uploadReq = FileUploadRequest(
+          fields: const {"type": "profilePicture"},
+          files: [
+            MultipartFileData(
+              fieldName: "images",
+              filePath: state.localAvatar!.path,
+              fileName: fileName,
+            ),
+          ],
+        );
+        final uploadRes = await authRepo.uploadFile(uploadRequest: uploadReq);
+        if (uploadRes != null && uploadRes.data.fileUrls.isNotEmpty) {
+          uploadedAvatarUrl = uploadRes.data.fileUrls.first;
+          state = state.copyWith(profilePictureUrl: uploadedAvatarUrl);
+        }
+      } catch (e) {
+        state = state.copyWith(
+          isSaving: false,
+          error: 'Failed to upload photo. Please try again.',
+        );
+        return false;
+      }
+    }
 
     final payload = UserProfilePayload(
       name: state.name,
       email: state.email,
       phone: state.phone,
       city: state.city,
+      profilePicture: uploadedAvatarUrl,
     );
 
     final result = await _repo.updateProfile(payload: payload);
@@ -126,7 +162,12 @@ final profileProvider = StateNotifierProvider<ProfileNotifier, ProfileState>((
     if (user != null) {
       notifier.hydrate(user);
     }
-  }, fireImmediately: true);
+  });
+
+  final initialUser = ref.read(userProfileDataProvider).value?.data?.user;
+  if (initialUser != null) {
+    notifier.hydrate(initialUser);
+  }
 
   return notifier;
 });

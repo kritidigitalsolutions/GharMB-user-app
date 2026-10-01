@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:gharmb_app/core/data/exception/app_exception.dart';
+import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
 import 'package:gharmb_app/features/auth/models/request/user_register_req_model.dart';
+import 'package:gharmb_app/features/auth/models/response/auth_response_model.dart';
 import 'package:gharmb_app/features/auth/repo/auth_repo.dart';
 
 class BasicInfoState {
@@ -60,7 +62,6 @@ class BasicInfoState {
       pincode: pincode ?? this.pincode,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
-
       isLoading: isLoading ?? this.isLoading,
       isLocationLoading: isLocationLoading ?? this.isLocationLoading,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
@@ -81,6 +82,25 @@ class BasicInfoNotifier extends StateNotifier<BasicInfoState> {
   void setPhone(String v) => state = state.copyWith(phone: v, clearError: true);
   void setAddress(String v) =>
       state = state.copyWith(address: v, clearError: true);
+
+  void prefillFromGoogle({
+    String? name,
+    String? email,
+    String? phone,
+    String? address,
+    double? latitude,
+    double? longitude,
+  }) {
+    state = state.copyWith(
+      fullName: (name != null && name.isNotEmpty) ? name : state.fullName,
+      email: (email != null && email.isNotEmpty) ? email : state.email,
+      phone: (phone != null && phone.isNotEmpty) ? phone : state.phone,
+      address: (address != null && address.isNotEmpty) ? address : state.address,
+      latitude: latitude ?? state.latitude,
+      longitude: longitude ?? state.longitude,
+      clearError: true,
+    );
+  }
 
   bool get isFormValid =>
       state.fullName.trim().isNotEmpty &&
@@ -130,7 +150,7 @@ class BasicInfoNotifier extends StateNotifier<BasicInfoState> {
           place.locality,
           place.administrativeArea,
           place.postalCode,
-        ].where((e) => e!.isNotEmpty).join(', ');
+        ].where((e) => e != null && e.isNotEmpty).join(', ');
 
         state = state.copyWith(
           address: address,
@@ -156,7 +176,9 @@ class BasicInfoNotifier extends StateNotifier<BasicInfoState> {
     }
   }
 
-  Future<void> submit(void Function() onSuccess) async {
+  Future<void> submit({
+    required Function(String nextScreen) onSuccess,
+  }) async {
     if (!isFormValid) {
       state = state.copyWith(
         errorMessage: 'Please fill all required fields correctly',
@@ -178,13 +200,31 @@ class BasicInfoNotifier extends StateNotifier<BasicInfoState> {
       ),
       latitude: state.latitude,
       longitude: state.longitude,
-      role: '', // required by API — adjust if role should be dynamic
+      role: '', // required by API
     );
 
     try {
-      await _authRepo.userRegister(model);
+      final token = await LocalStorageService.getToken();
+      AuthResponseModel authRes;
+
+      if (token != null && token.isNotEmpty) {
+        // Authenticated Google user completing basic info
+        authRes = await _authRepo.submitBasicInfo(model);
+      } else {
+        final res = await _authRepo.userRegister(model);
+        authRes = AuthResponseModel.fromJson(res);
+      }
+
+      if (authRes.token != null && authRes.token!.isNotEmpty) {
+        await LocalStorageService.saveAuthResponse(authRes);
+      }
+
       state = state.copyWith(isLoading: false, clearError: true);
-      onSuccess();
+
+      final nextScreen = authRes.nextScreen ??
+          (token != null && token.isNotEmpty ? 'role_selection' : 'otp');
+
+      onSuccess(nextScreen);
     } on AppException catch (e) {
       // e.message = real backend/network error text (no prefix)
       state = state.copyWith(isLoading: false, errorMessage: e.message);
@@ -201,3 +241,4 @@ final basicInfoProvider =
     StateNotifierProvider<BasicInfoNotifier, BasicInfoState>(
       (ref) => BasicInfoNotifier(),
     );
+

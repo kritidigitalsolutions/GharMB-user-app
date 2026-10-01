@@ -6,8 +6,10 @@ import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/profile/models/dashboard_model.dart';
 import 'package:gharmb_app/features/profile/models/models.dart';
 import 'package:gharmb_app/features/profile/provider/dashboard_provider.dart';
+import 'package:gharmb_app/features/property/repo/property_repo.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:go_router/go_router.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -662,15 +664,81 @@ class _StatusFilterBar extends StatelessWidget {
 }
 
 // ─── Property Card ─────────────────────────────────────────────
-class _PropertyCard extends StatelessWidget {
+// ─── Property Card ─────────────────────────────────────────────
+class _PropertyCard extends ConsumerStatefulWidget {
   final PropertyModel property;
   const _PropertyCard({required this.property});
+
+  @override
+  ConsumerState<_PropertyCard> createState() => _PropertyCardState();
+}
+
+class _PropertyCardState extends ConsumerState<_PropertyCard> {
+  late bool _keyHandover;
+  bool _isToggling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _keyHandover = widget.property.keyHandover;
+  }
+
+  @override
+  void didUpdateWidget(covariant _PropertyCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.property.keyHandover != widget.property.keyHandover) {
+      _keyHandover = widget.property.keyHandover;
+    }
+  }
+
+  Future<void> _toggleKeyHandover() async {
+    if (_isToggling) return;
+    final newValue = !_keyHandover;
+    setState(() {
+      _isToggling = true;
+      _keyHandover = newValue;
+    });
+
+    final success = await PropertyRepo().toggleKeyHandover(
+      propertyId: widget.property.id,
+      keyHandover: newValue,
+    );
+
+    if (mounted) {
+      setState(() {
+        _isToggling = false;
+        if (!success) {
+          _keyHandover = !newValue; // revert
+        }
+      });
+
+      if (success) {
+        AppSnackBar.showSuccess(
+          context,
+          title: 'Key Handover',
+          message: newValue
+              ? 'Key Handover is now Ready.'
+              : 'Key Handover disabled.',
+        );
+      } else {
+        AppSnackBar.showError(
+          context,
+          title: 'Update Failed',
+          message: 'Failed to update Key Handover.',
+        );
+      }
+
+      if (success) {
+        ref.invalidate(dashboardDataProvider);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        context.pushNamed(AppPage.myPropertyDetailsName, extra: property.id);
+        context.pushNamed(AppPage.myPropertyDetailsName, extra: widget.property.id);
       },
       child: Container(
         padding: const EdgeInsets.all(12),
@@ -686,65 +754,102 @@ class _PropertyCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: property.imageUrl.isNotEmpty
-                  ? Image.network(
-                      property.imageUrl,
-                      width: 80,
-                      height: 70,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _placeholderImage(),
-                    )
-                  : _placeholderImage(),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: widget.property.imageUrl.isNotEmpty
+                      ? Image.network(
+                          widget.property.imageUrl,
+                          width: 80,
+                          height: 70,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _placeholderImage(),
+                        )
+                      : _placeholderImage(),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              widget.property.title,
+                              style: text13(fontWeight: FontWeight.w600),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          _PropertyStatusBadge(status: widget.property.status),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        widget.property.location,
+                        style: text11(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          _PropStat(
+                            icon: Icons.remove_red_eye_outlined,
+                            value: widget.property.views.toString(),
+                          ),
+                          const SizedBox(width: 12),
+                          _PropStat(
+                            icon: Icons.favorite_border,
+                            value: '${widget.property.shortlisted} Shortlisted',
+                          ),
+                          const SizedBox(width: 12),
+                          _PropStat(
+                            icon: Icons.people_outline,
+                            value: '${widget.property.tokens} Tokens',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          property.title,
-                          style: text13(fontWeight: FontWeight.w600),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+            const Divider(height: 16, color: AppColors.grey200),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.vpn_key_rounded,
+                      size: 16,
+                      color: _keyHandover ? AppColors.primary : AppColors.grey500,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Key Handover Ready',
+                      style: text12(
+                        fontWeight: FontWeight.w600,
+                        color: _keyHandover
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
                       ),
-                      _PropertyStatusBadge(status: property.status),
-                    ],
+                    ),
+                  ],
+                ),
+                Transform.scale(
+                  scale: 0.8,
+                  child: Switch(
+                    value: _keyHandover,
+                    activeColor: AppColors.primary,
+                    onChanged: _isToggling ? null : (_) => _toggleKeyHandover(),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    property.location,
-                    style: text11(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _PropStat(
-                        icon: Icons.remove_red_eye_outlined,
-                        value: property.views.toString(),
-                      ),
-                      const SizedBox(width: 12),
-                      _PropStat(
-                        icon: Icons.favorite_border,
-                        value: '${property.shortlisted} Shortlisted',
-                      ),
-                      const SizedBox(width: 12),
-                      _PropStat(
-                        icon: Icons.people_outline,
-                        value: '${property.tokens} Tokens',
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),

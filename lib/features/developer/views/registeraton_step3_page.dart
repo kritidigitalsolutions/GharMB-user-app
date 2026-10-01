@@ -5,6 +5,7 @@ import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/developer/providers/register_provider.dart';
 import 'package:gharmb_app/features/developer/providers/register_submit_provider.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 
 class RegistrationStep3Page extends ConsumerWidget {
   final RegistrationType type;
@@ -21,18 +22,10 @@ class RegistrationStep3Page extends ConsumerWidget {
     ref.listen(registrationSubmitProvider(type), (previous, next) {
       if (next.errorMessage != null &&
           next.errorMessage != previous?.errorMessage) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              next.errorMessage!,
-              style: text12(color: AppColors.white),
-            ),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
+        AppSnackBar.showError(
+          context,
+          title: 'Registration Error',
+          message: next.errorMessage!,
         );
       }
     });

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "9610363754",
+    "project_id": "gharmb-1ce6f",
+    "storage_bucket": "gharmb-1ce6f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:9610363754:android:c91e1762b2edf2bb295b13",
+        "android_client_info": {
+          "package_name": "com.company.gharmb"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "9610363754-sp8em690gu445tnddct7v891aobgg7gh.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.company.gharmb",
+            "certificate_hash": "6ba88512c9d7999113097ab310311ad632665492"
+          }
+        },
+        {
+          "client_id": "9610363754-dlcdkprvbdho73cqj7acj3i6a8vk93fe.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAsB0yRhrbHbbCCwec9y-MTh35E7914HAA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "9610363754-dlcdkprvbdho73cqj7acj3i6a8vk93fe.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

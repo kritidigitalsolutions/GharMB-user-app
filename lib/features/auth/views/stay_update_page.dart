@@ -7,6 +7,7 @@ import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 
 class StayUpdatedPage extends ConsumerStatefulWidget {
   const StayUpdatedPage({super.key});
@@ -32,18 +33,10 @@ class _StayUpdatedPageState extends ConsumerState<StayUpdatedPage> {
     } else if (status.isPermanentlyDenied) {
       _showSettingsDialog();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Notifications disabled. You can enable them later in Settings.',
-            style: text13(color: AppColors.white),
-          ),
-          backgroundColor: AppColors.textPrimary,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
+      AppSnackBar.showInfo(
+        context,
+        title: 'Notifications Disabled',
+        message: 'You can enable notifications later in Settings.',
       );
       _navigateToHome();
     }

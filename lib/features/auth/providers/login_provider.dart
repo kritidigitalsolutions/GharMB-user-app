@@ -45,7 +45,11 @@ class LoginNotifier extends StateNotifier<LoginState> {
     );
   }
 
-  Future<void> sendOtp({required VoidCallback onSuccess}) async {
+  Future<void> sendOtp({
+    required VoidCallback onSuccess,
+    void Function(String message)? onAccountNotFound,
+    void Function(String message)? onSuspended,
+  }) async {
     if (!state.isValid) {
       state = state.copyWith(errorMessage: 'Please fill the phone number');
       return;
@@ -54,10 +58,40 @@ class LoginNotifier extends StateNotifier<LoginState> {
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      await _authRepo.login(state.phone.trim());
+      final res = await _authRepo.login(state.phone.trim());
+
+      if (res is Map && res["accountNotFound"] == true) {
+        state = state.copyWith(isLoading: false, clearError: true);
+        if (onAccountNotFound != null) {
+          onAccountNotFound(
+            res["message"]?.toString() ?? 'Please create a new account.',
+          );
+        }
+        return;
+      }
+
       state = state.copyWith(isLoading: false, clearError: true);
       onSuccess();
+    } on NotFoundException catch (e) {
+      state = state.copyWith(isLoading: false, clearError: true);
+      if (onAccountNotFound != null) {
+        onAccountNotFound(e.message);
+      } else {
+        state = state.copyWith(errorMessage: e.message);
+      }
+    } on ForbiddenException catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.message);
+      if (onSuspended != null) {
+        onSuspended(e.message);
+      }
     } on AppException catch (e) {
+      if (e.data is Map && e.data['accountNotFound'] == true) {
+        state = state.copyWith(isLoading: false, clearError: true);
+        if (onAccountNotFound != null) {
+          onAccountNotFound(e.message);
+          return;
+        }
+      }
       state = state.copyWith(isLoading: false, errorMessage: e.message);
     } catch (e) {
       state = state.copyWith(

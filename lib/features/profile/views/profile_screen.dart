@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
+import 'package:gharmb_app/features/developer/providers/register_provider.dart';
 import 'package:gharmb_app/features/profile/provider/user_profile_provider.dart';
 import 'package:gharmb_app/features/profile/views/about_us_page.dart';
 import 'package:gharmb_app/features/profile/views/contact_us_page.dart';
@@ -28,109 +29,161 @@ class _ToolItem {
   });
 }
 
-const List<_ToolItem> _tools = [
-  _ToolItem(
-    title: 'Loan Calculator',
-    subtitle: 'Calculate your home loan',
-    icon: Icons.calculate_outlined,
-    iconColor: Color(0xFFF35402),
-    bgColor: Color(0xFFFFF3EE),
-  ),
-  _ToolItem(
-    title: 'Unit Converter',
-    subtitle: 'Area, length & more',
-    icon: Icons.swap_horiz_rounded,
-    iconColor: Color(0xFF059AE4),
-    bgColor: Color(0xFFE8F5FF),
-  ),
-  _ToolItem(
-    title: 'My Project',
-    subtitle: 'Manage developer projects',
-    icon: Icons.apartment_outlined,
-    iconColor: Color(0xFF6C63FF),
-    bgColor: Color(0xFFF0EEFF),
-  ),
-  _ToolItem(
-    title: 'News & Insights',
-    subtitle: 'Real estate updates',
-    icon: Icons.campaign_outlined,
-    iconColor: Color(0xFFEB5757),
-    bgColor: Color(0xFFFFEEEE),
-  ),
-  _ToolItem(
-    title: 'Dashboard',
-    subtitle: 'Overview & analytics',
-    icon: Icons.dashboard_outlined,
-    iconColor: Color(0xFF6C63FF),
-    bgColor: Color(0xFFF0EEFF),
-  ),
-  _ToolItem(
-    title: 'Invite Friends',
-    subtitle: 'Refer & earn rewards',
-    icon: Icons.person_add_outlined,
-    iconColor: Color(0xFF059AE4),
-    bgColor: Color(0xFFE8F5FF),
-  ),
-  _ToolItem(
-    title: 'About us',
-    subtitle: 'about us',
-    icon: Icons.info,
-    iconColor: Color(0xFF059AE4),
-    bgColor: Color(0xFFE8F5FF),
-  ),
-  _ToolItem(
-    title: 'Privacy policy',
-    subtitle: 'Privacy policy',
-    icon: Icons.security,
-    iconColor: Colors.red,
-    bgColor: Color(0xFFE8F5FF),
-  ),
-  _ToolItem(
-    title: 'Terms and conditions',
-    subtitle: 'Terms and conditions',
-    icon: Icons.description, // or Icons.article
-    iconColor: Colors.orange,
-    bgColor: Color(0xFFE8F5FF),
-  ),
-  _ToolItem(
-    title: 'Contact us',
-    subtitle: 'Contact us',
-    icon: Icons.support_agent_rounded, // or Icons.article
-    iconColor: Colors.purple,
-    bgColor: Color(0xFFE8F5FF),
-  ),
-];
-
 // ─── Main Page ─────────────────────────────────────────────────
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final userAsync = ref.watch(userModelProvider);
+
+    final isDeveloper = userAsync?.isBuilder == true;
+    final isAgent = userAsync?.isAgent == true;
+    final isDeveloperVerified = userAsync?.isBuilderVerified == true;
+    final isAgentVerified = userAsync?.isAgentVerified == true;
+
+    final List<_ToolItem> tools = [
+      if (isDeveloper) ...[
+        const _ToolItem(
+          title: 'My Project',
+          subtitle: 'Manage developer projects',
+          icon: Icons.apartment_outlined,
+          iconColor: Color(0xFF6C63FF),
+          bgColor: Color(0xFFF0EEFF),
+        ),
+        const _ToolItem(
+          title: 'Dashboard',
+          subtitle: 'Developer overview & analytics',
+          icon: Icons.dashboard_outlined,
+          iconColor: Color(0xFF6C63FF),
+          bgColor: Color(0xFFF0EEFF),
+        ),
+      ] else if (isAgent) ...[
+        const _ToolItem(
+          title: 'Dashboard',
+          subtitle: 'Agent overview & analytics',
+          icon: Icons.dashboard_outlined,
+          iconColor: Color(0xFF6C63FF),
+          bgColor: Color(0xFFF0EEFF),
+        ),
+      ] else ...[
+        const _ToolItem(
+          title: 'Register as Developer',
+          subtitle: 'List projects & commercial properties (RERA)',
+          icon: Icons.domain_outlined,
+          iconColor: Color(0xFF1D9E75),
+          bgColor: Color(0xFFE8F8F2),
+        ),
+        const _ToolItem(
+          title: 'Register as Agent',
+          subtitle: 'Become a certified RERA agent',
+          icon: Icons.badge_outlined,
+          iconColor: Color(0xFF6C63FF),
+          bgColor: Color(0xFFF0EEFF),
+        ),
+      ],
+      const _ToolItem(
+        title: 'Loan Calculator',
+        subtitle: 'Calculate your home loan',
+        icon: Icons.calculate_outlined,
+        iconColor: Color(0xFFF35402),
+        bgColor: Color(0xFFFFF3EE),
+      ),
+      const _ToolItem(
+        title: 'Unit Converter',
+        subtitle: 'Area, length & more',
+        icon: Icons.swap_horiz_rounded,
+        iconColor: Color(0xFF059AE4),
+        bgColor: Color(0xFFE8F5FF),
+      ),
+      const _ToolItem(
+        title: 'News & Insights',
+        subtitle: 'Real estate updates',
+        icon: Icons.campaign_outlined,
+        iconColor: Color(0xFFEB5757),
+        bgColor: Color(0xFFFFEEEE),
+      ),
+      const _ToolItem(
+        title: 'Invite Friends',
+        subtitle: 'Refer & earn rewards',
+        icon: Icons.person_add_outlined,
+        iconColor: Color(0xFF059AE4),
+        bgColor: Color(0xFFE8F5FF),
+      ),
+      const _ToolItem(
+        title: 'About us',
+        subtitle: 'About us',
+        icon: Icons.info,
+        iconColor: Color(0xFF059AE4),
+        bgColor: Color(0xFFE8F5FF),
+      ),
+      const _ToolItem(
+        title: 'Privacy policy',
+        subtitle: 'Privacy policy',
+        icon: Icons.security,
+        iconColor: Colors.red,
+        bgColor: Color(0xFFE8F5FF),
+      ),
+      const _ToolItem(
+        title: 'Terms and conditions',
+        subtitle: 'Terms and conditions',
+        icon: Icons.description,
+        iconColor: Colors.orange,
+        bgColor: Color(0xFFE8F5FF),
+      ),
+      const _ToolItem(
+        title: 'Contact us',
+        subtitle: 'Contact us',
+        icon: Icons.support_agent_rounded,
+        iconColor: Colors.purple,
+        bgColor: Color(0xFFE8F5FF),
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         elevation: 0,
         automaticallyImplyLeading: false,
-        toolbarHeight: 90,
-
+        toolbarHeight: 96,
         title: Row(
           children: [
             Container(
-              width: 46,
-              height: 46,
+              width: 50,
+              height: 50,
               decoration: BoxDecoration(
                 color: AppColors.white.withOpacity(0.25),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: Text(
-                userAsync?.name![0].toUpperCase() ?? 'N',
-                style: text14(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
-                ),
+              child: ClipOval(
+                child:
+                    (userAsync?.profilePicture != null &&
+                        userAsync!.profilePicture!.isNotEmpty)
+                    ? Image.network(
+                        userAsync.profilePicture!,
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Text(
+                          userAsync.name?.isNotEmpty == true
+                              ? userAsync.name![0].toUpperCase()
+                              : 'N',
+                          style: text16(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.white,
+                          ),
+                        ),
+                      )
+                    : Text(
+                        userAsync?.name?.isNotEmpty == true
+                            ? userAsync!.name![0].toUpperCase()
+                            : 'N',
+                        style: text16(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 12),
@@ -139,17 +192,47 @@ class ProfilePage extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    userAsync?.name ?? 'No Name',
-                    style: text16(
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.white,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          userAsync?.name ?? 'No Name',
+                          style: text16(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.25),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          userAsync?.verificationStatus ?? 'Buyer',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   Text(
-                    userAsync?.address?.fullAddress ?? 'No Address',
+                    userAsync?.address?.fullAddress ??
+                        userAsync?.phone ??
+                        'No Address',
                     style: text12(color: AppColors.white.withOpacity(0.85)),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -180,15 +263,125 @@ class ProfilePage extends ConsumerWidget {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Verification Banner ───────────────────
+                  if ((isDeveloper && !isDeveloperVerified) ||
+                      (isAgent && !isAgentVerified)) ...[
+                    Builder(
+                      builder: (context) {
+                        final isUnderReview =
+                            (isDeveloper && userAsync?.isBuilderUnderReview == true) ||
+                            (isAgent && userAsync?.isAgentUnderReview == true);
+                        final roleName = isDeveloper ? 'Developer' : 'Agent';
+
+                        return Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isUnderReview
+                                ? const Color(0xFFF0F7FF)
+                                : const Color(0xFFFFF8EC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isUnderReview
+                                  ? AppColors.primary.withOpacity(0.3)
+                                  : AppColors.warning.withOpacity(0.5),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Icon(
+                                    isUnderReview
+                                        ? Icons.hourglass_top_rounded
+                                        : Icons.assignment_late_outlined,
+                                    color: isUnderReview
+                                        ? AppColors.primary
+                                        : AppColors.warning,
+                                    size: 22,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          isUnderReview
+                                              ? '$roleName Documents Under Review'
+                                              : '$roleName Documents Not Uploaded',
+                                          style: text13(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          isUnderReview
+                                              ? 'Your uploaded RERA & identity documents are currently being reviewed by admin.'
+                                              : 'You have not uploaded any RERA or KYC documents yet. Complete registration to verify your account.',
+                                          style: text11(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (!isUnderReview) ...[
+                                const SizedBox(height: 10),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: InkWell(
+                                    onTap: () {
+                                      context.pushNamed(
+                                        AppPage.devRegisterStep1Name,
+                                        extra: isDeveloper
+                                            ? RegistrationType.developer
+                                            : RegistrationType.agent,
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'Upload Documents',
+                                        style: text12(
+                                          color: AppColors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+
                   Text('My tools', style: text20(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 16),
 
-                  ...List.generate(_tools.length, (i) {
-                    final tool = _tools[i];
+                  ...List.generate(tools.length, (i) {
+                    final tool = tools[i];
                     return _ToolCard(
                       tool: tool,
                       onTap: () => _handleToolTap(context, tool.title),
@@ -353,8 +546,6 @@ class _LogoutDialog extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () async {
                       await LocalStorageService.clearAuthData();
-                      // Navigator.of(context).pop();
-                      // TODO: clear session & navigate to login
                       context.goNamed(AppPage.loginName);
                     },
                     style: ElevatedButton.styleFrom(
@@ -386,6 +577,18 @@ class _LogoutDialog extends StatelessWidget {
 // ─── Tool tap handler ──────────────────────────────────────────
 void _handleToolTap(BuildContext context, String title) {
   switch (title) {
+    case 'Register as Developer':
+      context.pushNamed(
+        AppPage.devRegisterStep1Name,
+        extra: RegistrationType.developer,
+      );
+      break;
+    case 'Register as Agent':
+      context.pushNamed(
+        AppPage.devRegisterStep1Name,
+        extra: RegistrationType.agent,
+      );
+      break;
     case 'Dashboard':
       context.pushNamed(AppPage.dashboardName);
       break;

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:go_router/go_router.dart';
 
 class MyProjectPage extends StatefulWidget {
@@ -590,8 +591,10 @@ class _StatusPill extends StatelessWidget {
 }
 
 void _showEditMessage(BuildContext context, String item) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('Edit $item')),
+  AppSnackBar.showInfo(
+    context,
+    title: 'Edit',
+    message: 'Editing $item',
   );
 }
 

@@ -27,7 +27,7 @@ class ContactUsPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => _ErrorView(message: error.toString()),
         data: (response) {
-          final content = response?.data.pageContent;
+          final content = response?.data?.pageContent;
           if (content == null) {
             return const _ErrorView(message: 'No content available');
           }

@@ -32,6 +32,7 @@ class PropertyModel {
   final bool isLive;
   final String status; // 'Live' | 'Pending' | 'Rejected'
   final String imageUrl;
+  final bool keyHandover;
 
   PropertyModel({
     required this.id,
@@ -43,6 +44,7 @@ class PropertyModel {
     required this.isLive,
     required this.status,
     required this.imageUrl,
+    this.keyHandover = false,
   });
 }
 

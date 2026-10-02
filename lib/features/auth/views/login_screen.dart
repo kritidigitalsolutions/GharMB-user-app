@@ -231,29 +231,45 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                             child: ElevatedButton(
                               onPressed: (state.isValid && !state.isLoading)
-                                  ? () => notifier.sendOtp(
-                                      onSuccess: () {
-                                        ref
-                                            .read(otpPhoneProvider.notifier)
-                                            .state = state.phone
-                                            .trim();
-                                        context.pushNamed(AppPage.otpName);
-                                      },
-                                      onAccountNotFound: (message) {
-                                        ref
-                                            .read(basicInfoProvider.notifier)
-                                            .setPhone(state.phone.trim());
-                                        context.pushNamed(AppPage.basicInfoName);
-                                        AppSnackBar.showInfo(
-                                          context,
-                                          title: 'New Account',
-                                          message: message,
-                                        );
-                                      },
-                                      onSuspended: (message) {
-                                        _showSuspendedDialog(message);
-                                      },
-                                    )
+                                  ? () {
+                                      notifier.setPhone(_controller.text);
+                                      notifier.sendOtp(
+                                        onSuccess: (otp) {
+                                          if (otp != null && otp.isNotEmpty) {
+                                            AppSnackBar.showSuccess(
+                                              context,
+                                              title: 'Verification Code',
+                                              message: 'Your OTP is $otp',
+                                            );
+                                          }
+                                          final targetPhone = _controller.text.trim().isNotEmpty
+                                              ? _controller.text.trim()
+                                              : state.phone.trim();
+                                          ref
+                                              .read(otpPhoneProvider.notifier)
+                                              .state = targetPhone;
+                                          context.pushNamed(
+                                            AppPage.otpName,
+                                            extra: targetPhone,
+                                            queryParameters: {'phone': targetPhone},
+                                          );
+                                        },
+                                        onAccountNotFound: (message) {
+                                          ref
+                                              .read(basicInfoProvider.notifier)
+                                              .setPhone(_controller.text.trim());
+                                          context.pushNamed(AppPage.basicInfoName);
+                                          AppSnackBar.showInfo(
+                                            context,
+                                            title: 'New Account',
+                                            message: message,
+                                          );
+                                        },
+                                        onSuspended: (message) {
+                                          _showSuspendedDialog(message);
+                                        },
+                                      );
+                                    }
                                   : null,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.primary,
@@ -399,35 +415,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ],
                             ),
                           ),
-                        ),
-
-                        const SizedBox(height: 28),
-
-                        // Divider
-                        Row(
-                          children: [
-                            Expanded(child: Divider(color: AppColors.grey200)),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: Text(
-                                'New to GharMB?',
-                                style: text12(color: AppColors.textSecondary),
-                              ),
-                            ),
-                            Expanded(child: Divider(color: AppColors.grey200)),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Create account button
-                        AppOutlineButton(
-                          title: "Create an Account",
-                          onTap: () {
-                            context.pushNamed(AppPage.basicInfoName);
-                          },
                         ),
 
                         const SizedBox(height: 32),

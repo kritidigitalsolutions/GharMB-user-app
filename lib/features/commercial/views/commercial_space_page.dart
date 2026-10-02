@@ -102,7 +102,7 @@ class CommercialSpacesPage extends ConsumerWidget {
                   const SizedBox(height: 32),
 
                   // ── Back to Home ───────────────────────────────────
-                  AppButton(title: "Back to Home", onTap: () {}),
+                  AppButton(title: "Back to Home", onTap: () => context.pop()),
                 ],
               ),
             ),
@@ -351,5 +351,6 @@ class _CategoryTile extends StatelessWidget {
     CommercialCategory.showroom => Icons.car_repair_outlined,
     CommercialCategory.warehouse => Icons.warehouse_outlined,
     CommercialCategory.coWorking => Icons.people_outline,
+    CommercialCategory.industrialPlot => Icons.factory_outlined,
   };
 }

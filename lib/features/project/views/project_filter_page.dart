@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/project/provider/all_project_provider.dart';
 import 'package:gharmb_app/features/project/provider/project_provider.dart';
 
-class ProjectFilterBottomSheet extends ConsumerWidget {
+class ProjectFilterBottomSheet extends ConsumerStatefulWidget {
   const ProjectFilterBottomSheet({super.key});
 
   static Future<void> show(BuildContext context) {
@@ -17,10 +19,59 @@ class ProjectFilterBottomSheet extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProjectFilterBottomSheet> createState() =>
+      _ProjectFilterBottomSheetState();
+}
+
+class _ProjectFilterBottomSheetState
+    extends ConsumerState<ProjectFilterBottomSheet> {
+  late final TextEditingController _citySearchController;
+  String _citySearchQuery = '';
+
+  static const _popularCities = [
+    'All Cities',
+    'Meerut',
+    'Delhi',
+    'Noida',
+    'Greater Noida',
+    'Gurgaon',
+    'Agra',
+    'Ghaziabad',
+    'Faridabad',
+    'Lucknow',
+    'Jaipur',
+    'Mumbai',
+    'Bangalore',
+    'Pune',
+    'Hyderabad',
+    'Chandigarh',
+    'Ahmedabad',
+    'Kolkata',
+    'Chennai',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _citySearchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _citySearchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final filter = ref.watch(projectFilterProvider);
     final notifier = ref.read(projectFilterProvider.notifier);
     final screenH = MediaQuery.of(context).size.height;
+
+    final filteredCities = _popularCities.where((c) {
+      if (_citySearchQuery.isEmpty) return true;
+      return c.toLowerCase().contains(_citySearchQuery.toLowerCase());
+    }).toList();
 
     return Container(
       height: screenH * 0.88,
@@ -89,6 +140,139 @@ class ProjectFilterBottomSheet extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── City Selection ──────────────────────────────────
+                  _FilterSection(
+                    title: 'Select City / Location',
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Search & Custom Input TextField
+                        Container(
+                          height: 44,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: AppColors.grey100,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.grey200),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.search,
+                                color: AppColors.grey,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: _citySearchController,
+                                  onChanged: (val) => setState(
+                                    () => _citySearchQuery = val.trim(),
+                                  ),
+                                  onSubmitted: (val) {
+                                    final text = val.trim();
+                                    if (text.isNotEmpty) {
+                                      notifier.setCity(text);
+                                      ref
+                                          .read(latestProjectsProvider.notifier)
+                                          .setCity(text);
+                                    }
+                                  },
+                                  decoration: const InputDecoration(
+                                    hintText: 'Search or type any city...',
+                                    hintStyle: TextStyle(
+                                      color: AppColors.grey,
+                                      fontSize: 13,
+                                    ),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                  ),
+                                  style: text13(color: AppColors.textPrimary),
+                                ),
+                              ),
+                              if (_citySearchQuery.isNotEmpty)
+                                GestureDetector(
+                                  onTap: () {
+                                    _citySearchController.clear();
+                                    setState(() => _citySearchQuery = '');
+                                  },
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 16,
+                                    color: AppColors.grey,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Custom chip if query not in popular
+                        if (_citySearchQuery.isNotEmpty &&
+                            filteredCities.isEmpty) ...[
+                          GestureDetector(
+                            onTap: () {
+                              notifier.setCity(_citySearchQuery);
+                              ref
+                                  .read(latestProjectsProvider.notifier)
+                                  .setCity(_citySearchQuery);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.primary),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.location_on,
+                                    size: 15,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Select "$_citySearchQuery"',
+                                    style: text12(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                        ],
+
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: filteredCities.map((c) {
+                            final sel =
+                                filter.city.toLowerCase() == c.toLowerCase() ||
+                                (filter.city.isEmpty && c == 'All Cities');
+                            return _Chip(
+                              label: c,
+                              isSelected: sel,
+                              onTap: () {
+                                notifier.setCity(c);
+                                ref
+                                    .read(latestProjectsProvider.notifier)
+                                    .setCity(c);
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   // ── Sort By ─────────────────────────────────────────
                   _FilterSection(
                     title: 'Sort By',
@@ -287,7 +471,11 @@ class ProjectFilterBottomSheet extends ConsumerWidget {
                 // Clear all
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => notifier.clearAll(),
+                    onPressed: () {
+                      notifier.clearAll();
+                      ref.read(latestProjectsProvider.notifier).resetFilters();
+                      Navigator.pop(context);
+                    },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.grey300),
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -309,7 +497,15 @@ class ProjectFilterBottomSheet extends ConsumerWidget {
                 Expanded(
                   flex: 2,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      ref
+                          .read(latestProjectsProvider.notifier)
+                          .setCity(filter.city);
+                      ref
+                          .read(latestProjectsProvider.notifier)
+                          .applyFilterState(filter);
+                      Navigator.pop(context);
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14),

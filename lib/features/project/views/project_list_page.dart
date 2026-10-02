@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/home/providers/notification_provider.dart';
@@ -8,36 +10,368 @@ import 'package:gharmb_app/features/project/provider/all_project_provider.dart';
 import 'package:gharmb_app/features/project/provider/project_provider.dart';
 import 'package:gharmb_app/features/project/views/project_filter_page.dart';
 import 'package:gharmb_app/routes/app_page.dart';
+import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 import 'package:go_router/go_router.dart';
-import 'package:riverpod/legacy.dart';
-
-/// Holds whichever property card was last tapped, so the detail page knows
-/// what to display. Plain state provider — not related to demo/real data.
-final selectedProjectProvider = StateProvider<PropertyModel?>((ref) => null);
 
 class ProjectListPage extends ConsumerStatefulWidget {
   final String city;
-  const ProjectListPage({super.key, this.city = 'Meerut'});
+  const ProjectListPage({super.key, this.city = 'All Cities'});
 
   @override
   ConsumerState<ProjectListPage> createState() => _ProjectListPageState();
 }
 
 class _ProjectListPageState extends ConsumerState<ProjectListPage> {
-  static const _filters = ['All', '2 BHK', '3 BHK', '4 BHK', 'Ready to Move'];
-  String _selectedFilter = 'All';
+  static const _chips = [
+    'All',
+    '2 BHK',
+    '3 BHK',
+    '4 BHK',
+    'Ready to Move',
+    'Commercial',
+    'Residential',
+  ];
+
+  late final ScrollController _scrollController;
+  late final TextEditingController _searchController;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
+    _searchController = TextEditingController();
+
+    // If a specific city is passed on initial entry
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.city.isNotEmpty && widget.city != 'All Cities') {
+        ref.read(latestProjectsProvider.notifier).setCity(widget.city);
+        ref.read(projectFilterProvider.notifier).setCity(widget.city);
+      }
+    });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final state = ref.read(latestProjectsProvider);
+      if (state.hasMore && !state.isLoadingMore && !state.isLoading) {
+        ref.read(latestProjectsProvider.notifier).fetchLatestProperties();
+      }
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      ref.read(latestProjectsProvider.notifier).setSearchQuery(query);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _showCitySelector() {
+    final popularCities = [
+      'All Cities',
+      'Meerut',
+      'Delhi',
+      'Noida',
+      'Greater Noida',
+      'Gurgaon',
+      'Agra',
+      'Ghaziabad',
+      'Faridabad',
+      'Lucknow',
+      'Jaipur',
+      'Mumbai',
+      'Bangalore',
+      'Pune',
+      'Hyderabad',
+      'Chandigarh',
+      'Ahmedabad',
+      'Kolkata',
+      'Chennai',
+    ];
+
+    final searchCtrl = TextEditingController();
+    String searchQuery = '';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final currentCity = ref
+                .watch(latestProjectsProvider)
+                .selectedCity;
+
+            final filteredCities = popularCities.where((c) {
+              if (searchQuery.isEmpty) return true;
+              return c.toLowerCase().contains(searchQuery.toLowerCase());
+            }).toList();
+
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                16,
+                20,
+                MediaQuery.of(ctx).viewInsets.bottom +
+                    MediaQuery.of(ctx).padding.bottom +
+                    16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.grey300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_city_rounded,
+                        color: AppColors.primary,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Select City / Location',
+                        style: text18(fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        onPressed: () => Navigator.pop(ctx),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Search & Custom Location TextField
+                  Container(
+                    height: 46,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.grey100,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.grey200),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.search,
+                          color: AppColors.grey,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: searchCtrl,
+                            autofocus: false,
+                            onChanged: (val) => setModalState(
+                              () => searchQuery = val.trim(),
+                            ),
+                            onSubmitted: (val) {
+                              final text = val.trim();
+                              if (text.isNotEmpty) {
+                                ref
+                                    .read(latestProjectsProvider.notifier)
+                                    .setCity(text);
+                                ref
+                                    .read(projectFilterProvider.notifier)
+                                    .setCity(text);
+                                Navigator.pop(ctx);
+                              }
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Search or type any city name...',
+                              hintStyle: TextStyle(
+                                color: AppColors.grey,
+                                fontSize: 13,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                            ),
+                            style: text13(color: AppColors.textPrimary),
+                          ),
+                        ),
+                        if (searchQuery.isNotEmpty)
+                          GestureDetector(
+                            onTap: () {
+                              searchCtrl.clear();
+                              setModalState(() => searchQuery = '');
+                            },
+                            child: const Icon(
+                              Icons.close,
+                              size: 18,
+                              color: AppColors.grey,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // If user typed a custom city that isn't directly in popular list
+                  if (searchQuery.isNotEmpty && filteredCities.isEmpty) ...[
+                    Text(
+                      'Custom Location',
+                      style: text13(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () {
+                        ref
+                            .read(latestProjectsProvider.notifier)
+                            .setCity(searchQuery);
+                        ref
+                            .read(projectFilterProvider.notifier)
+                            .setCity(searchQuery);
+                        Navigator.pop(ctx);
+                      },
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.primary),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Select "$searchQuery"',
+                              style: text13(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+
+                  Text(
+                    'Popular Cities',
+                    style: text13(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.of(ctx).size.height * 0.35,
+                    ),
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: filteredCities.map((c) {
+                          final isSel =
+                              currentCity.toLowerCase() == c.toLowerCase() ||
+                              (currentCity.isEmpty && c == 'All Cities');
+                          return GestureDetector(
+                            onTap: () {
+                              ref
+                                  .read(latestProjectsProvider.notifier)
+                                  .setCity(c);
+                              ref
+                                  .read(projectFilterProvider.notifier)
+                                  .setCity(c);
+                              Navigator.pop(ctx);
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 9,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSel
+                                    ? AppColors.primary
+                                    : AppColors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: isSel
+                                      ? AppColors.primary
+                                      : AppColors.grey300,
+                                  width: 1.2,
+                                ),
+                              ),
+                              child: Text(
+                                c,
+                                style: text13(
+                                  color: isSel
+                                      ? AppColors.white
+                                      : AppColors.textPrimary,
+                                  fontWeight: isSel
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final asyncProjects = ref.watch(projectControllerProvider);
+    final state = ref.watch(latestProjectsProvider);
+    final notifier = ref.read(latestProjectsProvider.notifier);
     final filterState = ref.watch(projectFilterProvider);
 
-    final apiProperties = asyncProjects.value?.data.properties ?? const [];
-    final usingDemoData = apiProperties.isEmpty;
-
-    final allProperties = usingDemoData ? _demoProperties : apiProperties;
-    final properties = _applyChipFilter(allProperties, _selectedFilter);
-    final isLoading = asyncProjects.isLoading;
+    final properties = state.properties;
+    final isLoading = state.isLoading;
+    final isLoadingMore = state.isLoadingMore;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -45,299 +379,290 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
         child: Column(
           children: [
             // ── Top Bar ──────────────────────────────────────────────
-            _TopBar(city: widget.city),
+            _TopBar(
+              city: state.selectedCity,
+              totalCount: state.total,
+              onCityTap: _showCitySelector,
+            ),
 
             // ── Search + Filter Row ──────────────────────────────────
             _SearchFilterRow(
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              onClear: () {
+                _searchController.clear();
+                notifier.setSearchQuery('');
+              },
               activeFilterCount: filterState.activeCount,
               onFilterTap: () => ProjectFilterBottomSheet.show(context),
             ),
 
             // ── Filter Chips ─────────────────────────────────────────
             _FilterChipsRow(
-              filters: _filters,
-              selected: _selectedFilter,
-              onSelect: (f) => setState(() => _selectedFilter = f),
+              filters: _chips,
+              selected: state.selectedChip,
+              onSelect: (f) => notifier.setSelectedChip(f),
             ),
+            const SizedBox(height: 10),
 
-            if (usingDemoData) ...[
-              const SizedBox(height: 8),
-              //const _DemoDataBanner(),
-            ],
-            const SizedBox(height: 8),
-
-            // ── Projects List ─────────────────────────────────────────
+            // ── Projects List / Shimmer / Empty ──────────────────────
             Expanded(
-              child: RefreshIndicator(
-                color: AppColors.primary,
-                onRefresh: () => ref
-                    .read(projectControllerProvider.notifier)
-                    .loadAllProperties(),
-                child: properties.isEmpty && !isLoading
-                    ? const _EmptyState()
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                        itemCount: properties.length + 1,
-                        itemBuilder: (ctx, i) {
-                          if (i == properties.length) {
-                            return _LoadStatusFooter(
-                              isLoading: isLoading,
-                              hasError: asyncProjects.hasError,
-                              onRetry: () => ref
-                                  .read(projectControllerProvider.notifier)
-                                  .loadAllProperties(),
-                            );
-                          }
-                          final property = properties[i];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: _ProjectCard(
-                              property: property,
-                              onTap: () {
-                                ref
-                                        .read(selectedProjectProvider.notifier)
-                                        .state =
-                                    property;
-                                context.pushNamed(AppPage.projectDetailName);
+              child: isLoading && properties.isEmpty
+                  ? const PropertyListShimmer()
+                  : RefreshIndicator(
+                      color: AppColors.primary,
+                      onRefresh: () =>
+                          notifier.fetchLatestProperties(refresh: true),
+                      child: properties.isEmpty
+                          ? ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              children: [
+                                SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.55,
+                                  child: _EmptyState(
+                                    error: state.error,
+                                    onRetry: () =>
+                                        notifier.fetchLatestProperties(
+                                          refresh: true,
+                                        ),
+                                    onClearFilters: () {
+                                      _searchController.clear();
+                                      notifier.resetFilters();
+                                    },
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ListView.builder(
+                              controller: _scrollController,
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                              itemCount:
+                                  properties.length +
+                                  (isLoadingMore || state.error != null
+                                      ? 1
+                                      : 0),
+                              itemBuilder: (ctx, i) {
+                                if (i == properties.length) {
+                                  if (isLoadingMore) {
+                                    return const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 16,
+                                      ),
+                                      child: Center(
+                                        child: SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  if (state.error != null) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: GestureDetector(
+                                        onTap: () =>
+                                            notifier.fetchLatestProperties(
+                                              refresh: false,
+                                            ),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            border: Border.all(
+                                              color: AppColors.grey300,
+                                            ),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              'Failed to load more. Tap to retry',
+                                              style: text13(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                }
+
+                                final property = properties[i];
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 16),
+                                  child: _ProjectCard(
+                                    property: property,
+                                    onTap: () {
+                                      final ownerName =
+                                          property.owner.name.isNotEmpty
+                                          ? property.owner.name
+                                          : (property.listingAs.isNotEmpty
+                                                ? property.listingAs
+                                                : 'Verified Developer');
+                                      ref
+                                              .read(
+                                                selectedProjectProvider
+                                                    .notifier,
+                                              )
+                                              .state =
+                                          ProjectModel(
+                                                id: property.id,
+                                                name: property.title,
+                                                location:
+                                                    property.locationLabel,
+                                                developer: ownerName,
+                                                startingPrice:
+                                                    property.startingPriceLabel,
+                                                bhkTypes: property.bhkLabel,
+                                                totalUnits:
+                                                    property.tokensCount > 0
+                                                    ? property.tokensCount
+                                                    : 100,
+                                                openSpace: '70%',
+                                                possession:
+                                                    property.possessionLabel,
+                                                distance: property.locality,
+                                                interested:
+                                                    property.shortlistedCount >
+                                                        0
+                                                    ? property.shortlistedCount
+                                                    : property.viewsCount,
+                                                reraApproved:
+                                                    property.isReraApproved,
+                                                readyToMove:
+                                                    property.isReadyToMove,
+                                                imageGradientKey:
+                                                    property.gradientKey,
+                                              );
+                                      context.pushNamed(
+                                        AppPage.projectDetailName,
+                                      );
+                                    },
+                                  ),
+                                );
                               },
                             ),
-                          );
-                        },
-                      ),
-              ),
+                    ),
             ),
           ],
         ),
       ),
     );
   }
-
-  List<PropertyModel> _applyChipFilter(
-    List<PropertyModel> properties,
-    String filter,
-  ) {
-    if (filter == 'All') return properties;
-    if (filter == 'Ready to Move') {
-      return properties.where((p) => p.isReadyToMove).toList();
-    }
-    // '2 BHK' / '3 BHK' / '4 BHK'
-    return properties.where((p) => p.bhkLabel.contains(filter[0])).toList();
-  }
 }
-
-// ─────────────────────────────────────────────────────────────────────────
-// Display helpers — computed straight off PropertyModel, no second model.
-// ─────────────────────────────────────────────────────────────────────────
-
-extension PropertyDisplay on PropertyModel {
-  bool get isReraApproved => approvalStatus.toLowerCase() == 'approved';
-
-  bool get isReadyToMove =>
-      ageOfProperty.toLowerCase().contains('ready') ||
-      ageOfProperty.trim() == '0';
-
-  String get locationLabel => locality.isNotEmpty ? '$locality, $city' : city;
-
-  String get bhkLabel => bedrooms.isNotEmpty ? '$bedrooms BHK' : '-';
-
-  String get possessionLabel =>
-      ageOfProperty.trim().isEmpty ? 'TBD' : ageOfProperty;
-
-  String get imageUrl => images.isNotEmpty ? images.first : '';
-
-  /// Deterministic gradient per property (no index needed).
-  String get gradientKey {
-    const gradients = ['dark_blue', 'dark_teal', 'dark_yellow'];
-    return gradients[id.hashCode.abs() % gradients.length];
-  }
-
-  String get startingPriceLabel {
-    if (price >= 10000000) {
-      return '₹${(price / 10000000).toStringAsFixed(2)} Cr';
-    } else if (price >= 100000) {
-      return '₹${(price / 100000).toStringAsFixed(1)} L';
-    }
-    return '₹$price';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Hardcoded demo data — real PropertyModel instances, used only when the
-// API has no properties yet (null response, empty list, loading, error).
-// ─────────────────────────────────────────────────────────────────────────
-
-PropertyModel _demoProperty({
-  required String id,
-  required String title,
-  required String city,
-  required String locality,
-  required String bedrooms,
-  required int price,
-  required String developer,
-  required String ageOfProperty,
-  required int tokensCount,
-  required int shortlistedCount,
-  required String approvalStatus,
-}) {
-  final now = DateTime.now();
-  return PropertyModel(
-    location: Location(type: 'Point', coordinates: const [0, 0]),
-    id: id,
-    mongoId: id,
-    listingAs: 'Owner',
-    category: 'Residential',
-    listingFor: 'Sale',
-    propertyType: 'Apartment',
-    title: title,
-    city: city,
-    locality: locality,
-    fullAddress: '$locality, $city',
-    pincode: '000000',
-    description: 'Sample listing shown while live projects are loading.',
-    bedrooms: bedrooms,
-    bathrooms: bedrooms,
-    carpetArea: 0,
-    builtUpArea: 0,
-    floorNo: '-',
-    totalFloors: '-',
-    ageOfProperty: ageOfProperty,
-    furnishing: '-',
-    facingDirection: '-',
-    parking: '-',
-    amenities: const [],
-    preferredTenants: const [],
-    petsAllowed: false,
-    smokingAllowed: false,
-    brokerageFree: true,
-    rentNegotiable: false,
-    images: const [],
-    price: price,
-    securityDeposit: 0,
-    maintenanceCharges: 0,
-    maintenanceIncludedInRent: false,
-    brokerageFee: 0,
-    otherCharges: 0,
-    vastuCompliant: false,
-    openToAllBuyers: true,
-    loanAssistanceNeeded: false,
-    listingTier: 'standard',
-    owner: Owner(
-      id: 'demo-owner-$id',
-      name: developer,
-      phone: '',
-      profilePicture: '',
-      isVerified: true,
-    ),
-    approvalStatus: approvalStatus,
-    isLive: true,
-    viewsCount: 0,
-    shortlistedCount: shortlistedCount,
-    inquiriesCount: 0,
-    tokensCount: tokensCount,
-    createdAt: now,
-    updatedAt: now,
-    submissionId: 'demo-$id',
-  );
-}
-
-final List<PropertyModel> _demoProperties = [
-  _demoProperty(
-    id: 'demo-1',
-    title: 'Shivalik Heights',
-    city: 'Meerut',
-    locality: 'Shastri Nagar',
-    bedrooms: '2',
-    price: 4250000,
-    developer: 'Shivalik Group',
-    ageOfProperty: 'Ready to Move',
-    tokensCount: 180,
-    shortlistedCount: 214,
-    approvalStatus: 'approved',
-  ),
-  _demoProperty(
-    id: 'demo-2',
-    title: 'Green Valley Residency',
-    city: 'Meerut',
-    locality: 'Delhi Road',
-    bedrooms: '3',
-    price: 6500000,
-    developer: 'Omaxe Ltd.',
-    ageOfProperty: 'Dec 2027',
-    tokensCount: 320,
-    shortlistedCount: 452,
-    approvalStatus: 'approved',
-  ),
-  _demoProperty(
-    id: 'demo-3',
-    title: 'Sunrise Enclave',
-    city: 'Meerut',
-    locality: 'Garh Road',
-    bedrooms: '1',
-    price: 2800000,
-    developer: 'Ansal Properties',
-    ageOfProperty: 'Ready to Move',
-    tokensCount: 96,
-    shortlistedCount: 89,
-    approvalStatus: 'pending',
-  ),
-];
-
-// ─── Demo data banner ──────────────────────────────────────────────────────
-
-// class _DemoDataBanner extends StatelessWidget {
-//   const _DemoDataBanner();
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Padding(
-//       padding: const EdgeInsets.symmetric(horizontal: 16),
-//       child: Container(
-//         width: double.infinity,
-//         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-//         decoration: BoxDecoration(
-//           color: AppColors.yellow.withOpacity(0.12),
-//           borderRadius: BorderRadius.circular(8),
-//         ),
-//         child: Text(
-//           'Showing sample projects — live listings will appear here once available.',
-//           style: text11(color: AppColors.textSecondary),
-//         ),
-//       ),
-//     );
-//   }
-// }
 
 // ─── Empty state ───────────────────────────────────────────────────────────
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final String? error;
+  final VoidCallback? onRetry;
+  final VoidCallback onClearFilters;
+
+  const _EmptyState({
+    this.error,
+    this.onRetry,
+    required this.onClearFilters,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      // wrapped in ListView so RefreshIndicator's pull-to-refresh still works
-      children: [
-        SizedBox(
-          height: MediaQuery.of(context).size.height * 0.5,
-          child: Center(
-            child: Column(
+    final isError = error != null && error!.isNotEmpty;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: (isError ? AppColors.error : AppColors.primary).withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isError ? Icons.error_outline_rounded : Icons.apartment_outlined,
+                size: 48,
+                color: isError ? AppColors.error : AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isError ? 'Unable to load projects' : 'No projects found',
+              style: text16(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              isError
+                  ? (error ?? 'Something went wrong. Please check your connection and retry.')
+                  : 'Try changing your city, search keywords or filters to see available projects.',
+              style: text13(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.apartment_outlined,
-                  size: 48,
-                  color: AppColors.grey300,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'No projects found',
-                  style: text14(color: AppColors.textSecondary),
+                if (isError && onRetry != null) ...[
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.refresh, size: 16, color: AppColors.white),
+                    label: Text(
+                      'Retry',
+                      style: text13(
+                        color: AppColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                    ),
+                    onPressed: onRetry,
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.grey300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 10,
+                    ),
+                  ),
+                  onPressed: onClearFilters,
+                  child: Text(
+                    'Reset Filters',
+                    style: text13(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -346,7 +671,14 @@ class _EmptyState extends StatelessWidget {
 
 class _TopBar extends ConsumerWidget {
   final String city;
-  const _TopBar({required this.city});
+  final int totalCount;
+  final VoidCallback onCityTap;
+
+  const _TopBar({
+    required this.city,
+    required this.totalCount,
+    required this.onCityTap,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -357,15 +689,65 @@ class _TopBar extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'New Projects in',
-                  style: text13(color: AppColors.textSecondary),
-                ),
-                Text(city, style: text18(fontWeight: FontWeight.bold)),
-              ],
+            child: GestureDetector(
+              onTap: onCityTap,
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'New Projects in',
+                        style: text12(color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          city.isEmpty ? 'All Cities' : city,
+                          style: text18(fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (totalCount > 0) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$totalCount',
+                            style: text11(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
           GestureDetector(
@@ -374,18 +756,25 @@ class _TopBar extends ConsumerWidget {
             },
             child: Stack(
               children: [
-                const Icon(
-                  Icons.notifications_outlined,
-                  color: AppColors.primary,
-                  size: 22,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.grey100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.notifications_outlined,
+                    color: AppColors.textPrimary,
+                    size: 20,
+                  ),
                 ),
                 if (unreadCount > 0)
                   Positioned(
-                    right: 0,
-                    top: 0,
+                    right: 6,
+                    top: 6,
                     child: Container(
-                      width: 7,
-                      height: 7,
+                      width: 8,
+                      height: 8,
                       decoration: const BoxDecoration(
                         color: AppColors.primary,
                         shape: BoxShape.circle,
@@ -393,15 +782,6 @@ class _TopBar extends ConsumerWidget {
                     ),
                   ),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(
-              Icons.share_outlined,
-              color: AppColors.primary,
-              size: 22,
             ),
           ),
         ],
@@ -413,10 +793,16 @@ class _TopBar extends ConsumerWidget {
 // ─── Search + Filter Row ──────────────────────────────────────────────────────
 
 class _SearchFilterRow extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
   final int activeFilterCount;
   final VoidCallback onFilterTap;
 
   const _SearchFilterRow({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
     required this.activeFilterCount,
     required this.onFilterTap,
   });
@@ -424,34 +810,50 @@ class _SearchFilterRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               decoration: BoxDecoration(
                 color: AppColors.white,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: AppColors.grey200),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.search, color: AppColors.hintText, size: 18),
+                  const Icon(Icons.search, color: AppColors.hintText, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      'Search projects, builders, locality...',
-                      overflow: TextOverflow.ellipsis,
-                      style: text13(color: AppColors.hintText),
+                    child: TextField(
+                      controller: controller,
+                      onChanged: onChanged,
+                      decoration: InputDecoration(
+                        hintText: 'Search projects, builders, locality...',
+                        hintStyle: text13(color: AppColors.hintText),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
+                      ),
                     ),
                   ),
+                  if (controller.text.isNotEmpty)
+                    GestureDetector(
+                      onTap: onClear,
+                      child: const Icon(
+                        Icons.close,
+                        color: AppColors.grey400,
+                        size: 18,
+                      ),
+                    ),
                 ],
               ),
             ),
           ),
           const SizedBox(width: 10),
-          // ── Filter Icon with active badge ────────────────────────
           GestureDetector(
             onTap: onFilterTap,
             child: Stack(
@@ -464,7 +866,7 @@ class _SearchFilterRow extends StatelessWidget {
                     color: activeFilterCount > 0
                         ? AppColors.primary.withOpacity(0.1)
                         : AppColors.white,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: activeFilterCount > 0
                           ? AppColors.primary
@@ -528,7 +930,7 @@ class _FilterChipsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 40,
+      height: 38,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -536,12 +938,12 @@ class _FilterChipsRow extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final f = filters[i];
-          final sel = f == selected;
+          final sel = f.toLowerCase() == selected.toLowerCase();
           return GestureDetector(
             onTap: () => onSelect(f),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 160),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
                 color: sel ? AppColors.primary : AppColors.white,
                 borderRadius: BorderRadius.circular(8),
@@ -576,6 +978,12 @@ class _ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ownerName = property.owner.name.isNotEmpty
+        ? property.owner.name
+        : (property.listingAs.isNotEmpty
+              ? property.listingAs
+              : 'Verified Builder');
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -585,7 +993,7 @@ class _ProjectCard extends StatelessWidget {
           border: Border.all(color: AppColors.grey100),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 3),
             ),
@@ -636,7 +1044,7 @@ class _ProjectCard extends StatelessWidget {
                               child: Icon(
                                 Icons.apartment_rounded,
                                 size: 72,
-                                color: Colors.white.withOpacity(0.12),
+                                color: Colors.white.withOpacity(0.15),
                               ),
                             ),
                           )
@@ -644,7 +1052,7 @@ class _ProjectCard extends StatelessWidget {
                             child: Icon(
                               Icons.apartment_rounded,
                               size: 72,
-                              color: Colors.white.withOpacity(0.12),
+                              color: Colors.white.withOpacity(0.15),
                             ),
                           ),
                   ),
@@ -654,7 +1062,7 @@ class _ProjectCard extends StatelessWidget {
                     bottom: 12,
                     left: 12,
                     child: _BadgeChip(
-                      label: '✓ RERA Approved',
+                      label: '✓ Verified / RERA',
                       bg: AppColors.success,
                     ),
                   ),
@@ -664,7 +1072,7 @@ class _ProjectCard extends StatelessWidget {
                     right: 12,
                     child: _BadgeChip(
                       label: '⚡ Ready to Move',
-                      bg: AppColors.yellow,
+                      bg: AppColors.warning,
                     ),
                   ),
               ],
@@ -683,21 +1091,26 @@ class _ProjectCard extends StatelessWidget {
                         Text(
                           property.title,
                           style: text16(fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 3),
                         Text(
                           property.locationLabel,
                           style: text12(color: AppColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
                         'Starting',
-                        style: text11(color: AppColors.textSecondary),
+                        style: text10(color: AppColors.textSecondary),
                       ),
                       Text(
                         property.startingPriceLabel,
@@ -713,20 +1126,24 @@ class _ProjectCard extends StatelessWidget {
             ),
 
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 6, 14, 0),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 0),
               child: Row(
                 children: [
                   const Icon(
-                    Icons.person_outline,
-                    size: 18,
-                    color: AppColors.textPrimary,
+                    Icons.business_outlined,
+                    size: 16,
+                    color: AppColors.textSecondary,
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'By ${property.owner.name}',
-                    style: text14(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'By $ownerName',
+                      style: text13(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -744,12 +1161,16 @@ class _ProjectCard extends StatelessWidget {
                 children: [
                   _StatCell(
                     value: property.bhkLabel,
-                    label: 'BHK',
+                    label: 'Type',
                     icon: Icons.bed_outlined,
                   ),
                   _StatCell(
-                    value: '${property.tokensCount}',
-                    label: 'Units',
+                    value: property.carpetArea > 0
+                        ? '${property.carpetArea} sqft'
+                        : (property.tokensCount > 0
+                              ? '${property.tokensCount} Units'
+                              : 'Standard'),
+                    label: 'Area / Units',
                     icon: Icons.domain_outlined,
                   ),
                   _StatCell(
@@ -772,7 +1193,7 @@ class _ProjectCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    '${property.shortlistedCount} Interested',
+                    '${property.shortlistedCount > 0 ? property.shortlistedCount : property.viewsCount} Views / Interested',
                     style: text12(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w500,
@@ -780,12 +1201,10 @@ class _ProjectCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   const Icon(
-                    Icons.near_me_outlined,
-                    size: 13,
-                    color: AppColors.textSecondary,
+                    Icons.arrow_forward_ios_rounded,
+                    size: 12,
+                    color: AppColors.grey400,
                   ),
-                  const SizedBox(width: 3),
-                  Text('-', style: text11(color: AppColors.textSecondary)),
                 ],
               ),
             ),
@@ -851,78 +1270,26 @@ class _StatCell extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: AppColors.textSecondary),
         const SizedBox(width: 5),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value, style: text12(fontWeight: FontWeight.w600)),
-            Text(label, style: text10(color: AppColors.textSecondary)),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: text12(fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                label,
+                style: text10(color: AppColors.textSecondary),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
       ],
     ),
   );
-}
-
-// ─── Footer: loading / error-retry state ──────────────────────────────────────
-// (Replaces the old "Load More" button — there's no pagination on
-// allProperties(), so this now reflects fetch status instead.)
-
-class _LoadStatusFooter extends StatelessWidget {
-  final bool isLoading;
-  final bool hasError;
-  final VoidCallback onRetry;
-
-  const _LoadStatusFooter({
-    required this.isLoading,
-    required this.hasError,
-    required this.onRetry,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Center(
-          child: SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: AppColors.primary,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (hasError) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 4),
-        child: GestureDetector(
-          onTap: onRetry,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.grey300),
-            ),
-            child: Center(
-              child: Text(
-                'Couldn\'t load latest projects — Tap to retry',
-                style: text14(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return const SizedBox.shrink();
-  }
 }

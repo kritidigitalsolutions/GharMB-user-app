@@ -25,13 +25,17 @@ class DashboardResponse {
 class DashboardData {
   final ProfileModel? profile;
   final CountersModel? counters;
+  final TokenRequestsBannerModel? tokenRequestsBanner;
   final PerformanceModel? performance;
+  final TabsModel? tabs;
   final MyPropertiesModel? myProperties;
 
   DashboardData({
     this.profile,
     this.counters,
+    this.tokenRequestsBanner,
     this.performance,
+    this.tabs,
     this.myProperties,
   });
 
@@ -43,10 +47,18 @@ class DashboardData {
       counters: json["counters"] is Map
           ? CountersModel.fromJson(Map<String, dynamic>.from(json["counters"]))
           : null,
+      tokenRequestsBanner: json["tokenRequestsBanner"] is Map
+          ? TokenRequestsBannerModel.fromJson(
+              Map<String, dynamic>.from(json["tokenRequestsBanner"]),
+            )
+          : null,
       performance: json["performance"] is Map
           ? PerformanceModel.fromJson(
               Map<String, dynamic>.from(json["performance"]),
             )
+          : null,
+      tabs: json["tabs"] is Map
+          ? TabsModel.fromJson(Map<String, dynamic>.from(json["tabs"]))
           : null,
       myProperties: json["myProperties"] is Map
           ? MyPropertiesModel.fromJson(
@@ -60,9 +72,65 @@ class DashboardData {
     return {
       "profile": profile?.toJson(),
       "counters": counters?.toJson(),
+      "tokenRequestsBanner": tokenRequestsBanner?.toJson(),
       "performance": performance?.toJson(),
+      "tabs": tabs?.toJson(),
       "myProperties": myProperties?.toJson(),
     };
+  }
+}
+
+class TokenRequestsBannerModel {
+  final int? count;
+  final String? title;
+  final String? subtitle;
+  final bool? hasPending;
+
+  TokenRequestsBannerModel({
+    this.count,
+    this.title,
+    this.subtitle,
+    this.hasPending,
+  });
+
+  factory TokenRequestsBannerModel.fromJson(Map<String, dynamic> json) {
+    return TokenRequestsBannerModel(
+      count: json["count"] as int?,
+      title: json["title"]?.toString(),
+      subtitle: json["subtitle"]?.toString(),
+      hasPending: json["hasPending"] as bool?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "count": count,
+      "title": title,
+      "subtitle": subtitle,
+      "hasPending": hasPending,
+    };
+  }
+}
+
+class TabsModel {
+  final String? activeTab;
+  final Map<String, int>? counts;
+
+  TabsModel({this.activeTab, this.counts});
+
+  factory TabsModel.fromJson(Map<String, dynamic> json) {
+    return TabsModel(
+      activeTab: json["activeTab"]?.toString(),
+      counts: json["counts"] is Map
+          ? (json["counts"] as Map).map(
+              (k, v) => MapEntry(k.toString(), (v as num?)?.toInt() ?? 0),
+            )
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {"activeTab": activeTab, "counts": counts};
   }
 }
 
@@ -180,33 +248,45 @@ class CountersModel {
 }
 
 class PerformanceModel {
+  final String? period;
+  final String? label;
   final int? views;
   final int? shortlisted;
   final int? inquiries;
   final int? tokensReceived;
+  final int? totalTokenAmount;
 
   PerformanceModel({
+    this.period,
+    this.label,
     this.views,
     this.shortlisted,
     this.inquiries,
     this.tokensReceived,
+    this.totalTokenAmount,
   });
 
   factory PerformanceModel.fromJson(Map<String, dynamic> json) {
     return PerformanceModel(
+      period: json["period"]?.toString(),
+      label: json["label"]?.toString(),
       views: json["views"] as int?,
       shortlisted: json["shortlisted"] as int?,
       inquiries: json["inquiries"] as int?,
       tokensReceived: json["tokensReceived"] as int?,
+      totalTokenAmount: (json["totalTokenAmount"] as num?)?.toInt(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      "period": period,
+      "label": label,
       "views": views,
       "shortlisted": shortlisted,
       "inquiries": inquiries,
       "tokensReceived": tokensReceived,
+      "totalTokenAmount": totalTokenAmount,
     };
   }
 }

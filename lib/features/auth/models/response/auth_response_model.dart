@@ -54,15 +54,21 @@ class AuthResponseModel {
       isOnboardingCompleted: json["isOnboardingCompleted"] is bool
           ? json["isOnboardingCompleted"]
           : null,
-      isNewUser: json["isNewUser"] is bool ? json["isNewUser"] : null,
+      isNewUser: json["isNewUser"] is bool
+          ? json["isNewUser"]
+          : (json["nextScreen"] == "register" || json["nextScreen"] == "basic_info"),
       accountNotFound: json["accountNotFound"] is bool
           ? json["accountNotFound"]
           : null,
       accountExists: json["accountExists"] is bool
           ? json["accountExists"]
           : null,
-      phone: json["phone"]?.toString(),
-      otp: json["otp"]?.toString(),
+      phone: json["phone"]?.toString() ??
+          json["verifiedPhone"]?.toString() ??
+          (json["data"] is Map ? json["data"]["phone"]?.toString() : null),
+      otp:
+          json["otp"]?.toString() ??
+          (json["data"] is Map ? json["data"]["otp"]?.toString() : null),
       nextScreen: json["nextScreen"]?.toString(),
       data: data,
     );

@@ -111,4 +111,43 @@ class PropertyRepo {
       return false;
     }
   }
+
+  Future<NearPropertiesResponse?> getVerifiedProperties({
+    int page = 1,
+    int limit = 20,
+    String? category,
+    String? listingFor,
+    String? propertyType,
+    String? city,
+    String? locality,
+    double? minPrice,
+    double? maxPrice,
+    String? search,
+  }) async {
+    try {
+      final url = AppUrls.verifiedProperties(
+        page: page,
+        limit: limit,
+        category: category,
+        listingFor: listingFor,
+        propertyType: propertyType,
+        city: city,
+        locality: locality,
+        minPrice: minPrice,
+        maxPrice: maxPrice,
+        search: search,
+      );
+
+      final res = await _api.getApi(url);
+      if (res is Map<String, dynamic>) {
+        return NearPropertiesResponse.fromJson(res);
+      }
+      return null;
+    } on AppException {
+      rethrow;
+    } catch (e) {
+      print("Unexpected error in getVerifiedProperties: $e");
+      throw FetchDataException("Failed to fetch verified properties: $e");
+    }
+  }
 }

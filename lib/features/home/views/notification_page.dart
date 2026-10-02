@@ -4,6 +4,7 @@ import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/home/providers/notification_provider.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 
 class NotificationsPage extends ConsumerStatefulWidget {
   const NotificationsPage({super.key});
@@ -20,6 +21,59 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(notificationProvider.notifier).fetchNotifications();
     });
+  }
+
+  Future<void> _showClearAllDialog(
+    BuildContext context,
+    NotificationNotifier notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Clear all notifications?',
+          style: text16(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'This will permanently delete all your notifications.',
+          style: text13(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: text13(
+                color: AppColors.grey600,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Clear All',
+              style: text13(
+                color: AppColors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      notifier.clearAllNotifications();
+    }
   }
 
   @override
@@ -95,15 +149,15 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                       ],
                     ),
                   ),
-                  if (unread > 0)
+                  if (unread > 0) ...[
                     GestureDetector(
                       onTap: state.isMarkingAll
                           ? null
                           : () => notifier.markAllAsRead(),
                       child: state.isMarkingAll
                           ? const SizedBox(
-                              width: 20,
-                              height: 20,
+                              width: 18,
+                              height: 18,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: AppColors.primary,
@@ -117,6 +171,33 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                               ),
                             ),
                     ),
+                    const SizedBox(width: 12),
+                  ],
+                  if (notifications.isNotEmpty)
+                    state.isClearingAll
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.error,
+                            ),
+                          )
+                        : GestureDetector(
+                            onTap: () => _showClearAllDialog(context, notifier),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.delete_sweep_outlined,
+                                color: AppColors.error,
+                                size: 18,
+                              ),
+                            ),
+                          ),
                 ],
               ),
             ),
@@ -164,14 +245,21 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
             // ── List ────────────────────────────────────────────
             Expanded(
               child: isLoading && notifications.isEmpty
-                  ? const Center(child: CircularProgressIndicator())
-                  : notifications.isEmpty
-                  ? _EmptyState()
+                  ? const NotificationListShimmer()
                   : RefreshIndicator(
                       onRefresh: () => notifier.refresh(),
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                        physics: const AlwaysScrollableScrollPhysics(),
+                      color: AppColors.primary,
+                      child: notifications.isEmpty
+                          ? SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: SizedBox(
+                                height: MediaQuery.of(context).size.height * 0.6,
+                                child: _EmptyState(),
+                              ),
+                            )
+                          : ListView(
+                              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                              physics: const AlwaysScrollableScrollPhysics(),
                         children: [
                           if (today.isNotEmpty) ...[
                             _SectionLabel(label: 'Today'),
@@ -283,10 +371,24 @@ class _NotificationCard extends StatelessWidget {
           color: AppColors.error,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(
-          Icons.delete_outline_rounded,
-          color: AppColors.white,
-          size: 24,
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.white,
+              size: 22,
+            ),
+            SizedBox(width: 6),
+            Text(
+              'Delete',
+              style: TextStyle(
+                color: AppColors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ),
       child: GestureDetector(

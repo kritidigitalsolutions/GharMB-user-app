@@ -4,15 +4,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/auth/models/response/auth_response_model.dart';
+import 'package:gharmb_app/features/auth/providers/basic_info_provider.dart';
+import 'package:gharmb_app/features/auth/providers/login_provider.dart';
 import 'package:gharmb_app/features/auth/providers/otp_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/utils/local_storage/auth_storage.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
-  const OtpVerificationScreen({super.key});
+  final String? phone;
+  const OtpVerificationScreen({super.key, this.phone});
 
   @override
   ConsumerState<OtpVerificationScreen> createState() =>
@@ -25,6 +29,16 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     6,
     (_) => TextEditingController(),
   );
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.phone != null && widget.phone!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(otpPhoneProvider.notifier).state = widget.phone!;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -45,12 +59,23 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         _focusNodes[index - 1].requestFocus();
       }
     } else {
-      notifier.setDigit(index, value);
+      final digit = value.length > 1
+          ? value.substring(value.length - 1)
+          : value;
+      notifier.setDigit(index, digit);
       if (index < 5) {
         _focusNodes[index + 1].requestFocus();
       } else {
         _focusNodes[index].unfocus();
-        notifier.verify(_navigateAfterVerification);
+        final otpState = ref.read(otpProvider);
+        if (otpState.isFilled) {
+          if (ref.read(otpPhoneProvider).isEmpty &&
+              widget.phone != null &&
+              widget.phone!.isNotEmpty) {
+            ref.read(otpPhoneProvider.notifier).state = widget.phone!;
+          }
+          notifier.verify(_navigateAfterVerification);
+        }
       }
     }
   }
@@ -64,12 +89,26 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
     if (!mounted) return;
 
-    if (nextScreen == 'home' || isOnboardingCompleted) {
+    // Check if new user or needs registration / basic info
+    if (res.isNewUser == true ||
+        nextScreen == 'register' ||
+        nextScreen == 'basic_info' ||
+        res.needsBasicInfo == true) {
+      final verifiedPhone = (res.phone != null && res.phone!.isNotEmpty)
+          ? res.phone!
+          : ref.read(otpPhoneProvider);
+
+      context.pushReplacementNamed(
+        AppPage.basicInfoName,
+        extra: verifiedPhone,
+        queryParameters: {'phone': verifiedPhone},
+      );
+    } else if (nextScreen == 'home' || isOnboardingCompleted) {
       context.pushReplacementNamed(AppPage.myHomeName);
-    } else if (nextScreen == 'basic_info' || res.needsBasicInfo == true) {
-      context.pushNamed(AppPage.basicInfoName);
+    } else if (nextScreen == 'role_selection') {
+      context.pushReplacementNamed(AppPage.roleSelectionName);
     } else {
-      context.pushNamed(AppPage.roleSelectionName);
+      context.pushReplacementNamed(AppPage.myHomeName);
     }
   }
 
@@ -77,7 +116,19 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(otpProvider);
     final notifier = ref.read(otpProvider.notifier);
-    final phone = ref.watch(otpPhoneProvider);
+    final watchedPhone = ref.watch(otpPhoneProvider);
+    final loginPhone = ref.watch(loginProvider).phone;
+    final phone =
+        (widget.phone?.isNotEmpty == true
+                ? widget.phone!
+                : (watchedPhone.isNotEmpty ? watchedPhone : loginPhone))
+            .trim();
+
+    final displayPhone = phone.isNotEmpty
+        ? (phone.startsWith('+91')
+              ? phone
+              : (phone.length == 10 ? '+91 $phone' : phone))
+        : 'your mobile number';
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -117,7 +168,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               const SizedBox(height: 4),
 
               Text(
-                phone,
+                displayPhone,
                 style: text16(
                   fontWeight: FontWeight.w700,
                   color: AppColors.textPrimary,
@@ -209,7 +260,25 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                       )
                     : GestureDetector(
                         onTap: state.resendCountdown == 0
-                            ? notifier.resend
+                            ? () {
+                                notifier.resend(
+                                  onResent: (otp) {
+                                    if (otp != null && otp.isNotEmpty) {
+                                      AppSnackBar.showSuccess(
+                                        context,
+                                        title: 'New Verification Code',
+                                        message: 'Your OTP is $otp',
+                                      );
+                                    } else {
+                                      AppSnackBar.showSuccess(
+                                        context,
+                                        title: 'OTP Sent',
+                                        message: 'A new OTP has been sent.',
+                                      );
+                                    }
+                                  },
+                                );
+                              }
                             : null,
                         child: RichText(
                           text: TextSpan(
@@ -246,6 +315,12 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 title: 'Continue',
                 onTap: (state.isFilled && !state.isLoading && !state.isVerified)
                     ? () {
+                        if (ref.read(otpPhoneProvider).isEmpty &&
+                            widget.phone != null &&
+                            widget.phone!.isNotEmpty) {
+                          ref.read(otpPhoneProvider.notifier).state =
+                              widget.phone!;
+                        }
                         notifier.verify(_navigateAfterVerification);
                       }
                     : state.isVerified

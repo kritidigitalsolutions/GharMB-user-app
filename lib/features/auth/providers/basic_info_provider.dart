@@ -177,12 +177,22 @@ class BasicInfoNotifier extends StateNotifier<BasicInfoState> {
   }
 
   Future<void> submit({
-    required Function(String nextScreen) onSuccess,
+    required Function(String nextScreen, String? otp) onSuccess,
   }) async {
-    if (!isFormValid) {
-      state = state.copyWith(
-        errorMessage: 'Please fill all required fields correctly',
-      );
+    if (state.fullName.trim().isEmpty) {
+      state = state.copyWith(errorMessage: 'Please enter your full name');
+      return;
+    }
+    if (state.email.trim().isEmpty || !state.email.contains('@')) {
+      state = state.copyWith(errorMessage: 'Please enter a valid email address');
+      return;
+    }
+    if (state.phone.trim().replaceAll(RegExp(r'\D'), '').length < 10) {
+      state = state.copyWith(errorMessage: 'Please enter a valid 10-digit phone number');
+      return;
+    }
+    if (state.address.trim().isEmpty) {
+      state = state.copyWith(errorMessage: 'Please enter your address or fetch via GPS');
       return;
     }
 
@@ -191,16 +201,16 @@ class BasicInfoNotifier extends StateNotifier<BasicInfoState> {
     final model = UserRegisterReqModel(
       name: state.fullName.trim(),
       email: state.email.trim(),
-      phone: state.phone.trim(),
+      phone: state.phone.trim().replaceAll(RegExp(r'\D'), ''),
       address: AddressReqModel(
         formattedAddress: state.address.trim(),
-        city: state.city,
-        state: state.state_,
-        pincode: state.pincode,
+        city: state.city.isNotEmpty ? state.city : null,
+        state: state.state_.isNotEmpty ? state.state_ : null,
+        pincode: state.pincode.isNotEmpty ? state.pincode : null,
       ),
-      latitude: state.latitude,
-      longitude: state.longitude,
-      role: '', // required by API
+      latitude: state.latitude != 0.0 ? state.latitude : null,
+      longitude: state.longitude != 0.0 ? state.longitude : null,
+      role: 'user', // Default role
     );
 
     try {
@@ -224,7 +234,7 @@ class BasicInfoNotifier extends StateNotifier<BasicInfoState> {
       final nextScreen = authRes.nextScreen ??
           (token != null && token.isNotEmpty ? 'role_selection' : 'otp');
 
-      onSuccess(nextScreen);
+      onSuccess(nextScreen, authRes.otp);
     } on AppException catch (e) {
       // e.message = real backend/network error text (no prefix)
       state = state.copyWith(isLoading: false, errorMessage: e.message);
@@ -238,7 +248,7 @@ class BasicInfoNotifier extends StateNotifier<BasicInfoState> {
 }
 
 final basicInfoProvider =
-    StateNotifierProvider<BasicInfoNotifier, BasicInfoState>(
+    StateNotifierProvider.autoDispose<BasicInfoNotifier, BasicInfoState>(
       (ref) => BasicInfoNotifier(),
     );
 

@@ -89,3 +89,5 @@ final enquiryProvider = StateNotifierProvider<EnquiryNotifier, EnquiryState>((
   final repo = ref.watch(developerRepoProvider);
   return EnquiryNotifier(repo);
 });
+
+final enquiryNotifierProvider = enquiryProvider;

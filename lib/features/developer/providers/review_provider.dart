@@ -1,5 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/features/developer/model/payload/review_payload.dart';
+import 'package:gharmb_app/features/developer/model/response/developer_reviews_response.dart';
 import 'package:gharmb_app/features/developer/repo/developer_repo.dart';
 
 import 'detail_developer_provider.dart';
@@ -37,8 +39,9 @@ class ReviewState {
 // ---------------------------------------------------------------------------
 class ReviewNotifier extends StateNotifier<ReviewState> {
   final DeveloperRepo _repo;
+  final Ref _ref;
 
-  ReviewNotifier(this._repo) : super(const ReviewState());
+  ReviewNotifier(this._repo, this._ref) : super(const ReviewState());
 
   Future<bool> submitReview({
     required String developerId,
@@ -55,6 +58,9 @@ class ReviewNotifier extends StateNotifier<ReviewState> {
 
       if (success) {
         state = state.copyWith(isLoading: false, isSuccess: true);
+        // Invalidate reviews to auto-refresh UI
+        _ref.invalidate(developerReviewsProvider(developerId));
+        _ref.invalidate(myReviewProvider(developerId));
         return true;
       } else {
         state = state.copyWith(
@@ -74,20 +80,59 @@ class ReviewNotifier extends StateNotifier<ReviewState> {
     }
   }
 
-  // Reset state (e.g., after showing success message)
+  Future<bool> deleteReview({required String developerId}) async {
+    state = state.copyWith(isLoading: true, isSuccess: false, clearError: true);
+    try {
+      final success = await _repo.deleteDeveloperReview(developerId: developerId);
+      if (success) {
+        state = state.copyWith(isLoading: false, isSuccess: true);
+        _ref.invalidate(developerReviewsProvider(developerId));
+        _ref.invalidate(myReviewProvider(developerId));
+        return true;
+      } else {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Failed to delete review.',
+        );
+        return false;
+      }
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'An error occurred: $e',
+      );
+      return false;
+    }
+  }
+
+  // Reset state
   void reset() {
     state = const ReviewState();
   }
 }
 
 // ---------------------------------------------------------------------------
-// Provider
+// Providers
 // ---------------------------------------------------------------------------
 final reviewProvider = StateNotifierProvider<ReviewNotifier, ReviewState>((
   ref,
 ) {
-  final repo = ref.watch(
-    developerRepoProvider,
-  ); // make sure this provider exists
-  return ReviewNotifier(repo);
+  final repo = ref.watch(developerRepoProvider);
+  return ReviewNotifier(repo, ref);
 });
+
+/// 🌟 Live Developer Reviews & Star Breakdown Provider
+final developerReviewsProvider =
+    FutureProvider.family<DeveloperReviewsResponse?, String>((ref, developerId) async {
+  final repo = ref.watch(developerRepoProvider);
+  return repo.getDeveloperReviews(developerId: developerId);
+});
+
+/// 👤 Current User's Review Status for Developer Provider
+final myReviewProvider =
+    FutureProvider.family<MyReviewResponse?, String>((ref, developerId) async {
+  final repo = ref.watch(developerRepoProvider);
+  return repo.getMyDeveloperReview(developerId: developerId);
+});
+
+final reviewNotifierProvider = reviewProvider;

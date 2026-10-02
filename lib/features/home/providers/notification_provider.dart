@@ -165,6 +165,8 @@ class NotificationState {
   final List<AppNotification> notifications;
   final bool isLoading;
   final bool isMarkingAll;
+  final bool isClearingAll;
+  final String? deletingId;
   final String? error;
   final NotificationDetail? selectedNotification;
 
@@ -172,6 +174,8 @@ class NotificationState {
     this.notifications = const [],
     this.isLoading = false,
     this.isMarkingAll = false,
+    this.isClearingAll = false,
+    this.deletingId,
     this.error,
     this.selectedNotification,
   });
@@ -180,6 +184,8 @@ class NotificationState {
     List<AppNotification>? notifications,
     bool? isLoading,
     bool? isMarkingAll,
+    bool? isClearingAll,
+    String? deletingId,
     String? error,
     NotificationDetail? selectedNotification,
   }) {
@@ -187,6 +193,8 @@ class NotificationState {
       notifications: notifications ?? this.notifications,
       isLoading: isLoading ?? this.isLoading,
       isMarkingAll: isMarkingAll ?? this.isMarkingAll,
+      isClearingAll: isClearingAll ?? this.isClearingAll,
+      deletingId: deletingId,
       error: error ?? this.error,
       selectedNotification: selectedNotification ?? this.selectedNotification,
     );
@@ -355,12 +363,76 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     }
   }
 
-  // Delete notification (local only - add API if needed)
-  void deleteNotification(String id) {
+  // Delete single notification with API call
+  Future<bool> deleteNotification(String id) async {
+    final previousNotifications = [...state.notifications];
     final updatedNotifications = state.notifications
         .where((n) => n.id != id)
         .toList();
-    state = state.copyWith(notifications: updatedNotifications);
+
+    // Optimistically update UI
+    state = state.copyWith(
+      notifications: updatedNotifications,
+      deletingId: id,
+      error: null,
+    );
+
+    try {
+      final success = await _homeRepo.deleteNotification(id: id);
+      if (!success) {
+        // Revert on failure
+        state = state.copyWith(
+          notifications: previousNotifications,
+          deletingId: null,
+          error: 'Failed to delete notification',
+        );
+        return false;
+      }
+      state = state.copyWith(deletingId: null);
+      return true;
+    } catch (e) {
+      // Revert on error
+      state = state.copyWith(
+        notifications: previousNotifications,
+        deletingId: null,
+        error: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  // Clear all notifications with API call
+  Future<bool> clearAllNotifications() async {
+    if (state.isClearingAll || state.notifications.isEmpty) return false;
+
+    final previousNotifications = [...state.notifications];
+    state = state.copyWith(
+      isClearingAll: true,
+      notifications: [],
+      error: null,
+    );
+
+    try {
+      final success = await _homeRepo.clearAllNotifications();
+      if (!success) {
+        // Revert on failure
+        state = state.copyWith(
+          notifications: previousNotifications,
+          isClearingAll: false,
+          error: 'Failed to clear all notifications',
+        );
+        return false;
+      }
+      state = state.copyWith(isClearingAll: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        notifications: previousNotifications,
+        isClearingAll: false,
+        error: e.toString(),
+      );
+      return false;
+    }
   }
 
   // Clear error
@@ -430,4 +502,9 @@ final selectedNotificationProvider = Provider<NotificationDetail?>((ref) {
 // Provider for marking all status
 final isMarkingAllProvider = Provider<bool>((ref) {
   return ref.watch(notificationProvider).isMarkingAll;
+});
+
+// Provider for clearing all status
+final isClearingAllProvider = Provider<bool>((ref) {
+  return ref.watch(notificationProvider).isClearingAll;
 });

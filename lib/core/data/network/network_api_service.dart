@@ -114,7 +114,7 @@ class NetworkApiService extends BaseApiService {
   }
 
   @override
-  Future<dynamic> deleteApi(String url, dynamic data) async {
+  Future<dynamic> deleteApi(String url, [dynamic data]) async {
     try {
       debugPrint("DELETE API CALL => $url");
 

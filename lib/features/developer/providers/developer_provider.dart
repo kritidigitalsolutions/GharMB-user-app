@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/core/data/network/network_api_service.dart';
 import 'package:gharmb_app/features/developer/model/response/all_developer_response.dart';
 import 'package:gharmb_app/features/developer/repo/developer_repo.dart';
+import 'detail_developer_provider.dart';
 
 // ─── Models ───────────────────────────────────────────────────────────────────
 
@@ -109,9 +110,7 @@ DeveloperModel _mapDeveloper(Developer d) {
 
 final _cities = ['All India', 'Noida', 'Gurgaon', 'Mumbai', 'Bangalore'];
 
-final developerRepoProvider = Provider<DeveloperRepo>(
-  (ref) => DeveloperRepo(networkApiService: NetworkApiService()),
-);
+
 
 // Raw API call
 final allDevelopersDataProvider = FutureProvider<AllDeveloperResponse?>((

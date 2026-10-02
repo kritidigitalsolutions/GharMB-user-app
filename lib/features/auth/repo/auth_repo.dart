@@ -51,8 +51,8 @@ class AuthRepo {
   Future<AuthResponseModel> verifyOTP(String phone, String otp) async {
     try {
       final res = await _api.postApi(AppUrls.verifyOtp, {
-        "phone": phone,
-        "otp": otp,
+        "phone": phone.replaceAll(RegExp(r'\D'), ''),
+        "otp": otp.trim(),
       });
 
       return AuthResponseModel.fromJson(res);

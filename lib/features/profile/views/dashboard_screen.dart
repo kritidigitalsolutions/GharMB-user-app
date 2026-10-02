@@ -10,6 +10,7 @@ import 'package:gharmb_app/features/property/repo/property_repo.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
+import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 import 'package:go_router/go_router.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -136,8 +137,61 @@ class _DashboardLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(color: AppColors.primary),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: CustomShimmer(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Profile Card Shimmer
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const ShimmerCircle(size: 60),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        ShimmerBox(width: 140, height: 18),
+                        SizedBox(height: 6),
+                        ShimmerBox(width: 100, height: 12),
+                        SizedBox(height: 6),
+                        ShimmerBox(width: 120, height: 12),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Stat Cards Shimmer
+            Row(
+              children: const [
+                Expanded(child: ShimmerBox(height: 85, borderRadius: 14)),
+                SizedBox(width: 12),
+                Expanded(child: ShimmerBox(height: 85, borderRadius: 14)),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Performance Card Shimmer
+            const ShimmerBox(width: double.infinity, height: 120, borderRadius: 16),
+            const SizedBox(height: 20),
+
+            // Properties Shimmer List
+            const ShimmerBox(width: 130, height: 18),
+            const SizedBox(height: 12),
+            const PropertyListShimmer(itemCount: 3),
+          ],
+        ),
+      ),
     );
   }
 }

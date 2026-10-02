@@ -7,6 +7,7 @@ import 'package:gharmb_app/features/real_state_news/models/news_response_model.d
 import 'package:gharmb_app/features/real_state_news/providers/news_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 import 'package:go_router/go_router.dart';
 
 class NewsDetailPage extends ConsumerStatefulWidget {
@@ -43,7 +44,7 @@ class _NewsDetailPageState extends ConsumerState<NewsDetailPage> {
       backgroundColor: AppColors.white,
       body: SafeArea(
         child: detailAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const DetailsPageShimmer(),
           error: (err, _) => Center(
             child: Padding(
               padding: const EdgeInsets.all(24),

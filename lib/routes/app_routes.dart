@@ -38,6 +38,7 @@ import 'package:gharmb_app/features/profile/views/token/token_details.dart';
 import 'package:gharmb_app/features/profile/views/token/token_requested_page.dart';
 import 'package:gharmb_app/features/profile/views/unit_converter_page.dart';
 import 'package:gharmb_app/features/project/views/project_details_page.dart';
+import 'package:gharmb_app/features/property/models/response/near_properties_response.dart';
 import 'package:gharmb_app/features/property/views/add_property/basic_details_Page.dart';
 import 'package:gharmb_app/features/property/views/add_property/photo_upload_screen.dart';
 import 'package:gharmb_app/features/property/views/add_property/pricing_preference_Page.dart';
@@ -88,13 +89,21 @@ class AppRouter {
       GoRoute(
         name: AppPage.basicInfoName,
         path: AppPage.basicInfo,
-        builder: (context, state) => const BasicInfoScreen(),
+        builder: (context, state) {
+          final phone =
+              state.extra as String? ?? state.uri.queryParameters['phone'];
+          return BasicInfoScreen(prefilledPhone: phone);
+        },
       ),
 
       GoRoute(
         name: AppPage.otpName,
         path: AppPage.otp,
-        builder: (context, state) => const OtpVerificationScreen(),
+        builder: (context, state) {
+          final phone =
+              state.extra as String? ?? state.uri.queryParameters['phone'];
+          return OtpVerificationScreen(phone: phone);
+        },
       ),
 
       GoRoute(
@@ -151,7 +160,8 @@ class AppRouter {
       GoRoute(
         name: AppPage.propertyDetailsName,
         path: AppPage.propertyDetails,
-        builder: (context, state) => PropertyDetailPage(),
+        builder: (context, state) =>
+            PropertyDetailPage(propertyId: state.extra?.toString()),
       ),
 
       GoRoute(
@@ -280,7 +290,8 @@ class AppRouter {
       GoRoute(
         name: AppPage.developerDetailName,
         path: AppPage.developerDetail,
-        builder: (_, _) => const DeveloperDetailPage(),
+        builder: (context, state) =>
+            DeveloperDetailPage(developerId: state.extra?.toString()),
       ),
 
       GoRoute(
@@ -400,7 +411,16 @@ class AppRouter {
       GoRoute(
         name: AppPage.commercialPropertyDetailName,
         path: AppPage.commercialPropertyDetails,
-        builder: (context, state) => const CommercialPropertyDetailsPage(),
+        builder: (context, state) {
+          final spaceId = state.uri.queryParameters['id'];
+          final initialProperty = state.extra is Property
+              ? state.extra as Property
+              : null;
+          return CommercialPropertyDetailsPage(
+            spaceId: spaceId,
+            initialProperty: initialProperty,
+          );
+        },
       ),
 
       // =====================================================

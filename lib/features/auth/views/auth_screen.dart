@@ -23,25 +23,7 @@ class AuthScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // Skip button
-                Align(
-                  alignment: Alignment.topRight,
-                  child: TextButton(
-                    onPressed: () {
-                      context.pushReplacementNamed(AppPage.myHomeName);
-                    },
-                    child: Text(
-                      'Skip',
-                      style: text14(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ),
-                ),
-
                 const SizedBox(height: 32),
-
                 // Heading
                 Text(
                   'Find Verified\nProperties Near You',
@@ -115,15 +97,15 @@ class AuthScreen extends ConsumerWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account? ',
+                      'Don\'t have an account? ',
                       style: text13(color: AppColors.textSecondary),
                     ),
                     GestureDetector(
                       onTap: () {
-                        context.pushNamed(AppPage.basicInfoName);
+                        context.pushNamed(AppPage.loginName);
                       },
                       child: Text(
-                        'Sign up',
+                        'Get Started',
                         style: text13(
                           fontWeight: FontWeight.w600,
                           color: AppColors.primary,

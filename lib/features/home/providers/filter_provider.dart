@@ -219,8 +219,10 @@ final filteredPropertiesProvider = Provider<List<Property>>((ref) {
   }
 
   final filtered = allProperties.where((p) {
-    // 1. Search Query
+    // 1. Search Query (Multi-keyword token matching)
     if (query.isNotEmpty) {
+      final terms =
+          query.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
       final t = p.title.toLowerCase();
       final l = p.locality.toLowerCase();
       final c = p.city.toLowerCase();
@@ -230,19 +232,17 @@ final filteredPropertiesProvider = Provider<List<Property>>((ref) {
       final d = p.description.toLowerCase();
       final lf = p.listingFor.toLowerCase();
       final pin = p.pincode.toLowerCase();
+      final own = p.owner.name.toLowerCase();
+      final beds = p.bedrooms.toLowerCase();
+      final furn = p.furnishing.toLowerCase();
+      final ams = p.amenities.map((e) => e.toLowerCase()).join(' ');
 
-      final matches = t.contains(query) ||
-          l.contains(query) ||
-          c.contains(query) ||
-          a.contains(query) ||
-          pt.contains(query) ||
-          cat.contains(query) ||
-          d.contains(query) ||
-          lf.contains(query) ||
-          pin.contains(query);
+      final haystack = '$t $l $c $a $pt $cat $d $lf $pin $own $beds $furn $ams';
 
-      if (!matches) {
-        return false;
+      for (final term in terms) {
+        if (!haystack.contains(term)) {
+          return false;
+        }
       }
     }
 
@@ -256,8 +256,9 @@ final filteredPropertiesProvider = Provider<List<Property>>((ref) {
           case LookingFor.buy:
             if (lFor.contains('buy') ||
                 lFor.contains('sale') ||
-                lFor.contains('sell'))
+                lFor.contains('sell')) {
               match = true;
+            }
             break;
           case LookingFor.rent:
             if (lFor.contains('rent') || lFor.contains('lease')) match = true;
@@ -269,16 +270,18 @@ final filteredPropertiesProvider = Provider<List<Property>>((ref) {
             if (lFor.contains('pg') ||
                 cat.contains('pg') ||
                 cat.contains('co-living') ||
-                cat.contains('coliving'))
+                cat.contains('coliving')) {
               match = true;
+            }
             break;
           case LookingFor.commercial:
             if (lFor.contains('commercial') ||
                 cat.contains('commercial') ||
                 p.propertyType.toLowerCase().contains('commercial') ||
                 p.propertyType.toLowerCase().contains('shop') ||
-                p.propertyType.toLowerCase().contains('office'))
+                p.propertyType.toLowerCase().contains('office')) {
               match = true;
+            }
             break;
         }
         if (match) break;
@@ -293,8 +296,9 @@ final filteredPropertiesProvider = Provider<List<Property>>((ref) {
       for (final pt in filter.propertyTypes) {
         switch (pt) {
           case PropertyType.apartment:
-            if (pType.contains('apartment') || pType.contains('flat'))
+            if (pType.contains('apartment') || pType.contains('flat')) {
               match = true;
+            }
             break;
           case PropertyType.villa:
             if (pType.contains('villa')) match = true;
@@ -302,8 +306,9 @@ final filteredPropertiesProvider = Provider<List<Property>>((ref) {
           case PropertyType.house:
             if (pType.contains('house') ||
                 pType.contains('independent') ||
-                pType.contains('home'))
+                pType.contains('home')) {
               match = true;
+            }
             break;
           case PropertyType.studio:
             if (pType.contains('studio')) match = true;
@@ -322,9 +327,8 @@ final filteredPropertiesProvider = Provider<List<Property>>((ref) {
 
     // 4. Budget Range (in Lakhs: 1 Lakh = 100,000, 100 Lakh = 1 Cr)
     if (filter.budgetRange.start > 0 || filter.budgetRange.end < 500) {
-      final double priceInLakhs = p.price > 100000
-          ? p.price / 100000.0
-          : p.price.toDouble();
+      final double priceInLakhs =
+          p.price > 1000 ? p.price / 100000.0 : p.price.toDouble();
       if (priceInLakhs < filter.budgetRange.start ||
           priceInLakhs > filter.budgetRange.end) {
         return false;

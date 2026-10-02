@@ -146,6 +146,6 @@ class GoogleAuthNotifier extends StateNotifier<GoogleAuthState> {
 }
 
 final googleAuthProvider =
-    StateNotifierProvider<GoogleAuthNotifier, GoogleAuthState>(
+    StateNotifierProvider.autoDispose<GoogleAuthNotifier, GoogleAuthState>(
       (ref) => GoogleAuthNotifier(),
     );

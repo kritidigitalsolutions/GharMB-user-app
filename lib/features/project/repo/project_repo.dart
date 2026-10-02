@@ -26,4 +26,42 @@ class ProjectRepo {
 
     return PropertyResponse.fromJson(response);
   }
+
+  Future<PropertyResponse?> getLatestProperties({
+    int page = 1,
+    int limit = 10,
+    String? category,
+    String? listingFor,
+    String? propertyType,
+    String? city,
+    String? locality,
+    double? minPrice,
+    double? maxPrice,
+    String? search,
+  }) async {
+    final String token = await LocalStorageService.getToken() ?? "";
+    if (token.isNotEmpty) {
+      _api.setToken(token);
+    }
+
+    final url = AppUrls.latestProperties(
+      page: page,
+      limit: limit,
+      category: category,
+      listingFor: listingFor,
+      propertyType: propertyType,
+      city: city,
+      locality: locality,
+      minPrice: minPrice,
+      maxPrice: maxPrice,
+      search: search,
+    );
+
+    final response = await _api.getApi(url);
+    if (response == null) {
+      return null;
+    }
+
+    return PropertyResponse.fromJson(response);
+  }
 }

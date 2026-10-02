@@ -97,7 +97,7 @@ class UploadNotifier extends StateNotifier<UploadState> {
 }
 
 // ─── Main Provider ──────────────────────────────────────────────
-final uploadProvider = StateNotifierProvider<UploadNotifier, UploadState>((
+final uploadProvider = StateNotifierProvider.autoDispose<UploadNotifier, UploadState>((
   ref,
 ) {
   final repo = ref.watch(uploadRepoProvider);

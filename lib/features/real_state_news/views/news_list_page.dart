@@ -7,6 +7,7 @@ import 'package:gharmb_app/features/real_state_news/models/news_response_model.d
 import 'package:gharmb_app/features/real_state_news/providers/news_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 import 'package:go_router/go_router.dart';
 
 class RealEstateNewsPage extends ConsumerWidget {
@@ -136,51 +137,76 @@ class RealEstateNewsPage extends ConsumerWidget {
 
             // ── News List ────────────────────────────────────────
             Expanded(
-              child: articlesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Could not load news',
-                          style: text14(fontWeight: FontWeight.w600),
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async {
+                  ref.invalidate(allNewsProvider);
+                  ref.invalidate(categoryNewsProvider(selectedCat));
+                  await Future.wait([
+                    ref.read(allNewsProvider.future),
+                    ref.read(categoryNewsProvider(selectedCat).future),
+                  ]);
+                },
+                child: articlesAsync.when(
+                  loading: () => ListView.separated(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemCount: 4,
+                    separatorBuilder: (_, _) => const SizedBox(height: 16),
+                    itemBuilder: (_, _) => const NewsCardShimmer(),
+                  ),
+                  error: (err, _) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.5,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Could not load news',
+                                style: text14(fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '$err',
+                                style: text12(color: AppColors.textSecondary),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 12),
+                              OutlinedButton(
+                                onPressed: () {
+                                  ref.invalidate(allNewsProvider);
+                                  ref.invalidate(
+                                    categoryNewsProvider(selectedCat),
+                                  );
+                                },
+                                child: const Text('Retry'),
+                              ),
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '$err',
-                          style: text12(color: AppColors.textSecondary),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 12),
-                        OutlinedButton(
-                          onPressed: () {
-                            ref.invalidate(allNewsProvider);
-                            ref.invalidate(categoryNewsProvider(selectedCat));
-                          },
-                          child: const Text('Retry'),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-                data: (articles) {
-                  if (articles.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'No news yet',
-                        style: text14(color: AppColors.textSecondary),
-                      ),
-                    );
-                  }
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      ref.invalidate(allNewsProvider);
-                      ref.invalidate(categoryNewsProvider(selectedCat));
-                    },
-                    child: ListView.separated(
+                  data: (articles) {
+                    if (articles.isEmpty) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: Center(
+                            child: Text(
+                              'No news yet',
+                              style: text14(color: AppColors.textSecondary),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(),
                       padding: const EdgeInsets.fromLTRB(15, 0, 15, 20),
                       itemCount: articles.length + 1, // +1 for load more
                       separatorBuilder: (_, _) => const SizedBox(height: 14),
@@ -200,9 +226,9 @@ class RealEstateNewsPage extends ConsumerWidget {
                           },
                         );
                       },
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ],

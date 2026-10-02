@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
+import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 
 class ProfileEditPage extends ConsumerStatefulWidget {
   const ProfileEditPage({super.key});
@@ -33,6 +34,8 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     _phoneCtrl = TextEditingController();
     _cityCtrl = TextEditingController();
   }
+
+  bool _saved = false;
 
   @override
   void dispose() {
@@ -150,6 +153,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     notifier.setCity(_cityCtrl.text);
     final ok = await notifier.save();
     if (ok && mounted) {
+      _saved = true;
       AppSnackBar.showSuccess(
         context,
         title: 'Success',
@@ -159,11 +163,7 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
     } else if (!ok && mounted) {
       final errorMsg =
           ref.read(profileProvider).error ?? 'Failed to update profile';
-      AppSnackBar.showError(
-        context,
-        title: 'Update Failed',
-        message: errorMsg,
-      );
+      AppSnackBar.showError(context, title: 'Update Failed', message: errorMsg);
     }
   }
 
@@ -183,81 +183,144 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
 
     final isLoading = userAsync.isLoading && !_hydratedControllers;
 
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop && !_saved) {
+          ref.read(profileProvider.notifier).clearLocalAvatar();
+        }
+      },
+      child: Scaffold(
         backgroundColor: AppColors.white,
-        elevation: 0,
-        leading: GestureDetector(
-          onTap: () => context.pop(),
-          child: Container(
-            margin: const EdgeInsets.all(10),
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.arrow_back,
-              color: AppColors.white,
-              size: 18,
+        appBar: AppBar(
+          backgroundColor: AppColors.white,
+          elevation: 0,
+          leading: GestureDetector(
+            onTap: () => context.pop(),
+            child: Container(
+              margin: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.arrow_back,
+                color: AppColors.white,
+                size: 18,
+              ),
             ),
           ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Edit Profile', style: text16(fontWeight: FontWeight.bold)),
+              Text(
+                'Update your details',
+                style: text11(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
         ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Edit Profile', style: text16(fontWeight: FontWeight.bold)),
-            Text(
-              'Update your details',
-              style: text11(color: AppColors.textSecondary),
-            ),
-          ],
-        ),
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Avatar ──────────────────────────────────
-                        Center(
-                          child: Stack(
-                            children: [
-                              Container(
-                                width: 96,
-                                height: 96,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.primary.withOpacity(0.12),
-                                  border: Border.all(
-                                    color: AppColors.primary,
-                                    width: 2.5,
+        body: isLoading
+            ? CustomShimmer(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: const [
+                      Center(child: ShimmerCircle(size: 92)),
+                      SizedBox(height: 28),
+                      ShimmerBox(
+                        width: double.infinity,
+                        height: 50,
+                        borderRadius: 12,
+                      ),
+                      SizedBox(height: 16),
+                      ShimmerBox(
+                        width: double.infinity,
+                        height: 50,
+                        borderRadius: 12,
+                      ),
+                      SizedBox(height: 16),
+                      ShimmerBox(
+                        width: double.infinity,
+                        height: 50,
+                        borderRadius: 12,
+                      ),
+                      SizedBox(height: 16),
+                      ShimmerBox(
+                        width: double.infinity,
+                        height: 50,
+                        borderRadius: 12,
+                      ),
+                      Spacer(),
+                      ShimmerBox(
+                        width: double.infinity,
+                        height: 52,
+                        borderRadius: 14,
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            : Column(
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // ── Avatar ──────────────────────────────────
+                          Center(
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: 96,
+                                  height: 96,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.primary.withOpacity(0.12),
+                                    border: Border.all(
+                                      color: AppColors.primary,
+                                      width: 2.5,
+                                    ),
                                   ),
-                                ),
-                                child: ClipOval(
-                                  child: profile.localAvatar != null
-                                      ? Image.file(
-                                          profile.localAvatar!,
-                                          width: 96,
-                                          height: 96,
-                                          fit: BoxFit.cover,
-                                        )
-                                      : (profile.profilePictureUrl != null &&
-                                            profile
-                                                .profilePictureUrl!
-                                                .isNotEmpty)
-                                      ? Image.network(
-                                          profile.profilePictureUrl!,
-                                          width: 96,
-                                          height: 96,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => Center(
+                                  child: ClipOval(
+                                    child: profile.localAvatar != null
+                                        ? Image.file(
+                                            profile.localAvatar!,
+                                            width: 96,
+                                            height: 96,
+                                            fit: BoxFit.cover,
+                                          )
+                                        : (profile.profilePictureUrl != null &&
+                                              profile
+                                                  .profilePictureUrl!
+                                                  .isNotEmpty)
+                                        ? Image.network(
+                                            profile.profilePictureUrl!,
+                                            width: 96,
+                                            height: 96,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) =>
+                                                Center(
+                                                  child: Text(
+                                                    profile.name.isNotEmpty
+                                                        ? profile.name[0]
+                                                              .toUpperCase()
+                                                        : 'R',
+                                                    style: const TextStyle(
+                                                      fontSize: 36,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: AppColors.primary,
+                                                    ),
+                                                  ),
+                                                ),
+                                          )
+                                        : Center(
                                             child: Text(
                                               profile.name.isNotEmpty
                                                   ? profile.name[0]
@@ -270,145 +333,132 @@ class _ProfileEditPageState extends ConsumerState<ProfileEditPage> {
                                               ),
                                             ),
                                           ),
-                                        )
-                                      : Center(
-                                          child: Text(
-                                            profile.name.isNotEmpty
-                                                ? profile.name[0].toUpperCase()
-                                                : 'R',
-                                            style: const TextStyle(
-                                              fontSize: 36,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppColors.primary,
-                                            ),
-                                          ),
-                                        ),
+                                  ),
                                 ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: GestureDetector(
-                                  onTap: _pickAvatar,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(7),
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.primary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.camera_alt,
-                                      color: AppColors.white,
-                                      size: 14,
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: GestureDetector(
+                                    onTap: _pickAvatar,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(7),
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.camera_alt,
+                                        color: AppColors.white,
+                                        size: 14,
+                                      ),
                                     ),
                                   ),
                                 ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Center(
+                            child: Text(
+                              'Tap camera to change photo',
+                              style: text11(color: AppColors.textSecondary),
+                            ),
+                          ),
+                          const SizedBox(height: 28),
+
+                          // ── Form Fields ───────────────────────────────
+                          _FormSection(
+                            title: 'Personal Information',
+                            children: [
+                              _ProfileField(
+                                label: 'Full Name',
+                                hint: 'Enter your full name',
+                                controller: _nameCtrl,
+                                icon: Icons.person_outline,
+                              ),
+                              _ProfileField(
+                                label: 'Email Address',
+                                hint: 'Enter email',
+                                controller: _emailCtrl,
+                                icon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+                              _ProfileField(
+                                label: 'Mobile Number',
+                                hint: 'Enter mobile number',
+                                controller: _phoneCtrl,
+                                icon: Icons.phone_outlined,
+                                keyboardType: TextInputType.phone,
+                              ),
+                              _ProfileField(
+                                label: 'City / Location',
+                                hint: 'Enter your city',
+                                controller: _cityCtrl,
+                                icon: Icons.location_on_outlined,
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Center(
-                          child: Text(
-                            'Tap camera to change photo',
-                            style: text11(color: AppColors.textSecondary),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
 
-                        // ── Form Fields ───────────────────────────────
-                        _FormSection(
-                          title: 'Personal Information',
-                          children: [
-                            _ProfileField(
-                              label: 'Full Name',
-                              hint: 'Enter your full name',
-                              controller: _nameCtrl,
-                              icon: Icons.person_outline,
-                            ),
-                            _ProfileField(
-                              label: 'Email Address',
-                              hint: 'Enter email',
-                              controller: _emailCtrl,
-                              icon: Icons.email_outlined,
-                              keyboardType: TextInputType.emailAddress,
-                            ),
-                            _ProfileField(
-                              label: 'Mobile Number',
-                              hint: 'Enter mobile number',
-                              controller: _phoneCtrl,
-                              icon: Icons.phone_outlined,
-                              keyboardType: TextInputType.phone,
-                            ),
-                            _ProfileField(
-                              label: 'City / Location',
-                              hint: 'Enter your city',
-                              controller: _cityCtrl,
-                              icon: Icons.location_on_outlined,
-                            ),
-                          ],
-                        ),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
+                  ),
 
-                        const SizedBox(height: 32),
+                  // ── Save Button ──────────────────────────────────────
+                  Container(
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      10,
+                      20,
+                      MediaQuery.of(context).padding.bottom + 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, -3),
+                        ),
                       ],
                     ),
-                  ),
-                ),
-
-                // ── Save Button ──────────────────────────────────────
-                Container(
-                  padding: EdgeInsets.fromLTRB(
-                    20,
-                    10,
-                    20,
-                    MediaQuery.of(context).padding.bottom + 12,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.white,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 10,
-                        offset: const Offset(0, -3),
-                      ),
-                    ],
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: profile.isSaving ? null : _save,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        disabledBackgroundColor: AppColors.primary.withOpacity(
-                          0.6,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: profile.isSaving ? null : _save,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          disabledBackgroundColor: AppColors.primary
+                              .withOpacity(0.6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 0,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
+                        child: profile.isSaving
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  color: AppColors.white,
+                                  strokeWidth: 2.5,
+                                ),
+                              )
+                            : Text(
+                                'Save Changes',
+                                style: text15(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
-                      child: profile.isSaving
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                color: AppColors.white,
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : Text(
-                              'Save Changes',
-                              style: text15(
-                                color: AppColors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
+      ),
     );
   }
 }

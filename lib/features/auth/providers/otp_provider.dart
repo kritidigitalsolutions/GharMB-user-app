@@ -94,11 +94,29 @@ class OtpNotifier extends StateNotifier<OtpState> {
   }
 
   Future<void> verify(void Function(AuthResponseModel res) onSuccess) async {
-    if (!state.isFilled) return;
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final cleanOtp = state.otpCode.trim();
+
+    if (cleanPhone.isEmpty) {
+      state = state.copyWith(
+        hasError: true,
+        errorMessage: 'Phone number is missing. Please go back and enter mobile number.',
+      );
+      return;
+    }
+
+    if (cleanOtp.length != 6) {
+      state = state.copyWith(
+        hasError: true,
+        errorMessage: 'Please enter complete 6-digit OTP',
+      );
+      return;
+    }
+
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final res = await _authRepo.verifyOTP(phone, state.otpCode);
+      final res = await _authRepo.verifyOTP(cleanPhone, cleanOtp);
       if (res.token != null && res.token!.isNotEmpty) {
         await LocalStorageService.saveAuthResponse(res);
       }
@@ -119,18 +137,32 @@ class OtpNotifier extends StateNotifier<OtpState> {
     }
   }
 
-  Future<void> resend() async {
+  Future<void> resend({void Function(String? otp)? onResent}) async {
     if (state.resendCountdown > 0) return;
+
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    if (cleanPhone.isEmpty) {
+      state = state.copyWith(
+        hasError: true,
+        errorMessage: 'Phone number is missing.',
+      );
+      return;
+    }
 
     state = state.copyWith(isResending: true, clearError: true);
     try {
-      await _authRepo.login(phone); // login API OTP trigger karta hai
+      final res = await _authRepo.login(cleanPhone); // login API OTP trigger karta hai
+      final String? otp = res is Map
+          ? (res["otp"]?.toString() ??
+              (res["data"] is Map ? res["data"]["otp"]?.toString() : null))
+          : null;
       state = state.copyWith(
         isResending: false,
         digits: const ['', '', '', '', '', ''],
         isVerified: false,
       );
       _startCountdown();
+      if (onResent != null) onResent(otp);
     } on AppException catch (e) {
       state = state.copyWith(
         isResending: false,
@@ -157,7 +189,7 @@ class OtpNotifier extends StateNotifier<OtpState> {
 // Providers
 // ---------------------------------------------------------------------------
 
-// Route ke through phone number set hoga is provider ke through
+// Persistent phone provider across navigation
 final otpPhoneProvider = StateProvider<String>((ref) => '');
 
 final otpProvider = StateNotifierProvider.autoDispose<OtpNotifier, OtpState>((

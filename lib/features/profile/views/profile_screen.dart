@@ -4,6 +4,7 @@ import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
 import 'package:gharmb_app/features/developer/providers/register_provider.dart';
+import 'package:gharmb_app/features/profile/models/profile_model.dart';
 import 'package:gharmb_app/features/profile/provider/user_profile_provider.dart';
 import 'package:gharmb_app/features/profile/views/about_us_page.dart';
 import 'package:gharmb_app/features/profile/views/contact_us_page.dart';
@@ -259,204 +260,208 @@ class ProfilePage extends ConsumerWidget {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Verification Banner ───────────────────
-                  if ((isDeveloper && !isDeveloperVerified) ||
-                      (isAgent && !isAgentVerified)) ...[
-                    Builder(
-                      builder: (context) {
-                        final isUnderReview =
-                            (isDeveloper && userAsync?.isBuilderUnderReview == true) ||
-                            (isAgent && userAsync?.isAgentUnderReview == true);
-                        final roleName = isDeveloper ? 'Developer' : 'Agent';
+      body: RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(userProfileDataProvider);
+          try {
+            await ref.read(userProfileDataProvider.future);
+          } catch (_) {}
+        },
+        color: AppColors.primary,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Verification Banner ───────────────────
+              if ((isDeveloper && !isDeveloperVerified) ||
+                  (isAgent && !isAgentVerified)) ...[
+                Builder(
+                  builder: (context) {
+                    final isUnderReview =
+                        (isDeveloper &&
+                            userAsync?.isBuilderUnderReview == true) ||
+                        (isAgent && userAsync?.isAgentUnderReview == true);
+                    final roleName = isDeveloper ? 'Developer' : 'Agent';
 
-                        return Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 20),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: isUnderReview
-                                ? const Color(0xFFF0F7FF)
-                                : const Color(0xFFFFF8EC),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isUnderReview
-                                  ? AppColors.primary.withOpacity(0.3)
-                                  : AppColors.warning.withOpacity(0.5),
-                            ),
-                          ),
-                          child: Column(
+                    return Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isUnderReview
+                            ? const Color(0xFFF0F7FF)
+                            : const Color(0xFFFFF8EC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isUnderReview
+                              ? AppColors.primary.withOpacity(0.3)
+                              : AppColors.warning.withOpacity(0.5),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Icon(
-                                    isUnderReview
-                                        ? Icons.hourglass_top_rounded
-                                        : Icons.assignment_late_outlined,
-                                    color: isUnderReview
-                                        ? AppColors.primary
-                                        : AppColors.warning,
-                                    size: 22,
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          isUnderReview
-                                              ? '$roleName Documents Under Review'
-                                              : '$roleName Documents Not Uploaded',
-                                          style: text13(
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          isUnderReview
-                                              ? 'Your uploaded RERA & identity documents are currently being reviewed by admin.'
-                                              : 'You have not uploaded any RERA or KYC documents yet. Complete registration to verify your account.',
-                                          style: text11(
-                                            color: AppColors.textSecondary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
+                              Icon(
+                                isUnderReview
+                                    ? Icons.hourglass_top_rounded
+                                    : Icons.assignment_late_outlined,
+                                color: isUnderReview
+                                    ? AppColors.primary
+                                    : AppColors.warning,
+                                size: 22,
                               ),
-                              if (!isUnderReview) ...[
-                                const SizedBox(height: 10),
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: InkWell(
-                                    onTap: () {
-                                      context.pushNamed(
-                                        AppPage.devRegisterStep1Name,
-                                        extra: isDeveloper
-                                            ? RegistrationType.developer
-                                            : RegistrationType.agent,
-                                      );
-                                    },
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      isUnderReview
+                                          ? '$roleName Documents Under Review'
+                                          : '$roleName Documents Not Uploaded',
+                                      style: text13(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      isUnderReview
+                                          ? 'Your uploaded RERA & identity documents are currently being reviewed by admin.'
+                                          : 'You have not uploaded any RERA or KYC documents yet. Complete registration to verify your account.',
+                                      style: text11(
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (!isUnderReview) ...[
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: InkWell(
+                                onTap: () {
+                                  context.pushNamed(
+                                    AppPage.devRegisterStep1Name,
+                                    extra: isDeveloper
+                                        ? RegistrationType.developer
+                                        : RegistrationType.agent,
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(8),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        'Upload Documents',
-                                        style: text12(
-                                          color: AppColors.white,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
+                                  ),
+                                  child: Text(
+                                    'Upload Documents',
+                                    style: text12(
+                                      color: AppColors.white,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
-                              ],
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-
-                  Text('My tools', style: text20(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 16),
-
-                  ...List.generate(tools.length, (i) {
-                    final tool = tools[i];
-                    return _ToolCard(
-                      tool: tool,
-                      onTap: () => _handleToolTap(context, tool.title),
-                    );
-                  }),
-
-                  const SizedBox(height: 28),
-
-                  // ── Logout Button ──────────────────────────
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _showLogoutDialog(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        elevation: 0,
-                      ),
-                      child: Text(
-                        'Log Out',
-                        style: text15(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Safety note ────────────────────────────
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF6FFF9),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.grey300),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(
-                          Icons.shield_outlined,
-                          color: AppColors.success,
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Your data is safe with us',
-                              style: text13(fontWeight: FontWeight.w600),
-                            ),
-                            Text(
-                              'We never share your information',
-                              style: text12(color: AppColors.textSecondary),
+                              ),
                             ),
                           ],
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ],
+
+              Text('My tools', style: text20(fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+
+              ...List.generate(tools.length, (i) {
+                final tool = tools[i];
+                return _ToolCard(
+                  tool: tool,
+                  onTap: () => _handleToolTap(context, tool.title, userAsync),
+                );
+              }),
+
+              const SizedBox(height: 28),
+
+              // ── Logout Button ──────────────────────────
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _showLogoutDialog(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Log Out',
+                    style: text15(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // ── Safety note ────────────────────────────
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF6FFF9),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.grey300),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.success,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your data is safe with us',
+                          style: text13(fontWeight: FontWeight.w600),
+                        ),
+                        Text(
+                          'We never share your information',
+                          style: text12(color: AppColors.textSecondary),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -574,21 +579,65 @@ class _LogoutDialog extends StatelessWidget {
   }
 }
 
-// ─── Tool tap handler ──────────────────────────────────────────
-void _handleToolTap(BuildContext context, String title) {
+// ─── Tool tap handler with Navigation Guard ────────────────────────
+void _handleToolTap(BuildContext context, String title, UserModel? user) {
   switch (title) {
     case 'Register as Developer':
+      if (user?.isBuilderUnderReview == true) {
+        _showStatusModal(
+          context,
+          title: 'Developer Verification in Progress',
+          message:
+              'Your developer documents & RERA details have already been submitted and are currently under review by our admin team.',
+          status: 'Under Review',
+          isUnderReview: true,
+        );
+        return;
+      } else if (user?.isBuilderVerified == true) {
+        _showStatusModal(
+          context,
+          title: 'Developer Account Verified',
+          message:
+              'You are already a certified, verified developer on GharMB. You can manage your projects from My Projects & Dashboard.',
+          status: 'Verified',
+          isUnderReview: false,
+        );
+        return;
+      }
       context.pushNamed(
         AppPage.devRegisterStep1Name,
         extra: RegistrationType.developer,
       );
       break;
+
     case 'Register as Agent':
+      if (user?.isAgentUnderReview == true) {
+        _showStatusModal(
+          context,
+          title: 'Agent Verification in Progress',
+          message:
+              'Your agent documents & RERA certification have already been submitted and are currently being reviewed by our admin team.',
+          status: 'Under Review',
+          isUnderReview: true,
+        );
+        return;
+      } else if (user?.isAgentVerified == true) {
+        _showStatusModal(
+          context,
+          title: 'Agent Account Verified',
+          message:
+              'You are already a certified, verified agent on GharMB. You can post and manage your listings from your Dashboard.',
+          status: 'Verified',
+          isUnderReview: false,
+        );
+        return;
+      }
       context.pushNamed(
         AppPage.devRegisterStep1Name,
         extra: RegistrationType.agent,
       );
       break;
+
     case 'Dashboard':
       context.pushNamed(AppPage.dashboardName);
       break;
@@ -628,6 +677,108 @@ void _handleToolTap(BuildContext context, String title) {
       ).push(MaterialPageRoute(builder: ((context) => PrivacyPolicyPage())));
       break;
   }
+}
+
+void _showStatusModal(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required String status,
+  required bool isUnderReview,
+}) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (ctx) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.grey300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: isUnderReview
+                    ? AppColors.warning.withOpacity(0.12)
+                    : AppColors.success.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isUnderReview
+                    ? Icons.hourglass_top_rounded
+                    : Icons.verified_user_rounded,
+                color: isUnderReview ? AppColors.warning : AppColors.success,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: text16(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: isUnderReview
+                    ? AppColors.warning.withOpacity(0.1)
+                    : AppColors.success.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                status,
+                style: text11(
+                  color: isUnderReview ? AppColors.warning : AppColors.success,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: text13(
+                color: AppColors.textSecondary,
+              ).copyWith(height: 1.45),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  'Understood',
+                  style: text14(color: AppColors.white),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
 
 // ─── Tool Card ─────────────────────────────────────────────────

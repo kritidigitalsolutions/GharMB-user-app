@@ -3,16 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/property/providers/provider_details_provider.dart';
+import 'package:gharmb_app/features/wishlist/providers/wishlist_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:go_router/go_router.dart';
 
 class PropertyDetailPage extends ConsumerWidget {
-  const PropertyDetailPage({super.key});
+  final String? propertyId;
+  const PropertyDetailPage({super.key, this.propertyId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final property = ref.watch(propertyDetailProvider);
-    final isWishlisted = ref.watch(isWishlistedProvider);
+    final propId = propertyId ?? property.id;
+    final wishlistState = ref.watch(wishlistProvider);
+    final isWishlisted = wishlistState.items.any(
+      (item) =>
+          item.id == propId ||
+          (item.property != null && item.property!.id == propId),
+    );
     final isExpanded = ref.watch(isExpandedProvider);
 
     return Scaffold(
@@ -43,9 +51,23 @@ class PropertyDetailPage extends ConsumerWidget {
                 ),
                 actions: [
                   GestureDetector(
-                    onTap: () => ref
-                        .read(isWishlistedProvider.notifier)
-                        .update((s) => !s),
+                    onTap: () async {
+                      final success = await ref
+                          .read(wishlistProvider.notifier)
+                          .toggleWishlist(propertyId: propId);
+                      if (context.mounted && success) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              !isWishlisted
+                                  ? 'Added to wishlist!'
+                                  : 'Removed from wishlist!',
+                            ),
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    },
                     child: Container(
                       margin: const EdgeInsets.all(8),
                       padding: const EdgeInsets.all(7),

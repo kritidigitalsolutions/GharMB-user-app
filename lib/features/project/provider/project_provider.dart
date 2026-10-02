@@ -1,5 +1,5 @@
-import 'package:riverpod/legacy.dart';
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter/material.dart';
 
 class ProjectModel {
@@ -78,6 +78,7 @@ enum PossessionFilter { immediate, within6Months, within1Year, moreThan1Year }
 enum ProjectSortBy { relevance, priceLow, priceHigh, newest, possession }
 
 class ProjectFilterState {
+  final String city;
   final Set<ProjectBHK> bhk;
   final RangeValues budgetRange;
   final bool reraOnly;
@@ -86,8 +87,9 @@ class ProjectFilterState {
   final ProjectSortBy sortBy;
 
   const ProjectFilterState({
+    this.city = 'All Cities',
     this.bhk = const {},
-    this.budgetRange = const RangeValues(20, 500),
+    this.budgetRange = const RangeValues(10, 500),
     this.reraOnly = false,
     this.readyToMoveOnly = false,
     this.possession = const {},
@@ -95,6 +97,7 @@ class ProjectFilterState {
   });
 
   ProjectFilterState copyWith({
+    String? city,
     Set<ProjectBHK>? bhk,
     RangeValues? budgetRange,
     bool? reraOnly,
@@ -102,6 +105,7 @@ class ProjectFilterState {
     Set<PossessionFilter>? possession,
     ProjectSortBy? sortBy,
   }) => ProjectFilterState(
+    city: city ?? this.city,
     bhk: bhk ?? this.bhk,
     budgetRange: budgetRange ?? this.budgetRange,
     reraOnly: reraOnly ?? this.reraOnly,
@@ -111,28 +115,32 @@ class ProjectFilterState {
   );
 
   bool get hasActiveFilters =>
+      (city.isNotEmpty && city != 'All Cities') ||
       bhk.isNotEmpty ||
       reraOnly ||
       readyToMoveOnly ||
       possession.isNotEmpty ||
       sortBy != ProjectSortBy.relevance ||
-      budgetRange.start != 20 ||
+      budgetRange.start != 10 ||
       budgetRange.end != 500;
 
   int get activeCount {
     int c = 0;
+    if (city.isNotEmpty && city != 'All Cities') c++;
     if (bhk.isNotEmpty) c++;
     if (reraOnly) c++;
     if (readyToMoveOnly) c++;
     if (possession.isNotEmpty) c++;
     if (sortBy != ProjectSortBy.relevance) c++;
-    if (budgetRange.start != 20 || budgetRange.end != 500) c++;
+    if (budgetRange.start != 10 || budgetRange.end != 500) c++;
     return c;
   }
 }
 
 class ProjectFilterNotifier extends StateNotifier<ProjectFilterState> {
   ProjectFilterNotifier() : super(const ProjectFilterState());
+
+  void setCity(String v) => state = state.copyWith(city: v);
 
   void toggleBHK(ProjectBHK v) {
     final s = Set<ProjectBHK>.from(state.bhk);

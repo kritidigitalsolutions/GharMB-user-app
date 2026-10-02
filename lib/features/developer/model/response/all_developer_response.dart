@@ -69,17 +69,21 @@ class Developer {
 
   factory Developer.fromJson(Map<String, dynamic> json) {
     return Developer(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      companyName: json['companyName'] ?? '',
-      profilePicture: json['profilePicture'] ?? '',
-      logo: json['logo'] ?? '',
-      cityOfOperation: json['cityOfOperation'] ?? '',
-      yearsInBusiness: json['yearsInBusiness'] ?? '',
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      companyName: json['companyName']?.toString() ?? '',
+      profilePicture: json['profilePicture']?.toString() ?? '',
+      logo: json['logo']?.toString() ?? '',
+      cityOfOperation: json['cityOfOperation']?.toString() ?? '',
+      yearsInBusiness: json['yearsInBusiness']?.toString() ?? '',
       rating: (json['rating'] as num?)?.toDouble() ?? 0.0,
-      reviewCount: json['reviewCount'] ?? 0,
-      projectCount: json['projectCount'] ?? 0,
-      projectCountDisplay: json['projectCountDisplay'] ?? '',
+      reviewCount: json['reviewCount'] is int
+          ? json['reviewCount'] as int
+          : (int.tryParse(json['reviewCount']?.toString() ?? '') ?? 0),
+      projectCount: json['projectCount'] is int
+          ? json['projectCount'] as int
+          : (int.tryParse(json['projectCount']?.toString() ?? '') ?? 0),
+      projectCountDisplay: json['projectCountDisplay']?.toString() ?? '',
     );
   }
 

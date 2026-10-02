@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/core/data/exception/app_exception.dart';
 import 'package:gharmb_app/features/auth/repo/auth_repo.dart';
@@ -46,19 +45,22 @@ class LoginNotifier extends StateNotifier<LoginState> {
   }
 
   Future<void> sendOtp({
-    required VoidCallback onSuccess,
+    required void Function(String? otp) onSuccess,
     void Function(String message)? onAccountNotFound,
     void Function(String message)? onSuspended,
   }) async {
-    if (!state.isValid) {
-      state = state.copyWith(errorMessage: 'Please fill the phone number');
+    final cleanPhone = state.phone.replaceAll(RegExp(r'\D'), '');
+    if (cleanPhone.length != 10) {
+      state = state.copyWith(
+        errorMessage: 'Please enter a valid 10-digit mobile number',
+      );
       return;
     }
 
     state = state.copyWith(isLoading: true, clearError: true);
 
     try {
-      final res = await _authRepo.login(state.phone.trim());
+      final res = await _authRepo.login(cleanPhone);
 
       if (res is Map && res["accountNotFound"] == true) {
         state = state.copyWith(isLoading: false, clearError: true);
@@ -70,8 +72,13 @@ class LoginNotifier extends StateNotifier<LoginState> {
         return;
       }
 
+      final String? otp = res is Map
+          ? (res["otp"]?.toString() ??
+                (res["data"] is Map ? res["data"]["otp"]?.toString() : null))
+          : null;
+
       state = state.copyWith(isLoading: false, clearError: true);
-      onSuccess();
+      onSuccess(otp);
     } on NotFoundException catch (e) {
       state = state.copyWith(isLoading: false, clearError: true);
       if (onAccountNotFound != null) {

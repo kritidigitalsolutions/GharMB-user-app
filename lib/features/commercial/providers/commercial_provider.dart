@@ -1,159 +1,187 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/legacy.dart';
+import 'package:gharmb_app/features/commercial/repo/commercial_repo.dart';
+import 'package:gharmb_app/features/property/models/response/near_properties_response.dart';
 
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum CommercialMode { buy, rent }
 
-enum CommercialCategory { shop, officeSpace, showroom, warehouse, coWorking }
-
-// ─── Models ───────────────────────────────────────────────────────────────────
-
-class CommercialListing {
-  final String id;
-  final String price;
-  final String pricePerSqft;
-  final String type;
-  final String floor;
-  final String area;
-  final String location;
-  final String market;
-  final String imageGradientKey;
-  final String tag; // 'For Sale' | 'For Rent'
-  final int photos;
-
-  const CommercialListing({
-    required this.id,
-    required this.price,
-    required this.pricePerSqft,
-    required this.type,
-    required this.floor,
-    required this.area,
-    required this.location,
-    required this.market,
-    required this.imageGradientKey,
-    required this.tag,
-    required this.photos,
-  });
+enum CommercialCategory {
+  shop,
+  officeSpace,
+  showroom,
+  warehouse,
+  coWorking,
+  industrialPlot,
 }
 
-class LandmarkModel {
-  final String name;
-  final String distance;
-  const LandmarkModel({required this.name, required this.distance});
+// ─── Extensions ──────────────────────────────────────────────────────────────
+
+extension CatLabel on CommercialCategory {
+  String get label => switch (this) {
+    CommercialCategory.shop => 'Shop / Retail',
+    CommercialCategory.officeSpace => 'Office Space',
+    CommercialCategory.showroom => 'Showroom',
+    CommercialCategory.warehouse => 'Warehouse',
+    CommercialCategory.coWorking => 'Co-working',
+    CommercialCategory.industrialPlot => 'Industrial Plot',
+  };
+
+  String get apiKey => switch (this) {
+    CommercialCategory.shop => 'Shop / Retail',
+    CommercialCategory.officeSpace => 'Office Space',
+    CommercialCategory.showroom => 'Showroom',
+    CommercialCategory.warehouse => 'Warehouse',
+    CommercialCategory.coWorking => 'Co-working',
+    CommercialCategory.industrialPlot => 'Industrial Plot',
+  };
 }
 
-// ─── Dummy Data ───────────────────────────────────────────────────────────────
-
-final _listings = [
-  const CommercialListing(
-    id: 'c1',
-    price: '₹48 Lakhs',
-    pricePerSqft: '₹9,600/sqft',
-    type: 'Retail shop',
-    floor: 'Ground floor',
-    area: '500 sqft',
-    location: '9 Sector 18, Noida',
-    market: 'Main market',
-    imageGradientKey: 'warm',
-    tag: 'For Sale',
-    photos: 12,
-  ),
-  const CommercialListing(
-    id: 'c2',
-    price: '₹48 Lakhs',
-    pricePerSqft: '₹9,600/sqft',
-    type: 'Retail shop',
-    floor: 'Ground floor',
-    area: '500 sqft',
-    location: '9 Sector 18, Noida',
-    market: 'Main market',
-    imageGradientKey: 'warm2',
-    tag: 'For Rent',
-    photos: 8,
-  ),
-  const CommercialListing(
-    id: 'c3',
-    price: '₹48 Lakhs',
-    pricePerSqft: '₹9,600/sqft',
-    type: 'Retail shop',
-    floor: 'Ground floor',
-    area: '500 sqft',
-    location: '9 Sector 18, Noida',
-    market: 'Main market',
-    imageGradientKey: 'warm',
-    tag: 'For Sale',
-    photos: 15,
-  ),
-];
-
-final _shopHighlights = [
-  'Sector 18 — Noida\'s highest footfall market. 25,000+ daily visitors.',
-  'Sector 18 metro — 300m walking distance',
-  'Expected rental income: ₹40K–₹55K/month (9–11% ROI)',
-  'All legal docs clear — title deed, OC, CC in place',
-  'Ground floor + 22ft frontage — maximum brand visibility',
-];
-
-final _landmarks = [
-  const LandmarkModel(name: 'Sector 18 metro', distance: '300m'),
-  const LandmarkModel(name: 'DLF Mall of India', distance: '2.5 km'),
-  const LandmarkModel(name: 'Noida IT corridor', distance: '1 km'),
-];
-
-// ─── Providers ────────────────────────────────────────────────────────────────
+// ─── State ────────────────────────────────────────────────────────────────────
 
 class CommercialState {
   final CommercialMode mode;
   final CommercialCategory? selectedCategory;
+  final List<Property> properties;
+  final bool isLoading;
+  final bool isMoreLoading;
+  final bool hasMore;
+  final int page;
+  final int totalCount;
+  final String? errorMessage;
+  final Property? selectedProperty;
 
   const CommercialState({
     this.mode = CommercialMode.buy,
     this.selectedCategory,
+    this.properties = const [],
+    this.isLoading = false,
+    this.isMoreLoading = false,
+    this.hasMore = true,
+    this.page = 1,
+    this.totalCount = 0,
+    this.errorMessage,
+    this.selectedProperty,
   });
 
   CommercialState copyWith({
     CommercialMode? mode,
     CommercialCategory? selectedCategory,
+    bool clearCategory = false,
+    List<Property>? properties,
+    bool? isLoading,
+    bool? isMoreLoading,
+    bool? hasMore,
+    int? page,
+    int? totalCount,
+    String? errorMessage,
+    bool clearError = false,
+    Property? selectedProperty,
   }) => CommercialState(
     mode: mode ?? this.mode,
-    selectedCategory: selectedCategory ?? this.selectedCategory,
+    selectedCategory: clearCategory ? null : (selectedCategory ?? this.selectedCategory),
+    properties: properties ?? this.properties,
+    isLoading: isLoading ?? this.isLoading,
+    isMoreLoading: isMoreLoading ?? this.isMoreLoading,
+    hasMore: hasMore ?? this.hasMore,
+    page: page ?? this.page,
+    totalCount: totalCount ?? this.totalCount,
+    errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+    selectedProperty: selectedProperty ?? this.selectedProperty,
   );
 }
 
-class CommercialNotifier extends StateNotifier<CommercialState> {
-  CommercialNotifier() : super(const CommercialState());
+// ─── Notifier ─────────────────────────────────────────────────────────────────
 
-  void setMode(CommercialMode m) => state = state.copyWith(mode: m);
-  void setCategory(CommercialCategory c) =>
-      state = state.copyWith(selectedCategory: c);
+class CommercialNotifier extends StateNotifier<CommercialState> {
+  final CommercialRepo _repo = CommercialRepo();
+
+  CommercialNotifier() : super(const CommercialState()) {
+    fetchCommercialSpaces(refresh: true);
+  }
+
+  void setMode(CommercialMode m) {
+    if (state.mode == m) return;
+    state = state.copyWith(mode: m);
+    fetchCommercialSpaces(refresh: true);
+  }
+
+  void setCategory(CommercialCategory? c) {
+    if (state.selectedCategory == c) return;
+    state = state.copyWith(
+      selectedCategory: c,
+      clearCategory: c == null,
+    );
+    fetchCommercialSpaces(refresh: true);
+  }
+
+  void selectProperty(Property p) {
+    state = state.copyWith(selectedProperty: p);
+  }
+
+  String get _listingForParam => state.mode == CommercialMode.buy ? 'Sale' : 'Rent';
+
+  Future<void> fetchCommercialSpaces({bool refresh = false}) async {
+    if (refresh) {
+      state = state.copyWith(
+        isLoading: true,
+        page: 1,
+        hasMore: true,
+        clearError: true,
+      );
+    } else {
+      if (state.isMoreLoading || !state.hasMore) return;
+      state = state.copyWith(isMoreLoading: true, clearError: true);
+    }
+
+    try {
+      final targetPage = refresh ? 1 : state.page + 1;
+      final propertyType = state.selectedCategory?.apiKey;
+
+      final res = await _repo.getCommercialProperties(
+        listingFor: _listingForParam,
+        propertyType: propertyType,
+        page: targetPage,
+        limit: 10,
+      );
+
+      final newItems = res?.data.properties ?? [];
+      final total = res?.totalCount ?? res?.results ?? newItems.length;
+
+      final updatedList = refresh
+          ? newItems
+          : [...state.properties, ...newItems];
+
+      state = state.copyWith(
+        isLoading: false,
+        isMoreLoading: false,
+        properties: updatedList,
+        page: targetPage,
+        totalCount: total,
+        hasMore: newItems.isNotEmpty && updatedList.length < total,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        isMoreLoading: false,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  Future<void> loadMore() async {
+    await fetchCommercialSpaces(refresh: false);
+  }
 }
+
+// ─── Providers ────────────────────────────────────────────────────────────────
 
 final commercialProvider =
     StateNotifierProvider<CommercialNotifier, CommercialState>(
       (_) => CommercialNotifier(),
     );
 
-final commercialListingsProvider = Provider<List<CommercialListing>>(
-  (_) => _listings,
+final selectedCommercialPropertyProvider = StateProvider<Property?>(
+  (ref) => ref.watch(commercialProvider).selectedProperty,
 );
-
-final selectedListingProvider = StateProvider<CommercialListing?>(
-  (ref) => null,
-);
-
-final shopHighlightsProvider = Provider<List<String>>((_) => _shopHighlights);
-
-final landmarksProvider = Provider<List<LandmarkModel>>((_) => _landmarks);
-
-// ─── Extensions ──────────────────────────────────────────────────────────────
-
-extension CatLabel on CommercialCategory {
-  String get label => switch (this) {
-    CommercialCategory.shop => 'Shop',
-    CommercialCategory.officeSpace => 'Office space',
-    CommercialCategory.showroom => 'Showroom',
-    CommercialCategory.warehouse => 'Warehouse',
-    CommercialCategory.coWorking => 'Co-working',
-  };
-}

@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/auth/providers/basic_info_provider.dart';
-import 'package:gharmb_app/features/auth/providers/otp_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:go_router/go_router.dart';
 
 class BasicInfoScreen extends ConsumerStatefulWidget {
-  const BasicInfoScreen({super.key});
+  final String? prefilledPhone;
+  const BasicInfoScreen({super.key, this.prefilledPhone});
 
   @override
   ConsumerState<BasicInfoScreen> createState() => _BasicInfoScreenState();
@@ -25,10 +25,21 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> {
   void initState() {
     super.initState();
     final state = ref.read(basicInfoProvider);
+    final initialPhone =
+        (widget.prefilledPhone != null && widget.prefilledPhone!.isNotEmpty)
+        ? widget.prefilledPhone!
+        : state.phone;
+
     _nameController = TextEditingController(text: state.fullName);
     _emailController = TextEditingController(text: state.email);
-    _phoneController = TextEditingController(text: state.phone);
+    _phoneController = TextEditingController(text: initialPhone);
     _addressController = TextEditingController(text: state.address);
+
+    if (widget.prefilledPhone != null && widget.prefilledPhone!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(basicInfoProvider.notifier).setPhone(widget.prefilledPhone!);
+      });
+    }
   }
 
   @override
@@ -124,6 +135,43 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> {
                 onChanged: notifier.setPhone,
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.next,
+                readOnly:
+                    state.phone.isNotEmpty ||
+                    (widget.prefilledPhone != null &&
+                        widget.prefilledPhone!.isNotEmpty),
+                suffix:
+                    (state.phone.isNotEmpty ||
+                        (widget.prefilledPhone != null &&
+                            widget.prefilledPhone!.isNotEmpty))
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.success.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle_rounded,
+                              size: 14,
+                              color: AppColors.success,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Verified',
+                              style: text11(
+                                color: AppColors.success,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : null,
               ),
 
               const SizedBox(height: 16),
@@ -307,18 +355,23 @@ class _BasicInfoScreenState extends ConsumerState<BasicInfoScreen> {
               // Continue button
               AppButton(
                 title: "Continue",
-                onTap: (notifier.isFormValid && !state.isLoading)
+                onTap: !state.isLoading
                     ? () {
+                        // Sync controllers before submitting
+                        notifier.setFullName(_nameController.text);
+                        notifier.setEmail(_emailController.text);
+                        notifier.setPhone(_phoneController.text);
+                        notifier.setAddress(_addressController.text);
+
                         notifier.submit(
-                          onSuccess: (String nextScreen) {
-                            if (nextScreen == 'role_selection') {
-                              context.pushNamed(AppPage.roleSelectionName);
-                            } else if (nextScreen == 'home' || nextScreen == 'dashboard') {
+                          onSuccess: (String nextScreen, String? otp) {
+                            if (nextScreen == 'home' ||
+                                nextScreen == 'dashboard') {
                               context.pushReplacementNamed(AppPage.myHomeName);
                             } else {
-                              ref.read(otpPhoneProvider.notifier).state =
-                                  state.phone.trim();
-                              context.pushNamed(AppPage.otpName);
+                              context.pushReplacementNamed(
+                                AppPage.roleSelectionName,
+                              );
                             }
                           },
                         );
@@ -344,6 +397,8 @@ class _FormField extends StatelessWidget {
   final ValueChanged<String> onChanged;
   final TextInputType keyboardType;
   final TextInputAction textInputAction;
+  final bool readOnly;
+  final Widget? suffix;
 
   const _FormField({
     this.controller,
@@ -353,6 +408,8 @@ class _FormField extends StatelessWidget {
     required this.onChanged,
     required this.keyboardType,
     required this.textInputAction,
+    this.readOnly = false,
+    this.suffix,
   });
 
   @override
@@ -371,7 +428,7 @@ class _FormField extends StatelessWidget {
         Container(
           height: 52,
           decoration: BoxDecoration(
-            color: AppColors.grey50,
+            color: readOnly ? AppColors.grey100 : AppColors.grey50,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.grey200),
           ),
@@ -384,9 +441,14 @@ class _FormField extends StatelessWidget {
                 child: TextField(
                   controller: controller,
                   onChanged: onChanged,
+                  readOnly: readOnly,
                   keyboardType: keyboardType,
                   textInputAction: textInputAction,
-                  style: text13(color: AppColors.textPrimary),
+                  style: text13(
+                    color: readOnly
+                        ? AppColors.textSecondary
+                        : AppColors.textPrimary,
+                  ),
                   decoration: InputDecoration(
                     hintText: hint,
                     hintStyle: text13(color: AppColors.hintText),
@@ -396,6 +458,7 @@ class _FormField extends StatelessWidget {
                   ),
                 ),
               ),
+              if (suffix != null) suffix!,
               const SizedBox(width: 12),
             ],
           ),

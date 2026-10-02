@@ -92,6 +92,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
   void setPhone(String v) => state = state.copyWith(phone: v);
   void setCity(String v) => state = state.copyWith(city: v);
   void setAvatar(File f) => state = state.copyWith(localAvatar: f);
+  void clearLocalAvatar() => state = state.copyWith(clearLocalAvatar: true);
 
   Future<bool> save() async {
     state = state.copyWith(isSaving: true, error: null);

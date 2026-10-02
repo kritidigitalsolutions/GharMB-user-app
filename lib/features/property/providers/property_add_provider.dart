@@ -742,7 +742,7 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
 }
 
 final listPropertyProvider =
-    StateNotifierProvider<ListPropertyNotifier, ListPropertyState>(
+    StateNotifierProvider.autoDispose<ListPropertyNotifier, ListPropertyState>(
       (_) => ListPropertyNotifier(),
     );
 

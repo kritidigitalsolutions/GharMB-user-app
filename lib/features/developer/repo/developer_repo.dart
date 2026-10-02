@@ -8,6 +8,7 @@ import 'package:gharmb_app/features/developer/model/response/agent_response.dart
 import 'package:gharmb_app/features/developer/model/response/all_developer_response.dart';
 import 'package:gharmb_app/features/developer/model/response/detail_developer_model.dart';
 import 'package:gharmb_app/features/developer/model/response/developer_register_response.dart';
+import 'package:gharmb_app/features/developer/model/response/developer_reviews_response.dart';
 
 import '../../../core/utils/local_storage/auth_storage.dart';
 
@@ -88,53 +89,112 @@ class DeveloperRepo {
     return DeveloperDetailResponse.fromJson(res);
   }
 
+  /// 📩 Submit Enquiry to Developer
   Future<bool> submitEnquiry({
     required String developerId,
     required String message,
   }) async {
+    final String token = await LocalStorageService.getToken() ?? "";
+    if (token.isEmpty) {
+      throw Exception("Please login to send an enquiry.");
+    }
+    if (developerId.isEmpty || developerId == 'default') {
+      throw Exception("Invalid developer selected.");
+    }
+    _api.setToken(token);
+
+    final payload = EnquirySubmitPayload(
+      developerId: developerId,
+      message: message,
+    );
+
+    final res = await _api.postApi(
+      AppUrls.enquiry(developerId: developerId),
+      payload.toJson(),
+    );
+
+    return res != null;
+  }
+
+  /// 🌟 Get Developer Reviews & Rating Breakdown
+  Future<DeveloperReviewsResponse?> getDeveloperReviews({
+    required String developerId,
+    int? pageNo,
+    int? pageSize,
+  }) async {
+    if (developerId.isEmpty || developerId == 'default') return null;
     try {
-      final String token = await LocalStorageService.getToken() ?? "";
-      if (token.isEmpty) {
-        print("Token is null");
-        return false;
+      final res = await _api.getApi(
+        AppUrls.getDeveloperReview(
+          developerId: developerId,
+          pageNo: pageNo,
+          pageSize: pageSize,
+        ),
+      );
+      if (res != null && res is Map<String, dynamic>) {
+        return DeveloperReviewsResponse.fromJson(res);
       }
-      _api.setToken(token);
-
-      final payload = EnquirySubmitPayload(
-        developerId: developerId,
-        message: message,
-      );
-
-      final res = await _api.postApi(
-        AppUrls.enquiry(developerId: developerId),
-        payload.toJson(),
-      );
-
-      return res != null;
+      return null;
     } catch (e) {
-      print("Error in submitEnquiry: $e");
-      return false;
+      print("Error in getDeveloperReviews: $e");
+      return null;
     }
   }
 
+  /// ✍️ Submit or Update Review for a Developer
   Future<bool> addReviewDeveloper({
     required String developerId,
     required ReviewPayload payload,
   }) async {
     final String token = await LocalStorageService.getToken() ?? "";
     if (token.isEmpty) {
-      print("token is empty");
-      return false;
+      throw Exception("Please login to submit a review.");
+    }
+    if (developerId.isEmpty || developerId == 'default') {
+      throw Exception("Invalid developer selected.");
     }
     _api.setToken(token);
-    final url = await _api.postApi(
+    final res = await _api.postApi(
       AppUrls.submitReview(developerId: developerId),
       payload.toJson(),
     );
-    if (url == null) {
-      print("url is null");
+    return res != null;
+  }
+
+  /// 🔍 Get Current User's Review for Developer
+  Future<MyReviewResponse?> getMyDeveloperReview({
+    required String developerId,
+  }) async {
+    try {
+      final String token = await LocalStorageService.getToken() ?? "";
+      if (token.isEmpty) return null;
+      _api.setToken(token);
+      final res = await _api.getApi(
+        AppUrls.myDeveloperReview(developerId: developerId),
+      );
+      if (res != null && res is Map<String, dynamic>) {
+        return MyReviewResponse.fromJson(res);
+      }
+      return null;
+    } catch (e) {
+      print("Error in getMyDeveloperReview: $e");
+      return null;
+    }
+  }
+
+  /// 🗑 Delete Current User's Review for Developer
+  Future<bool> deleteDeveloperReview({required String developerId}) async {
+    try {
+      final String token = await LocalStorageService.getToken() ?? "";
+      if (token.isEmpty) return false;
+      _api.setToken(token);
+      final res = await _api.deleteApi(
+        AppUrls.deleteDeveloperReview(developerId: developerId),
+      );
+      return res != null;
+    } catch (e) {
+      print("Error in deleteDeveloperReview: $e");
       return false;
     }
-    return true;
   }
 }

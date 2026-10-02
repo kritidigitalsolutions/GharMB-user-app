@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/features/profile/provider/legal_provider.dart';
+import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 
 class HelpSupportPage extends ConsumerWidget {
   const HelpSupportPage({super.key});
@@ -18,7 +19,7 @@ class HelpSupportPage extends ConsumerWidget {
         title: const Text('Help & Support'),
       ),
       body: asyncValue.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const DocumentShimmer(),
         error: (error, stack) => Center(child: Text('Error: $error')),
         data: (response) {
           final content = response?.data?.pageContent;

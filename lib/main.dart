@@ -114,10 +114,7 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
                 ),
               ),
               const SizedBox(height: 18),
-              Text(
-                'Exit App?',
-                style: text18(fontWeight: FontWeight.bold),
-              ),
+              Text('Exit App?', style: text18(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text(
                 'Are you sure you want to exit the app?',

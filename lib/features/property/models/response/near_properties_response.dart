@@ -34,9 +34,10 @@ class PropertyData {
   PropertyData({required this.properties});
 
   factory PropertyData.fromJson(Map<String, dynamic> json) {
+    final list = json['properties'] ?? json['spaces'];
     return PropertyData(
-      properties: (json['properties'] as List<dynamic>? ?? [])
-          .map((e) => Property.fromJson(e))
+      properties: (list is List<dynamic> ? list : [])
+          .map((e) => Property.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
@@ -85,6 +86,7 @@ class Property {
   final int otherCharges;
   final bool vastuCompliant;
   final bool keyHandover;
+  final bool isVerified;
   final bool openToAllBuyers;
   final bool loanAssistanceNeeded;
   final String listingTier;
@@ -139,6 +141,7 @@ class Property {
     required this.otherCharges,
     required this.vastuCompliant,
     this.keyHandover = false,
+    this.isVerified = false,
     required this.openToAllBuyers,
     required this.loanAssistanceNeeded,
     required this.listingTier,
@@ -157,58 +160,69 @@ class Property {
 
   factory Property.fromJson(Map<String, dynamic> json) {
     return Property(
-      location: Location.fromJson(json['location'] ?? {}),
-      id: json['id'] ?? '',
-      mongoId: json['_id'] ?? '',
-      listingAs: json['listingAs'] ?? '',
-      category: json['category'] ?? '',
-      listingFor: json['listingFor'] ?? '',
-      propertyType: json['propertyType'] ?? '',
-      title: json['title'] ?? '',
-      city: json['city'] ?? '',
-      locality: json['locality'] ?? '',
-      fullAddress: json['fullAddress'] ?? '',
-      pincode: json['pincode'] ?? '',
-      description: json['description'] ?? '',
-      bedrooms: json['bedrooms'] ?? '',
-      bathrooms: json['bathrooms'] ?? '',
-      carpetArea: json['carpetArea'] ?? 0,
-      builtUpArea: json['builtUpArea'] ?? 0,
-      floorNo: json['floorNo'] ?? '',
-      totalFloors: json['totalFloors'] ?? '',
-      ageOfProperty: json['ageOfProperty'] ?? '',
-      furnishing: json['furnishing'] ?? '',
-      facingDirection: json['facingDirection'] ?? '',
-      parking: json['parking'] ?? '',
-      amenities: List<String>.from(json['amenities'] ?? []),
-      preferredTenants: List<String>.from(json['preferredTenants'] ?? []),
+      location: Location.fromJson(json['location'] is Map<String, dynamic> ? json['location'] : {}),
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      mongoId: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      listingAs: json['listingAs']?.toString() ?? '',
+      category: json['category']?.toString() ?? (json['spaceType'] != null ? 'commercial' : ''),
+      listingFor: json['listingFor']?.toString() ?? '',
+      propertyType: json['propertyType']?.toString() ?? json['spaceType']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      city: json['city']?.toString() ?? '',
+      locality: json['locality']?.toString() ?? '',
+      fullAddress: json['fullAddress']?.toString() ?? '',
+      pincode: json['pincode']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      bedrooms: json['bedrooms']?.toString() ?? '',
+      bathrooms: json['bathrooms']?.toString() ?? '',
+      carpetArea: (json['carpetArea'] as num?)?.toInt() ?? 0,
+      builtUpArea: (json['builtUpArea'] as num?)?.toInt() ?? 0,
+      floorNo: json['floorNo']?.toString() ?? '',
+      totalFloors: json['totalFloors']?.toString() ?? '',
+      ageOfProperty: json['ageOfProperty']?.toString() ?? '',
+      furnishing: json['furnishing']?.toString() ?? '',
+      facingDirection: json['facingDirection']?.toString() ?? '',
+      parking: json['parking']?.toString() ?? '',
+      amenities: (json['amenities'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      preferredTenants: (json['preferredTenants'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       petsAllowed: json['petsAllowed'] ?? false,
       smokingAllowed: json['smokingAllowed'] ?? false,
       brokerageFree: json['brokerageFree'] ?? false,
       rentNegotiable: json['rentNegotiable'] ?? false,
-      images: List<String>.from(json['images'] ?? []),
-      price: json['price'] ?? 0,
-      securityDeposit: json['securityDeposit'] ?? 0,
-      maintenanceCharges: json['maintenanceCharges'] ?? 0,
+      images: ((json['images'] ?? json['photos']) as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      price: (json['price'] as num?)?.toInt() ?? 0,
+      securityDeposit: (json['securityDeposit'] as num?)?.toInt() ?? 0,
+      maintenanceCharges: (json['maintenanceCharges'] as num?)?.toInt() ?? 0,
       maintenanceIncludedInRent: json['maintenanceIncludedInRent'] ?? false,
-      brokerageFee: json['brokerageFee'] ?? 0,
-      otherCharges: json['otherCharges'] ?? 0,
+      brokerageFee: (json['brokerageFee'] as num?)?.toInt() ?? 0,
+      otherCharges: (json['otherCharges'] as num?)?.toInt() ?? 0,
       vastuCompliant: json['vastuCompliant'] ?? false,
       keyHandover: json['keyHandover'] ?? false,
       openToAllBuyers: json['openToAllBuyers'] ?? false,
       loanAssistanceNeeded: json['loanAssistanceNeeded'] ?? false,
-      listingTier: json['listingTier'] ?? '',
-      owner: Owner.fromJson(json['owner'] ?? {}),
-      approvalStatus: json['approvalStatus'] ?? '',
+      listingTier: json['listingTier']?.toString() ?? '',
+      owner: Owner.fromJson(json['owner'] is Map<String, dynamic> ? json['owner'] : {}),
+      approvalStatus: json['approvalStatus']?.toString() ?? '',
       isLive: json['isLive'] ?? false,
-      viewsCount: json['viewsCount'] ?? 0,
-      shortlistedCount: json['shortlistedCount'] ?? 0,
-      inquiriesCount: json['inquiriesCount'] ?? 0,
-      tokensCount: json['tokensCount'] ?? 0,
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
-      submissionId: json['submissionId'] ?? '',
-      version: json['__v'] ?? 0,
+      viewsCount: (json['viewsCount'] as num?)?.toInt() ?? 0,
+      shortlistedCount: (json['shortlistedCount'] as num?)?.toInt() ?? 0,
+      inquiriesCount: (json['inquiriesCount'] as num?)?.toInt() ?? 0,
+      tokensCount: (json['tokensCount'] as num?)?.toInt() ?? 0,
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
+          DateTime.now(),
+      submissionId: json['submissionId']?.toString() ?? '',
+      version: (json['__v'] as num?)?.toInt() ?? 0,
     );
   }
 

@@ -8,7 +8,7 @@ abstract class BaseApiService {
 
   Future<dynamic> putApi(String url, dynamic data);
 
-  Future<dynamic> deleteApi(String url, dynamic data);
+  Future<dynamic> deleteApi(String url, [dynamic data]);
 
   Future<dynamic> uploadMultipartApi(
     String url,

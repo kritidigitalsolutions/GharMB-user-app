@@ -1,27 +1,60 @@
 class PropertyResponse {
   final String status;
   final int results;
+  final int? total;
+  final int? page;
+  final int? limit;
+  final int? totalPages;
+  final bool? hasMore;
   final PropertyData data;
 
   PropertyResponse({
     required this.status,
     required this.results,
+    this.total,
+    this.page,
+    this.limit,
+    this.totalPages,
+    this.hasMore,
     required this.data,
   });
 
   factory PropertyResponse.fromJson(Map<String, dynamic> json) {
+    final dynamic rawData = json['data'];
     return PropertyResponse(
-      status: json['status'],
-      results: json['results'],
-      data: PropertyData.fromJson(json['data']),
+      status: json['status']?.toString() ?? '',
+      results: _toInt(json['results'] ?? json['count']),
+      total: json['total'] != null
+          ? _toInt(json['total'])
+          : (json['totalProperties'] != null
+              ? _toInt(json['totalProperties'])
+              : (json['totalDocs'] != null ? _toInt(json['totalDocs']) : null)),
+      page: json['page'] != null
+          ? _toInt(json['page'])
+          : (json['currentPage'] != null ? _toInt(json['currentPage']) : null),
+      limit: json['limit'] != null ? _toInt(json['limit']) : null,
+      totalPages: json['totalPages'] != null ? _toInt(json['totalPages']) : null,
+      hasMore: json['hasMore'] is bool ? json['hasMore'] as bool : null,
+      data: PropertyData.fromJson(rawData ?? json),
     );
   }
 
   Map<String, dynamic> toJson() => {
     'status': status,
     'results': results,
+    'total': total,
+    'page': page,
+    'limit': limit,
+    'totalPages': totalPages,
+    'hasMore': hasMore,
     'data': data.toJson(),
   };
+
+  static int _toInt(dynamic val) {
+    if (val == null) return 0;
+    if (val is num) return val.toInt();
+    return int.tryParse(val.toString()) ?? 0;
+  }
 }
 
 class PropertyData {
@@ -29,12 +62,34 @@ class PropertyData {
 
   PropertyData({required this.properties});
 
-  factory PropertyData.fromJson(Map<String, dynamic> json) {
-    return PropertyData(
-      properties: (json['properties'] as List)
-          .map((e) => PropertyModel.fromJson(e))
-          .toList(),
-    );
+  factory PropertyData.fromJson(dynamic json) {
+    if (json == null) return PropertyData(properties: []);
+
+    if (json is List) {
+      return PropertyData(
+        properties: json
+            .whereType<Map<String, dynamic>>()
+            .map((e) => PropertyModel.fromJson(e))
+            .toList(),
+      );
+    }
+
+    if (json is Map<String, dynamic>) {
+      final list = json['properties'] ??
+          json['docs'] ??
+          json['results'] ??
+          json['data'];
+      if (list is List) {
+        return PropertyData(
+          properties: list
+              .whereType<Map<String, dynamic>>()
+              .map((e) => PropertyModel.fromJson(e))
+              .toList(),
+        );
+      }
+    }
+
+    return PropertyData(properties: []);
   }
 
   Map<String, dynamic> toJson() => {
@@ -87,6 +142,7 @@ class PropertyModel {
   final Owner owner;
   final String approvalStatus;
   final bool isLive;
+  final bool isVerified;
   final int viewsCount;
   final int shortlistedCount;
   final int inquiriesCount;
@@ -140,6 +196,7 @@ class PropertyModel {
     required this.owner,
     required this.approvalStatus,
     required this.isLive,
+    this.isVerified = false,
     required this.viewsCount,
     required this.shortlistedCount,
     required this.inquiriesCount,
@@ -152,64 +209,77 @@ class PropertyModel {
   factory PropertyModel.fromJson(Map<String, dynamic> json) {
     return PropertyModel(
       location: Location.fromJson(
-        json['location'] ??
-            {
-              'type': 'Point',
-              'coordinates': [0, 0],
-            },
+        json['location'] is Map<String, dynamic>
+            ? json['location']
+            : {'type': 'Point', 'coordinates': [0, 0]},
       ),
-      id: json['_id'] ?? '',
-      mongoId: json['_id'] ?? '',
-      listingAs: json['listingAs'] ?? '',
-      category: json['category'] ?? '',
-      listingFor: json['listingFor'] ?? '',
-      propertyType: json['propertyType'] ?? '',
-      title: json['title'] ?? '',
-      city: json['city'] ?? '',
-      locality: json['locality'] ?? '',
-      fullAddress: json['fullAddress'] ?? '',
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      mongoId: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      listingAs: json['listingAs']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
+      listingFor: json['listingFor']?.toString() ?? '',
+      propertyType: json['propertyType']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
+      city: json['city']?.toString() ?? '',
+      locality: json['locality']?.toString() ?? '',
+      fullAddress: json['fullAddress']?.toString() ?? '',
       pincode: json['pincode']?.toString() ?? '',
-      description: json['description'] ?? '',
+      description: json['description']?.toString() ?? '',
       bedrooms: json['bedrooms']?.toString() ?? '',
       bathrooms: json['bathrooms']?.toString() ?? '',
-      carpetArea: (json['carpetArea'] as num?)?.toInt() ?? 0,
-      builtUpArea: (json['builtUpArea'] as num?)?.toInt() ?? 0,
+      carpetArea: _toInt(json['carpetArea']),
+      builtUpArea: _toInt(json['builtUpArea']),
       floorNo: json['floorNo']?.toString() ?? '-',
       totalFloors: json['totalFloors']?.toString() ?? '-',
       ageOfProperty: json['ageOfProperty']?.toString() ?? '',
-      furnishing: json['furnishing'] ?? '-',
-      facingDirection: json['facingDirection'] ?? '-',
-      parking: json['parking'] ?? '-',
-      amenities: List<String>.from(json['amenities'] ?? []),
-      preferredTenants: List<String>.from(json['preferredTenants'] ?? []),
-      petsAllowed: json['petsAllowed'] ?? false,
-      smokingAllowed: json['smokingAllowed'] ?? false,
-      brokerageFree: json['brokerageFree'] ?? false,
-      rentNegotiable: json['rentNegotiable'] ?? false,
-      images: List<String>.from(json['images'] ?? []),
-      price: (json['price'] as num?)?.toInt() ?? 0,
-      securityDeposit: (json['securityDeposit'] as num?)?.toInt() ?? 0,
-      maintenanceCharges: (json['maintenanceCharges'] as num?)?.toInt() ?? 0,
-      maintenanceIncludedInRent: json['maintenanceIncludedInRent'] ?? false,
-      brokerageFee: (json['brokerageFee'] as num?)?.toInt() ?? 0,
-      otherCharges: (json['otherCharges'] as num?)?.toInt() ?? 0,
-      vastuCompliant: json['vastuCompliant'] ?? false,
-      keyHandover: json['keyHandover'] ?? false,
-      openToAllBuyers: json['openToAllBuyers'] ?? true,
-      loanAssistanceNeeded: json['loanAssistanceNeeded'] ?? false,
-      listingTier: json['listingTier'] ?? 'standard',
-      owner: Owner.fromJson(json['owner'] ?? {}),
-      approvalStatus: json['approvalStatus'] ?? 'pending',
-      isLive: json['isLive'] ?? true,
-      viewsCount: (json['viewsCount'] as num?)?.toInt() ?? 0,
-      shortlistedCount: (json['shortlistedCount'] as num?)?.toInt() ?? 0,
-      inquiriesCount: (json['inquiriesCount'] as num?)?.toInt() ?? 0,
-      tokensCount: (json['tokensCount'] as num?)?.toInt() ?? 0,
+      furnishing: json['furnishing']?.toString() ?? '-',
+      facingDirection: json['facingDirection']?.toString() ?? '-',
+      parking: json['parking']?.toString() ?? '-',
+      amenities: json['amenities'] is List
+          ? List<String>.from(
+              (json['amenities'] as List).map((e) => e.toString()),
+            )
+          : [],
+      preferredTenants: json['preferredTenants'] is List
+          ? List<String>.from(
+              (json['preferredTenants'] as List).map((e) => e.toString()),
+            )
+          : [],
+      petsAllowed: json['petsAllowed'] == true || json['petsAllowed']?.toString() == 'true',
+      smokingAllowed: json['smokingAllowed'] == true || json['smokingAllowed']?.toString() == 'true',
+      brokerageFree: json['brokerageFree'] == true || json['brokerageFree']?.toString() == 'true',
+      rentNegotiable: json['rentNegotiable'] == true || json['rentNegotiable']?.toString() == 'true',
+      images: json['images'] is List
+          ? List<String>.from((json['images'] as List).map((e) => e.toString()))
+          : [],
+      price: _toInt(json['price']),
+      securityDeposit: _toInt(json['securityDeposit']),
+      maintenanceCharges: _toInt(json['maintenanceCharges']),
+      maintenanceIncludedInRent: json['maintenanceIncludedInRent'] == true ||
+          json['maintenanceIncludedInRent']?.toString() == 'true',
+      brokerageFee: _toInt(json['brokerageFee']),
+      otherCharges: _toInt(json['otherCharges']),
+      vastuCompliant: json['vastuCompliant'] == true || json['vastuCompliant']?.toString() == 'true',
+      keyHandover: json['keyHandover'] == true || json['keyHandover']?.toString() == 'true',
+      openToAllBuyers: json['openToAllBuyers'] != false && json['openToAllBuyers']?.toString() != 'false',
+      loanAssistanceNeeded: json['loanAssistanceNeeded'] == true ||
+          json['loanAssistanceNeeded']?.toString() == 'true',
+      listingTier: json['listingTier']?.toString() ?? 'standard',
+      owner: Owner.fromJson(
+        json['owner'] is Map<String, dynamic> ? json['owner'] : {},
+      ),
+      approvalStatus: json['approvalStatus']?.toString() ?? 'pending',
+      isLive: json['isLive'] != false && json['isLive']?.toString() != 'false',
+      isVerified: json['isVerified'] == true || json['isVerified']?.toString() == 'true',
+      viewsCount: _toInt(json['viewsCount']),
+      shortlistedCount: _toInt(json['shortlistedCount']),
+      inquiriesCount: _toInt(json['inquiriesCount']),
+      tokensCount: _toInt(json['tokensCount']),
       createdAt: json['createdAt'] != null
-          ? DateTime.parse(json['createdAt'])
+          ? DateTime.tryParse(json['createdAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       updatedAt: json['updatedAt'] != null
-          ? DateTime.parse(json['updatedAt'])
+          ? DateTime.tryParse(json['updatedAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       submissionId: json['submissionId']?.toString() ?? '',
     );
@@ -260,6 +330,7 @@ class PropertyModel {
     'owner': owner.toJson(),
     'approvalStatus': approvalStatus,
     'isLive': isLive,
+    'isVerified': isVerified,
     'viewsCount': viewsCount,
     'shortlistedCount': shortlistedCount,
     'inquiriesCount': inquiriesCount,
@@ -268,6 +339,50 @@ class PropertyModel {
     'updatedAt': updatedAt.toIso8601String(),
     'submissionId': submissionId,
   };
+
+  static int _toInt(dynamic val) {
+    if (val == null) return 0;
+    if (val is num) return val.toInt();
+    return int.tryParse(val.toString()) ?? 0;
+  }
+
+  // ─── Native helper getters for UI, Filters & Providers ──────────────────
+
+  bool get isReraApproved =>
+      approvalStatus.toLowerCase() == 'approved' || isVerified;
+
+  bool get isReadyToMove =>
+      ageOfProperty.toLowerCase().contains('ready') ||
+      ageOfProperty.trim() == '0';
+
+  String get locationLabel =>
+      locality.isNotEmpty ? '$locality, $city' : (city.isNotEmpty ? city : 'Location on request');
+
+  String get bhkLabel =>
+      bedrooms.isNotEmpty && bedrooms != '0' ? '$bedrooms BHK' : (propertyType.isNotEmpty ? propertyType : 'Residential');
+
+  String get possessionLabel =>
+      ageOfProperty.trim().isEmpty ? 'Ready to Move' : ageOfProperty;
+
+  String get imageUrl => images.isNotEmpty ? images.first : '';
+
+  String get gradientKey {
+    const keys = ['dark_blue', 'dark_teal', 'dark_yellow'];
+    return keys[id.hashCode.abs() % keys.length];
+  }
+
+  String get startingPriceLabel {
+    if (price >= 10000000) {
+      final cr = price / 10000000;
+      return '₹${cr.toStringAsFixed(cr.truncateToDouble() == cr ? 0 : 2)} Cr';
+    } else if (price >= 100000) {
+      final l = price / 100000;
+      return '₹${l.toStringAsFixed(l.truncateToDouble() == l ? 0 : 1)} L';
+    } else if (price > 0) {
+      return '₹$price';
+    }
+    return '₹ Price on Request';
+  }
 }
 
 class Location {
@@ -277,11 +392,17 @@ class Location {
   Location({required this.type, required this.coordinates});
 
   factory Location.fromJson(Map<String, dynamic> json) {
+    final rawCoords = json['coordinates'];
+    List<double> coords = [0.0, 0.0];
+    if (rawCoords is List) {
+      coords = rawCoords.map((e) {
+        if (e is num) return e.toDouble();
+        return double.tryParse(e?.toString() ?? '') ?? 0.0;
+      }).toList();
+    }
     return Location(
-      type: json['type'],
-      coordinates: (json['coordinates'] as List)
-          .map((e) => (e as num).toDouble())
-          .toList(),
+      type: json['type']?.toString() ?? 'Point',
+      coordinates: coords,
     );
   }
 
@@ -305,11 +426,11 @@ class Owner {
 
   factory Owner.fromJson(Map<String, dynamic> json) {
     return Owner(
-      id: json['_id'],
-      name: json['name'],
-      phone: json['phone'],
-      profilePicture: json['profilePicture'],
-      isVerified: json['isVerified'],
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      profilePicture: json['profilePicture']?.toString() ?? '',
+      isVerified: json['isVerified'] == true || json['isVerified']?.toString() == 'true',
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/profile/provider/legal_provider.dart';
+import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 
 class PrivacyPolicyPage extends ConsumerWidget {
   const PrivacyPolicyPage({super.key});
@@ -24,7 +25,7 @@ class PrivacyPolicyPage extends ConsumerWidget {
         ),
       ),
       body: asyncValue.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const DocumentShimmer(),
         error: (error, stack) => _ErrorView(message: error.toString()),
         data: (response) {
           final content = response?.data?.legalContent;

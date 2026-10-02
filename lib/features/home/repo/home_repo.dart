@@ -53,4 +53,36 @@ class HomeRepo {
     print("all notification mark");
     return true;
   }
+
+  Future<bool> deleteNotification({required String id}) async {
+    final String token = await LocalStorageService.getToken() ?? "";
+    if (token.isEmpty) {
+      print("token is null");
+      return false;
+    }
+    _api.setToken(token);
+    final res = await _api.deleteApi(AppUrls.deleteNotification(id: id));
+    if (res == null) {
+      print("no response on delete");
+      return false;
+    }
+    print("notification deleted successfully");
+    return true;
+  }
+
+  Future<bool> clearAllNotifications() async {
+    final String token = await LocalStorageService.getToken() ?? "";
+    if (token.isEmpty) {
+      print("token is null");
+      return false;
+    }
+    _api.setToken(token);
+    final res = await _api.deleteApi(AppUrls.clearAllNotifications);
+    if (res == null) {
+      print("no response on clear all");
+      return false;
+    }
+    print("all notifications cleared");
+    return true;
+  }
 }

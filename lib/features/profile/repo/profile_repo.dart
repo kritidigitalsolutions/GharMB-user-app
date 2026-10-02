@@ -22,6 +22,20 @@ class ProfileRepo {
     return DashboardResponse.fromJson(res);
   }
 
+  Future<DashboardResponse?> getCommercialDashboardData() async {
+    final String token = await LocalStorageService.getToken() ?? "";
+    if (token.isEmpty) {
+      print("No token found");
+      return null;
+    }
+    _api.setToken(token);
+    final res = await _api.getApi(AppUrls.commercialDashboardUrl);
+    if (res == null) {
+      return null;
+    }
+    return DashboardResponse.fromJson(res);
+  }
+
   Future<UserProfileResponse?> getUser() async {
     final String token = await LocalStorageService.getToken() ?? "";
     if (token.isEmpty) {

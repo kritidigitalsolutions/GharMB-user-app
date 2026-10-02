@@ -75,7 +75,7 @@ class DeveloperUser {
 
   factory DeveloperUser.fromJson(Map<String, dynamic> json) {
     return DeveloperUser(
-      id: json['id'] ?? '',
+      id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       name: json['name'] ?? '',
       companyName: json['companyName'] ?? '',
       phone: json['phone'] ?? '',

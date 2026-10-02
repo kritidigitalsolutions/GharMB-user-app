@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/features/developer/providers/developer_provider.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
@@ -87,87 +88,113 @@ class _TopDevelopersPageState extends ConsumerState<TopDevelopersPage> {
 
             // ── Developer List ───────────────────────────────────────
             Expanded(
-              child: developersAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, _) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+              child: RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async {
+                  ref.invalidate(allDevelopersDataProvider);
+                  await ref.read(allDevelopersDataProvider.future);
+                },
+                child: developersAsync.when(
+                  loading: () => const DeveloperListShimmer(
+                    isHorizontal: false,
+                    itemCount: 6,
+                  ),
+                  error: (err, _) => SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.5,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Failed to load developers',
+                                style: text14(fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '$err',
+                                textAlign: TextAlign.center,
+                                style: text12(color: AppColors.textSecondary),
+                              ),
+                              const SizedBox(height: 12),
+                              GestureDetector(
+                                onTap: () =>
+                                    ref.invalidate(allDevelopersDataProvider),
+                                child: Text(
+                                  'Retry',
+                                  style: text13(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  data: (_) {
+                    if (state.developers.isEmpty) {
+                      return SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.5,
+                          child: Center(
+                            child: Text(
+                              'No developers found',
+                              style: text13(color: AppColors.textSecondary),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return ListView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
                       children: [
-                        Text(
-                          'Failed to load developers',
-                          style: text14(fontWeight: FontWeight.w600),
+                        ...state.visibleDevelopers.asMap().entries.map(
+                          (e) => Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: _DeveloperCard(
+                              rank: e.key + 1,
+                              developer: e.value,
+                              onTap: () {
+                                ref
+                                    .read(selectedDeveloperProvider.notifier)
+                                    .state = e
+                                    .value;
+                                context.pushNamed(
+                                  AppPage.developerDetailName,
+                                  extra: e.value.id,
+                                );
+                              },
+                            ),
+                          ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          '$err',
-                          textAlign: TextAlign.center,
-                          style: text12(color: AppColors.textSecondary),
-                        ),
-                        const SizedBox(height: 12),
-                        GestureDetector(
-                          onTap: () =>
-                              ref.invalidate(allDevelopersDataProvider),
-                          child: Text(
-                            'Retry',
-                            style: text13(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
+                        const SizedBox(height: 4),
+                        // View all / View less
+                        Center(
+                          child: GestureDetector(
+                            onTap: notifier.toggleShowAll,
+                            child: Text(
+                              state.showAll
+                                  ? 'View less ↑'
+                                  : 'View all ${state.developers.length} developers ↓',
+                              style: text13(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                ),
-                data: (_) {
-                  if (state.developers.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'No developers found',
-                        style: text13(color: AppColors.textSecondary),
-                      ),
                     );
-                  }
-                  return ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                    children: [
-                      ...state.visibleDevelopers.asMap().entries.map(
-                        (e) => Padding(
-                          padding: const EdgeInsets.only(bottom: 10),
-                          child: _DeveloperCard(
-                            rank: e.key + 1,
-                            developer: e.value,
-                            onTap: () {
-                              ref
-                                      .read(selectedDeveloperProvider.notifier)
-                                      .state =
-                                  e.value;
-                              context.pushNamed(AppPage.developerDetailName);
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      // View all / View less
-                      Center(
-                        child: GestureDetector(
-                          onTap: notifier.toggleShowAll,
-                          child: Text(
-                            state.showAll
-                                ? 'View less ↑'
-                                : 'View all ${state.developers.length} developers ↓',
-                            style: text13(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
+                  },
+                ),
               ),
             ),
           ],

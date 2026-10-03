@@ -168,6 +168,18 @@ class ListPropertyState {
   final bool petsAllowed;
   final bool smokingAllowed;
 
+  // ── Installment / EMI Details ────────────────────────────────────────
+  final bool allowInstallments;
+  final String downPaymentAmount;
+  final String downPaymentPercentage;
+  final String numberOfInstallments;
+  final String installmentFrequency;
+  final String installmentAmount;
+  final String interestRate;
+  final String installmentDurationMonths;
+  final String gracePeriodDays;
+  final String installmentTerms;
+
   final double? latitude;
   final double? longitude;
 
@@ -251,6 +263,16 @@ class ListPropertyState {
     this.longTermPreferred = false,
     this.petsAllowed = false,
     this.smokingAllowed = false,
+    this.allowInstallments = false,
+    this.downPaymentAmount = '',
+    this.downPaymentPercentage = '',
+    this.numberOfInstallments = '',
+    this.installmentFrequency = 'Monthly',
+    this.installmentAmount = '',
+    this.interestRate = '0',
+    this.installmentDurationMonths = '',
+    this.gracePeriodDays = '',
+    this.installmentTerms = '',
     this.latitude,
     this.longitude,
     this.uploadedImageUrls = const [],
@@ -360,6 +382,16 @@ class ListPropertyState {
     bool? longTermPreferred,
     bool? petsAllowed,
     bool? smokingAllowed,
+    bool? allowInstallments,
+    String? downPaymentAmount,
+    String? downPaymentPercentage,
+    String? numberOfInstallments,
+    String? installmentFrequency,
+    String? installmentAmount,
+    String? interestRate,
+    String? installmentDurationMonths,
+    String? gracePeriodDays,
+    String? installmentTerms,
     double? latitude,
     double? longitude,
     List<String>? uploadedImageUrls,
@@ -444,6 +476,20 @@ class ListPropertyState {
       longTermPreferred: longTermPreferred ?? this.longTermPreferred,
       petsAllowed: petsAllowed ?? this.petsAllowed,
       smokingAllowed: smokingAllowed ?? this.smokingAllowed,
+      allowInstallments: allowInstallments ?? this.allowInstallments,
+      downPaymentAmount: downPaymentAmount ?? this.downPaymentAmount,
+      downPaymentPercentage:
+          downPaymentPercentage ?? this.downPaymentPercentage,
+      numberOfInstallments:
+          numberOfInstallments ?? this.numberOfInstallments,
+      installmentFrequency:
+          installmentFrequency ?? this.installmentFrequency,
+      installmentAmount: installmentAmount ?? this.installmentAmount,
+      interestRate: interestRate ?? this.interestRate,
+      installmentDurationMonths:
+          installmentDurationMonths ?? this.installmentDurationMonths,
+      gracePeriodDays: gracePeriodDays ?? this.gracePeriodDays,
+      installmentTerms: installmentTerms ?? this.installmentTerms,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       uploadedImageUrls: uploadedImageUrls ?? this.uploadedImageUrls,
@@ -462,6 +508,8 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
   ListPropertyNotifier({PropertyRepo? propertyRepo})
     : _propertyRepo = propertyRepo ?? PropertyRepo(),
       super(const ListPropertyState());
+
+  void reset() => state = const ListPropertyState();
 
   void setRole(ListingRole r) => state = state.copyWith(role: r);
 
@@ -636,6 +684,82 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
   void setPetsAllowed(bool v) => state = state.copyWith(petsAllowed: v);
   void setSmokingAllowed(bool v) => state = state.copyWith(smokingAllowed: v);
 
+  // ── Installment / EMI Setters ────────────────────────────────────────
+  void setAllowInstallments(bool v) {
+    state = state.copyWith(allowInstallments: v);
+    if (v) {
+      _recalculateEmi();
+    }
+  }
+
+  void setDownPaymentAmount(String v) {
+    state = state.copyWith(downPaymentAmount: v);
+    final price = _parseInt(state.expectedPrice) ?? 0;
+    final dp = _parseInt(v) ?? 0;
+    if (price > 0 && dp > 0) {
+      final pct = ((dp / price) * 100).round();
+      state = state.copyWith(downPaymentPercentage: pct.toString());
+    }
+    _recalculateEmi();
+  }
+
+  void setDownPaymentPercentage(String v) {
+    state = state.copyWith(downPaymentPercentage: v);
+    final price = _parseInt(state.expectedPrice) ?? 0;
+    final pct = double.tryParse(v) ?? 0;
+    if (price > 0 && pct > 0) {
+      final calculatedAmount = (price * (pct / 100)).round();
+      state = state.copyWith(downPaymentAmount: calculatedAmount.toString());
+    }
+    _recalculateEmi();
+  }
+
+  void setNumberOfInstallments(String v) {
+    state = state.copyWith(
+      numberOfInstallments: v,
+      installmentDurationMonths: v,
+    );
+    _recalculateEmi();
+  }
+
+  void setInstallmentFrequency(String v) {
+    state = state.copyWith(installmentFrequency: v);
+    _recalculateEmi();
+  }
+
+  void setInstallmentAmount(String v) =>
+      state = state.copyWith(installmentAmount: v);
+
+  void setInterestRate(String v) {
+    state = state.copyWith(interestRate: v);
+    _recalculateEmi();
+  }
+
+  void setInstallmentDurationMonths(String v) =>
+      state = state.copyWith(installmentDurationMonths: v);
+
+  void setGracePeriodDays(String v) =>
+      state = state.copyWith(gracePeriodDays: v);
+
+  void setInstallmentTerms(String v) =>
+      state = state.copyWith(installmentTerms: v);
+
+  void _recalculateEmi() {
+    final price = _parseInt(state.expectedPrice) ?? 0;
+    final downPayment = _parseInt(state.downPaymentAmount) ?? 0;
+    final installments = int.tryParse(state.numberOfInstallments) ?? 0;
+    if (price > 0 && installments > 0) {
+      final balance = (price - downPayment).clamp(0, price);
+      final rate = double.tryParse(state.interestRate) ?? 0;
+      int emi = (balance / installments).round();
+      if (rate > 0) {
+        final totalInterest = balance * (rate / 100) * (installments / 12);
+        emi = ((balance + totalInterest) / installments).round();
+      }
+      state = state.copyWith(installmentAmount: emi.toString());
+    }
+  }
+
   // ── Submit to API ────────────────────────────────────────────────────
   Future<bool> submitProperty() async {
     state = state.copyWith(isSubmitting: true, clearSubmitError: true);
@@ -726,6 +850,26 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
       openToAllBuyers: s.openToAllBuyers,
       loanAssistanceNeeded: s.loanAssistanceNeeded,
       listingTier: s.listingType.tierLabel,
+      allowInstallments: s.allowInstallments,
+      installmentDetails: s.allowInstallments
+          ? InstallmentDetailsPayload(
+              downPaymentAmount: _parseInt(s.downPaymentAmount),
+              downPaymentPercentage: _parseInt(s.downPaymentPercentage),
+              numberOfInstallments: _parseInt(s.numberOfInstallments),
+              installmentFrequency: s.installmentFrequency.isNotEmpty
+                  ? s.installmentFrequency
+                  : 'Monthly',
+              installmentAmount: _parseInt(s.installmentAmount),
+              interestRate: _parseInt(s.interestRate) ?? 0,
+              installmentDurationMonths:
+                  _parseInt(s.installmentDurationMonths) ??
+                  _parseInt(s.numberOfInstallments),
+              gracePeriodDays: _parseInt(s.gracePeriodDays),
+              termsAndConditions: s.installmentTerms.trim().isNotEmpty
+                  ? s.installmentTerms.trim()
+                  : null,
+            )
+          : null,
       location: (s.latitude != null && s.longitude != null)
           ? LocationPayload.fromLatLng(
               latitude: s.latitude!,
@@ -742,7 +886,7 @@ class ListPropertyNotifier extends StateNotifier<ListPropertyState> {
 }
 
 final listPropertyProvider =
-    StateNotifierProvider.autoDispose<ListPropertyNotifier, ListPropertyState>(
+    StateNotifierProvider<ListPropertyNotifier, ListPropertyState>(
       (_) => ListPropertyNotifier(),
     );
 

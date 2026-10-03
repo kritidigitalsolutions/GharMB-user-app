@@ -6,6 +6,7 @@ import 'package:gharmb_app/features/auth/models/request/upload_request.dart';
 import 'package:gharmb_app/features/auth/repo/auth_repo.dart';
 import 'package:gharmb_app/features/profile/models/profile_model.dart';
 import 'package:gharmb_app/features/profile/models/update_profile_payload.dart';
+import 'package:gharmb_app/features/profile/models/verification_status_model.dart';
 import 'package:gharmb_app/features/profile/repo/profile_repo.dart';
 
 // ─── Repo Provider ─────────────────────────────────────────────
@@ -19,10 +20,52 @@ final userProfileDataProvider = FutureProvider<UserProfileResponse?>((
   return repo.getUser();
 });
 
+// ─── Dedicated Verification Status API Provider ────────────────
+final verificationStatusProvider = FutureProvider<VerificationStatusData?>((
+  ref,
+) async {
+  final repo = ref.watch(profileRepoProvider);
+  final res = await repo.getVerificationStatus();
+  return res?.data;
+});
+
 // ─── Convenience Provider — just the UserModel ─────────────────
 final userModelProvider = Provider<UserModel?>((ref) {
   final asyncData = ref.watch(userProfileDataProvider);
-  return asyncData.value?.data?.user;
+  final verificationData = ref.watch(verificationStatusProvider).value;
+  final user = asyncData.value?.data?.user ?? verificationData?.user;
+
+  if (user == null && verificationData == null) return null;
+
+  if (verificationData != null) {
+    final isApproved = verificationData.isApproved;
+    final isPending = verificationData.isPending;
+    final role = verificationData.role.isNotEmpty
+        ? verificationData.role
+        : (user?.role ?? '');
+
+    final agentStatus = role.toLowerCase() == 'agent'
+        ? (isApproved
+            ? 'verified'
+            : (isPending ? 'pending' : verificationData.verificationStatus))
+        : user?.agentVerificationStatus;
+
+    final builderStatus =
+        (role.toLowerCase() == 'builder' || role.toLowerCase() == 'developer')
+            ? (isApproved
+                ? 'verified'
+                : (isPending ? 'pending' : verificationData.verificationStatus))
+            : user?.builderVerificationStatus;
+
+    return (user ?? UserModel(role: role)).copyWith(
+      role: role.isNotEmpty ? role : user?.role,
+      isVerified: isApproved ? true : (isPending ? false : user?.isVerified),
+      agentVerificationStatus: agentStatus,
+      builderVerificationStatus: builderStatus,
+    );
+  }
+
+  return user;
 });
 
 // ─── Editable Profile State (only fields present in payload) ───

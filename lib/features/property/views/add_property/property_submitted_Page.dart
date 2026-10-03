@@ -12,48 +12,62 @@ class PropertySubmittedPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final submissionId = ref.watch(submissionIdProvider);
+    final propertyState = ref.watch(listPropertyProvider);
+    final fallbackSubmissionId = ref.watch(submissionIdProvider);
+    final submissionId =
+        (propertyState.submissionId != null &&
+            propertyState.submissionId!.isNotEmpty)
+        ? propertyState.submissionId!
+        : fallbackSubmissionId;
     final currentStep = ref.watch(currentStepProvider);
 
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 24),
-              _SuccessIcon(),
-              const SizedBox(height: 20),
-              Text(
-                'Listing submitted!',
-                style: text20(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Your property is now under admin\nreview. We\'ll notify you at each step.',
-                style: text13(color: AppColors.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'What happens next',
-                  style: text16(fontWeight: FontWeight.w600),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.goNamed(AppPage.myHomeName);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 24),
+                const _SuccessIcon(),
+                const SizedBox(height: 20),
+                Text(
+                  'Listing submitted!',
+                  style: text20(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 20),
-              _StepsList(currentStep: currentStep),
-              const SizedBox(height: 28),
-              _SubmissionIdCard(submissionId: submissionId),
-              const SizedBox(height: 28),
-              _ActionButtons(),
-              const SizedBox(height: 20),
-              _HelpRow(),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  'Your property is now under admin\nreview. We\'ll notify you at each step.',
+                  style: text13(color: AppColors.textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'What happens next',
+                    style: text16(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                _StepsList(currentStep: currentStep),
+                const SizedBox(height: 28),
+                _SubmissionIdCard(submissionId: submissionId),
+                const SizedBox(height: 28),
+                const _ActionButtons(),
+                const SizedBox(height: 20),
+                const _HelpRow(),
+              ],
+            ),
           ),
         ),
       ),
@@ -63,13 +77,15 @@ class PropertySubmittedPage extends ConsumerWidget {
 
 // ─── Success Icon ──────────────────────────────────────────────
 class _SuccessIcon extends StatelessWidget {
+  const _SuccessIcon();
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 80,
       height: 80,
       decoration: BoxDecoration(
-        color: AppColors.success.withOpacity(0.1),
+        color: AppColors.success.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: const Icon(
@@ -93,7 +109,6 @@ class _StepsList extends StatelessWidget {
       subtitle: 'Your listing has been received today',
       activeColor: AppColors.success,
     ),
-
     _StepData(
       icon: Icons.remove_red_eye_outlined,
       title: 'Property Verification',
@@ -149,66 +164,63 @@ class _StepItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = isActive ? data.activeColor : AppColors.grey300;
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon + connector line
-          Column(
-            children: [
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Left column: circle icon + connector line
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(data.icon, color: color, size: 20),
+            ),
+            if (!isLast)
               Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(data.icon, color: color, size: 20),
+                width: 2,
+                height: 28,
+                margin: const EdgeInsets.symmetric(vertical: 2),
+                color: isActive
+                    ? color.withValues(alpha: 0.35)
+                    : AppColors.grey200,
               ),
-              if (!isLast)
-                Expanded(
-                  child: Container(
-                    width: 2,
+          ],
+        ),
+        const SizedBox(width: 14),
+        // Right column: text content
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: isLast ? 0 : 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 6),
+                Text(
+                  data.title,
+                  style: text14(
+                    fontWeight: FontWeight.w600,
+                    color: isActive ? AppColors.textPrimary : AppColors.grey400,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  data.subtitle,
+                  style: text12(
                     color: isActive
-                        ? color.withOpacity(0.25)
-                        : AppColors.grey200,
+                        ? AppColors.textSecondary
+                        : AppColors.grey400,
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          // Text
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: isLast ? 0 : 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 6),
-                  Text(
-                    data.title,
-                    style: text14(
-                      fontWeight: FontWeight.w600,
-                      color: isActive
-                          ? AppColors.textPrimary
-                          : AppColors.grey400,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    data.subtitle,
-                    style: text12(
-                      color: isActive
-                          ? AppColors.textSecondary
-                          : AppColors.grey400,
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -252,43 +264,78 @@ class _SubmissionIdCard extends StatelessWidget {
 }
 
 // ─── Action Buttons ────────────────────────────────────────────
-class _ActionButtons extends StatelessWidget {
+class _ActionButtons extends ConsumerWidget {
+  const _ActionButtons();
+
   @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
       children: [
-        Expanded(
-          child: SizedBox(
-            height: 45,
-            child: OutlinedButton.icon(
-              onPressed: () {
-                context.goNamed(AppPage.myHomeName, extra: 2);
-              },
-              icon: const Icon(Icons.add, color: AppColors.primary, size: 18),
-              label: Text(
-                'Add another',
-                style: text14(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    ref.read(listPropertyProvider.notifier).reset();
+                    context.goNamed(AppPage.myHomeName, extra: 2);
+                  },
+                  icon: const Icon(
+                    Icons.add,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
+                  label: Text(
+                    'Add another',
+                    style: text13(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
                 ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.primary),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
             ),
-          ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: AppButton(
+                title: "My Dashboard",
+                onTap: () {
+                  context.pushNamed(AppPage.dashboardName);
+                },
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: AppButton(
-            title: "My Dashboard",
-            onTap: () {
-              context.pushNamed(AppPage.dashboardName);
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton(
+            onPressed: () {
+              context.goNamed(AppPage.myHomeName);
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: Text(
+              'Back to Home',
+              style: text14(
+                color: AppColors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ),
       ],
@@ -298,6 +345,8 @@ class _ActionButtons extends StatelessWidget {
 
 // ─── Help Row ──────────────────────────────────────────────────
 class _HelpRow extends StatelessWidget {
+  const _HelpRow();
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -310,7 +359,7 @@ class _HelpRow extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Row(
+        const Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _HelpChip(icon: Icons.call_outlined, label: 'Call Admin'),

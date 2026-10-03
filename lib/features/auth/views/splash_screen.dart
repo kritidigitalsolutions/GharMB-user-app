@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
-import 'package:gharmb_app/features/auth/models/response/auth_response_model.dart';
+import 'package:gharmb_app/features/auth/repo/auth_repo.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:go_router/go_router.dart';
 
@@ -16,6 +16,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  final AuthRepo _authRepo = AuthRepo();
+
   @override
   void initState() {
     super.initState();
@@ -23,32 +25,41 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _handleNavigation() async {
-    await Future.delayed(const Duration(seconds: 3));
+    final splashTimer = Future.delayed(const Duration(seconds: 2));
 
-    final String? token = await LocalStorageService.getToken();
-    final AuthUserModel? user = await LocalStorageService.getUser();
+    try {
+      final String? existingToken = await LocalStorageService.getToken();
 
-    if (!mounted) return;
+      if (existingToken == null || existingToken.isEmpty) {
+        await LocalStorageService.clearAuthData();
+        await splashTimer;
+        if (!mounted) return;
+        context.pushReplacementNamed(AppPage.authName);
+        return;
+      }
 
-    final bool isLoggedIn = token != null && token.isNotEmpty;
-    final bool isOnboardingCompleted = user?.isOnboardingCompleted ?? false;
-    if (isLoggedIn && isOnboardingCompleted) {
-      print("token: $token");
-      context.pushReplacementNamed(AppPage.myHomeName);
-    } else if (!isLoggedIn) {
+      // Call refresh token API
+      final response = await _authRepo.refreshToken(token: existingToken);
+      final String? newToken = response.effectiveToken;
+      final user = response.effectiveUser;
+
+      await splashTimer;
+      if (!mounted) return;
+
+      if (newToken != null && newToken.isNotEmpty) {
+        await LocalStorageService.saveRefreshTokenResponse(response);
+        context.pushReplacementNamed(AppPage.myHomeName);
+      } else {
+        await LocalStorageService.clearAuthData();
+        context.pushReplacementNamed(AppPage.authName);
+      }
+    } catch (e) {
+      debugPrint("❌ [SplashScreen] Token refresh failed: $e");
+      await LocalStorageService.clearAuthData();
+      await splashTimer;
+      if (!mounted) return;
       context.pushReplacementNamed(AppPage.authName);
-      print("token: $token");
-      return;
     }
-
-    if (!isOnboardingCompleted) {
-      context.pushReplacementNamed(AppPage.roleSelectionName);
-      print("token: $token");
-      return;
-    }
-
-    context.pushReplacementNamed(AppPage.myHomeName);
-    print("token: $token");
   }
 
   @override

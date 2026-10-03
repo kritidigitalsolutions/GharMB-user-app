@@ -236,7 +236,7 @@ class _CommercialPropertyDetailsPageState
                               setState(() => _activeImageIndex = i),
                           itemBuilder: (_, i) => Image.network(
                             images[i],
-                            fit: BoxFit.cover,
+                            fit: BoxFit.fill,
                             errorBuilder: (_, __, ___) => _DefaultCover(),
                           ),
                         )
@@ -405,6 +405,11 @@ class _CommercialPropertyDetailsPageState
                           ],
                         ),
                       ),
+
+                      // ── Installment / EMI Plan (if allowed) ─────────
+                      if (property.allowInstallments)
+                        _CommercialInstallmentPlanCard(property: property),
+
                       const SizedBox(height: 16),
                       _Divider2(),
 
@@ -1328,3 +1333,308 @@ class _AddReviewBottomSheetState extends ConsumerState<_AddReviewBottomSheet> {
     );
   }
 }
+
+class _CommercialInstallmentPlanCard extends StatelessWidget {
+  final Property property;
+
+  const _CommercialInstallmentPlanCard({required this.property});
+
+  String _formatCurrency(int amount) {
+    if (amount <= 0) return '₹0';
+    if (amount >= 10000000) {
+      final cr = amount / 10000000;
+      return '₹${cr.toStringAsFixed(cr.truncateToDouble() == cr ? 0 : 2)} Cr';
+    } else if (amount >= 100000) {
+      final l = amount / 100000;
+      return '₹${l.toStringAsFixed(l.truncateToDouble() == l ? 0 : 2)} L';
+    } else if (amount >= 1000) {
+      final k = amount / 1000;
+      return '₹${k.toStringAsFixed(k.truncateToDouble() == k ? 0 : 1)} K';
+    }
+    return '₹$amount';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final details = property.installmentDetails;
+
+    // Down payment text
+    String downPaymentText = 'Available';
+    if (details != null && details.downPaymentAmount > 0) {
+      downPaymentText = _formatCurrency(details.downPaymentAmount);
+      if (details.downPaymentPercentage > 0) {
+        downPaymentText += ' (${details.downPaymentPercentage}%)';
+      }
+    } else if (details != null && details.downPaymentPercentage > 0) {
+      downPaymentText = '${details.downPaymentPercentage}%';
+    }
+
+    // Installment / EMI text
+    String emiText = 'Flexible';
+    if (details != null && details.installmentAmount > 0) {
+      final freq = details.installmentFrequency.isNotEmpty
+          ? details.installmentFrequency.toLowerCase().replaceAll('ly', '')
+          : 'mo';
+      emiText = '${_formatCurrency(details.installmentAmount)} / $freq';
+    } else if (details != null && details.numberOfInstallments > 0) {
+      emiText = '${details.numberOfInstallments} Installments';
+    }
+
+    // Tenure / Duration
+    String durationText = 'Custom Plan';
+    if (details != null && details.numberOfInstallments > 0) {
+      final freq = details.installmentFrequency.isNotEmpty
+          ? details.installmentFrequency
+          : 'Monthly';
+      if (details.installmentDurationMonths > 0 &&
+          details.installmentDurationMonths != details.numberOfInstallments) {
+        durationText =
+            '${details.numberOfInstallments} ($freq) · ${details.installmentDurationMonths}M';
+      } else {
+        durationText = '${details.numberOfInstallments} ($freq)';
+      }
+    } else if (details != null && details.installmentDurationMonths > 0) {
+      durationText = '${details.installmentDurationMonths} Months';
+    }
+
+    // Interest rate
+    String interestText = '0% (Interest Free)';
+    if (details != null && details.interestRate > 0) {
+      interestText = '${details.interestRate}% p.a.';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.grey200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.payments_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Installment / EMI Plan',
+                        style: text14(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        'Flexible payment options available for this commercial space',
+                        style: text11(color: AppColors.textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Available',
+                    style: text10(
+                      color: const Color(0xFF2E7D32),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // 2x2 Metric Cards Grid
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              childAspectRatio: 2.3,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              children: [
+                _CommercialInstallmentMetricTile(
+                  title: 'Down Payment',
+                  value: downPaymentText,
+                  icon: Icons.account_balance_wallet_outlined,
+                ),
+                _CommercialInstallmentMetricTile(
+                  title: 'Estimated EMI',
+                  value: emiText,
+                  icon: Icons.credit_card_outlined,
+                ),
+                _CommercialInstallmentMetricTile(
+                  title: 'Tenure & Frequency',
+                  value: durationText,
+                  icon: Icons.calendar_month_outlined,
+                ),
+                _CommercialInstallmentMetricTile(
+                  title: 'Interest Rate',
+                  value: interestText,
+                  icon: Icons.percent_outlined,
+                ),
+              ],
+            ),
+
+            // Grace Period Pill
+            if (details != null && details.gracePeriodDays > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.grey50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.schedule,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Grace Period: ${details.gracePeriodDays} days after due date',
+                      style: text11(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Terms and conditions note
+            if (details != null &&
+                details.termsAndConditions.trim().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.grey50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.grey200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Terms & Conditions',
+                      style: text11(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      details.termsAndConditions.trim(),
+                      style: text12(color: AppColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommercialInstallmentMetricTile extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+
+  const _CommercialInstallmentMetricTile({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.grey50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.grey200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: text10(color: AppColors.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: text12(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/legacy.dart';
 import 'package:gharmb_app/features/property/models/response/near_properties_response.dart';
 import 'package:gharmb_app/features/property/repo/property_repo.dart';
@@ -76,7 +75,9 @@ class VerifiedPropertiesState {
       error: clearError ? null : (error ?? this.error),
       category: clearCategory ? null : (category ?? this.category),
       listingFor: clearListingFor ? null : (listingFor ?? this.listingFor),
-      propertyType: clearPropertyType ? null : (propertyType ?? this.propertyType),
+      propertyType: clearPropertyType
+          ? null
+          : (propertyType ?? this.propertyType),
       city: clearCity ? null : (city ?? this.city),
       locality: clearLocality ? null : (locality ?? this.locality),
       minPrice: clearPrice ? null : (minPrice ?? this.minPrice),
@@ -88,7 +89,8 @@ class VerifiedPropertiesState {
 
 // ─── Notifier ─────────────────────────────────────────────────────────────────
 
-class VerifiedPropertiesNotifier extends StateNotifier<VerifiedPropertiesState> {
+class VerifiedPropertiesNotifier
+    extends StateNotifier<VerifiedPropertiesState> {
   final PropertyRepo _repo = PropertyRepo();
 
   VerifiedPropertiesNotifier() : super(const VerifiedPropertiesState()) {
@@ -128,7 +130,9 @@ class VerifiedPropertiesNotifier extends StateNotifier<VerifiedPropertiesState> 
       final newItems = res?.data.properties ?? [];
       final total = res?.totalCount ?? res?.results ?? newItems.length;
 
-      final updatedList = refresh ? newItems : [...state.properties, ...newItems];
+      final updatedList = refresh
+          ? newItems
+          : [...state.properties, ...newItems];
       final hasMore = newItems.isNotEmpty && updatedList.length < total;
 
       state = state.copyWith(
@@ -190,10 +194,7 @@ class VerifiedPropertiesNotifier extends StateNotifier<VerifiedPropertiesState> 
   }
 
   void setCity(String? city) {
-    state = state.copyWith(
-      city: city,
-      clearCity: city == null || city.isEmpty,
-    );
+    state = state.copyWith(city: city, clearCity: city == null || city.isEmpty);
     fetchProperties(refresh: true);
   }
 
@@ -224,5 +225,5 @@ class VerifiedPropertiesNotifier extends StateNotifier<VerifiedPropertiesState> 
 
 final verifiedPropertiesProvider =
     StateNotifierProvider<VerifiedPropertiesNotifier, VerifiedPropertiesState>(
-  (ref) => VerifiedPropertiesNotifier(),
-);
+      (ref) => VerifiedPropertiesNotifier(),
+    );

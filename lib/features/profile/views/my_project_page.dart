@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/developer/providers/register_provider.dart';
 import 'package:gharmb_app/features/profile/models/dashboard_model.dart';
+import 'package:gharmb_app/features/profile/models/profile_model.dart';
 import 'package:gharmb_app/features/profile/provider/dashboard_provider.dart';
-import 'package:gharmb_app/features/profile/provider/profile_provider.dart';
+import 'package:gharmb_app/features/profile/provider/profile_provider.dart'
+    hide profileProvider;
 import 'package:gharmb_app/routes/app_page.dart';
-import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:gharmb_app/shared/widget/custom_shimmer.dart';
 import 'package:go_router/go_router.dart';
 
@@ -55,8 +57,13 @@ class _MyProjectPageState extends ConsumerState<MyProjectPage> {
         onRefresh: () async {
           ref.invalidate(dashboardDataProvider);
           ref.invalidate(userProfileDataProvider);
+          ref.invalidate(verificationStatusProvider);
           try {
-            await ref.read(dashboardDataProvider.future);
+            await Future.wait([
+              ref.read(dashboardDataProvider.future),
+              ref.read(userProfileDataProvider.future),
+              ref.read(verificationStatusProvider.future),
+            ]);
           } catch (_) {}
         },
         child: dashboardAsync.when(
@@ -152,8 +159,7 @@ class _MyProjectPageState extends ConsumerState<MyProjectPage> {
                     ),
                     const Spacer(),
                     TextButton.icon(
-                      onPressed: () =>
-                          context.pushNamed(AppPage.basicDetailsName),
+                      onPressed: () => _handleAddNewProject(context, user),
                       icon: const Icon(
                         Icons.add_circle_outline,
                         size: 18,
@@ -217,8 +223,7 @@ class _MyProjectPageState extends ConsumerState<MyProjectPage> {
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton.icon(
-                          onPressed: () =>
-                              context.pushNamed(AppPage.basicDetailsName),
+                          onPressed: () => _handleAddNewProject(context, user),
                           icon: const Icon(
                             Icons.add,
                             size: 16,
@@ -851,4 +856,159 @@ class _Badge extends StatelessWidget {
       ),
     );
   }
+}
+
+void _handleAddNewProject(BuildContext context, UserModel? user) {
+  if (user?.isBuilderUnderReview == true) {
+    _showProjectUnderReviewModal(
+      context,
+      role: 'Developer / Builder',
+      message:
+          'Aapke Developer documents review ke under hain. Admin verification approve hone ke baad hi aap projects list kar sakte hain.',
+    );
+    return;
+  }
+  if (user?.isAgentUnderReview == true) {
+    _showProjectUnderReviewModal(
+      context,
+      role: 'Agent / Broker',
+      message:
+          'Aapke Agent documents review ke under hain. Admin verification approve hone ke baad hi aap properties list kar sakte hain.',
+    );
+    return;
+  }
+  if (user?.isBuilderVerified != true && user?.isAgentVerified != true) {
+    context.pushNamed(
+      AppPage.devRegisterStep1Name,
+      extra: RegistrationType.developer,
+    );
+    return;
+  }
+  context.pushNamed(AppPage.basicDetailsName);
+}
+
+void _showProjectUnderReviewModal(
+  BuildContext context, {
+  required String role,
+  required String message,
+}) {
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (modalCtx) => Container(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.grey300,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.warning.withOpacity(0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.hourglass_top_rounded,
+              color: AppColors.warning,
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '$role Verification Under Review',
+            style: text18(
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.warning.withOpacity(0.4)),
+            ),
+            child: Text(
+              'Status: Under Review (24-48 hrs)',
+              style: text12(
+                color: const Color(0xFFE65100),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            message,
+            style: text13(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(modalCtx).pop(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: const BorderSide(color: AppColors.grey300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'Close',
+                    style: text13(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(modalCtx).pop();
+                    context.pushNamed(AppPage.myHomeName, extra: 4);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'View Profile',
+                    style: text13(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 }

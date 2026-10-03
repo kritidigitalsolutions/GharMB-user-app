@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GharMB User App - Complete Project & User Flow Documentation</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+  @page {
+    size: A4;
+    margin: 16mm 14mm 16mm 14mm;
+    @bottom-right {
+      content: "Page " counter(page);
+      font-size: 9pt;
+      color: #718096;
+    }
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1A202C;
+    background-color: #FFFFFF;
+    line-height: 1.55;
+    font-size: 10.5pt;
+  }
+
+  .page-break {
+    page-break-before: always;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* Cover Page */
+  .cover {
+    min-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 30px 20px 20px 20px;
+    background: linear-gradient(145deg, #0F172A 0%, #1E293B 60%, #0369A1 100%);
+    color: #FFFFFF;
+    border-radius: 16px;
+  }
+
+  .cover-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .cover-title {
+    margin-top: 40px;
+  }
+
+  .cover-title h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 32pt;
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 12px;
+    background: linear-gradient(to right, #FFFFFF, #38BDF8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .cover-title p {
+    font-size: 14pt;
+    color: #94A3B8;
+    max-width: 90%;
+    line-height: 1.4;
+  }
+
+  .cover-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin: 30px 0;
+  }
+
+  .feature-pill {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 12px 16px;
+    border-radius: 10px;
+  }
+
+  .feature-pill h4 {
+    font-size: 11pt;
+    color: #38BDF8;
+    margin-bottom: 4px;
+  }
+
+  .feature-pill p {
+    font-size: 9pt;
+    color: #CBD5E1;
+  }
+
+  .cover-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    padding-top: 15px;
+    font-size: 9pt;
+    color: #94A3B8;
+  }
+
+  /* General Typography */
+  h2 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 18pt;
+    color: #0F172A;
+    margin-top: 18px;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #E2E8F0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  h3 {
+    font-size: 13pt;
+    color: #0369A1;
+    margin-top: 14px;
+    margin-bottom: 8px;
+  }
+
+  h4 {
+    font-size: 11pt;
+    color: #1E293B;
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+
+  p {
+    margin-bottom: 8px;
+    color: #334155;
+  }
+
+  /* User Flow Cards */
+  .user-card {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-left: 5px solid #0284C7;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+
+  .user-card.seller {
+    border-left-color: #10B981;
+  }
+
+  .user-card.agent {
+    border-left-color: #F59E0B;
+  }
+
+  .user-card.developer {
+    border-left-color: #8B5CF6;
+  }
+
+  .user-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .user-card-header h3 {
+    margin: 0;
+    font-size: 13pt;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .tag-buyer { background: #E0F2FE; color: #0369A1; }
+  .tag-seller { background: #D1FAE5; color: #065F46; }
+  .tag-agent { background: #FEF3C7; color: #92400E; }
+  .tag-developer { background: #EDE9FE; color: #5B21B6; }
+
+  /* Flow Steps */
+  .step-list {
+    list-style: none;
+    margin: 8px 0;
+  }
+
+  .step-item {
+    position: relative;
+    padding-left: 28px;
+    margin-bottom: 8px;
+    font-size: 9.5pt;
+  }
+
+  .step-number {
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 20px;
+    height: 20px;
+    background: #0284C7;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8pt;
+    font-weight: 700;
+  }
+
+  .step-item.seller .step-number { background: #10B981; }
+  .step-item.agent .step-number { background: #F59E0B; }
+  .step-item.developer .step-number { background: #8B5CF6; }
+
+  /* Data Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px 0;
+    font-size: 9pt;
+  }
+
+  th, td {
+    padding: 8px 10px;
+    border: 1px solid #E2E8F0;
+    text-align: left;
+  }
+
+  th {
+    background-color: #F1F5F9;
+    color: #1E293B;
+    font-weight: 700;
+  }
+
+  tr:nth-child(even) {
+    background-color: #F8FAFC;
+  }
+
+  /* Info Boxes */
+  .info-box {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin: 10px 0;
+    font-size: 9pt;
+  }
+
+  .info-box-title {
+    font-weight: 700;
+    color: #1E40AF;
+    margin-bottom: 3px;
+  }
+
+  .diagram-box {
+    background: #0F172A;
+    color: #F8FAFC;
+    padding: 14px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 8.5pt;
+    line-height: 1.45;
+    margin: 12px 0;
+  }
+
+  .diagram-arrow {
+    color: #38BDF8;
+    font-weight: bold;
+  }
+
+  .badge-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 10px 0;
+  }
+
+  .badge-card {
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+    background: #FAFAFA;
+  }
+
+  .badge-card strong {
+    display: block;
+    font-size: 9pt;
+    color: #0F172A;
+  }
+
+  .badge-card span {
+    font-size: 7.5pt;
+    color: #64748B;
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= COVER PAGE ================= -->
+<div class="cover">
+  <div class="cover-header">
+    <span class="badge">GharMB Mobile Application</span>
+    <span style="font-size: 9pt; color: #94A3B8;">Version 1.0.0 • Production Guide</span>
+  </div>
+
+  <div class="cover-title">
+    <h1>GharMB User App</h1>
+    <p>Complete Project Workflow, Architecture, Data Journey & Multi-User Flow Documentation</p>
+  </div>
+
+  <div class="cover-features">
+    <div class="feature-pill">
+      <h4>👥 4 Complete User Personas</h4>
+      <p>Clear step-by-step flows for Buyers, Sellers, Agents, and Developers.</p>
+    </div>
+    <div class="feature-pill">
+      <h4>🔄 Full Data Lifecycle</h4>
+      <p>Where information starts, where it is verified, and where it appears.</p>
+    </div>
+    <div class="feature-pill">
+      <h4>🪙 Token & Visit System</h4>
+      <p>Smart visit booking and token reservations for real estate transactions.</p>
+    </div>
+    <div class="feature-pill">
+      <h4>📱 Clean Flutter & Riverpod</h4>
+      <p>Production architecture guide built for developers and non-developers.</p>
+    </div>
+  </div>
+
+  <div class="cover-footer">
+    <div>
+      <strong>Target Region:</strong> Mira-Bhayandar & Mumbai Suburbs<br>
+      <strong>Language:</strong> Simple English for Developers & Stakeholders
+    </div>
+    <div style="text-align: right;">
+      <strong>Tech Stack:</strong> Flutter • Riverpod • Dio • REST API<br>
+      <strong>Date:</strong> October 2026
+    </div>
+  </div>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ================= SECTION 1: WHAT IS GHARMB ================= -->
+<h2>1. 🌟 What is the GharMB Mobile App?</h2>
+<p>
+  <strong>GharMB</strong> is a dedicated real estate mobile platform designed specifically for the <strong>Mira-Bhayandar</strong> region. It solves the everyday challenges of finding, renting, buying, and selling residential and commercial properties by providing <strong>100% verified listings</strong>, direct developer connections, token bookings, and automated site visit scheduling.
+</p>
+
+<div class="badge-grid avoid-break">
+  <div class="badge-card">
+    <strong>🏠 Residential</strong>
+    <span>1BHK, 2BHK, 3BHK, Villas, PGs</span>
+  </div>
+  <div class="badge-card">
+    <strong>🏢 Commercial</strong>
+    <span>Offices, Shops, Warehouses</span>
+  </div>
+  <div class="badge-card">
+    <strong>🏗️ Builder Projects</strong>
+    <span>Upcoming towers, Floor plans</span>
+  </div>
+  <div class="badge-card">
+    <strong>⚡ Quick Services</strong>
+    <span>Home Loans, Packers, Legal</span>
+  </div>
+</div>
+
+<div class="info-box avoid-break">
+  <div class="info-box-title">💡 Why is this app special?</div>
+  Unlike traditional broker-heavy apps, GharMB ensures that every property listed is <strong>verified</strong>, provides an integrated <strong>token booking engine</strong> to prevent fake reservations, and enables <strong>real-time site visit management</strong> between buyers and sellers.
+</div>
+
+<!-- ================= SECTION 2: 4 TYPES OF USERS ================= -->
+<h2>2. 👥 The 4 Types of Users (Personas)</h2>
+<p>The app adapts seamlessly depending on who is using it:</p>
+
+<div class="user-card avoid-break">
+  <div class="user-card-header">
+    <h3>1. Buyer / Tenant (Looking for Property)</h3>
+    <span class="tag tag-buyer">Buyer / Tenant</span>
+  </div>
+  <p><strong>Goal:</strong> Find a verified flat, shop, or office to rent or buy, schedule physical visits, and reserve the property using a token.</p>
+</div>
+
+<div class="user-card seller avoid-break">
+  <div class="user-card-header">
+    <h3>2. Property Owner / Seller (Listing Personal Property)</h3>
+    <span class="tag tag-seller">Property Owner</span>
+  </div>
+  <p><strong>Goal:</strong> Post a personal flat or commercial space for sale/rent in 6 easy steps, review buyer visit requests, and approve token booking offers.</p>
+</div>
+
+<div class="user-card agent avoid-break">
+  <div class="user-card-header">
+    <h3>3. Real Estate Agent / Channel Partner</h3>
+    <span class="tag tag-agent">Real Estate Agent</span>
+  </div>
+  <p><strong>Goal:</strong> Register with RERA/Agency credentials, post multiple client properties, manage bulk inquiries, and coordinate site visits.</p>
+</div>
+
+<div class="user-card developer avoid-break">
+  <div class="user-card-header">
+    <h3>4. Builder / Developer (Creating Mega Projects)</h3>
+    <span class="tag tag-developer">Builder / Developer</span>
+  </div>
+  <p><strong>Goal:</strong> Register company profile, showcase new construction projects with tower unit configurations, master plans, amenities, and collect direct buyer inquiries.</p>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ================= SECTION 3: STEP-BY-STEP USER FLOWS ================= -->
+<h2>3. 🗺️ Detailed Step-by-Step User Flows</h2>
+
+<div class="user-card avoid-break">
+  <div class="user-card-header">
+    <h3 style="color:#0369A1;">User Flow A: Buyer / Tenant Journey</h3>
+    <span class="tag tag-buyer">Flow: Buyer</span>
+  </div>
+  <ul class="step-list">
+    <li class="step-item">
+      <div class="step-number">1</div>
+      <strong>Open App & Quick Login:</strong> Enter phone number, receive instant OTP, and reach the Home Feed.
+    </li>
+    <li class="step-item">
+      <div class="step-number">2</div>
+      <strong>Discover Properties:</strong> Browse the home feed, search by locality (e.g. Beverly Park, Silver Park), or tap <em>"Search on Map"</em> to find homes around GPS radius.
+    </li>
+    <li class="step-item">
+      <div class="step-number">3</div>
+      <strong>Filter & Shortlist:</strong> Filter by Rent/Buy, Price range, Carpet Area, BHK count. Tap the <em>Heart Icon</em> to save to Wishlist.
+    </li>
+    <li class="step-item">
+      <div class="step-number">4</div>
+      <strong>View Full Details:</strong> Inspect high-res photo gallery, carpet area, maintenance fee, amenities list, and seller verification badge.
+    </li>
+    <li class="step-item">
+      <div class="step-number">5</div>
+      <strong>Schedule a Site Visit:</strong> Choose a preferred date and morning/evening time slot. The owner receives an instant notification.
+    </li>
+    <li class="step-item">
+      <div class="step-number">6</div>
+      <strong>Book with Token:</strong> Reserve the property by placing a token request to lock the property before others buy it.
+    </li>
+  </ul>
+</div>
+
+<div class="user-card seller avoid-break">
+  <div class="user-card-header">
+    <h3 style="color:#065F46;">User Flow B: Property Owner / Seller Journey</h3>
+    <span class="tag tag-seller">Flow: Seller</span>
+  </div>
+  <ul class="step-list">
+    <li class="step-item seller">
+      <div class="step-number">1</div>
+      <strong>Tap "+ List Property":</strong> Tap the central "+" button on the bottom navigation bar.
+    </li>
+    <li class="step-item seller">
+      <div class="step-number">2</div>
+      <strong>Step 1 - Listing Type:</strong> Select Residential (Rent/Sell/PG) or Commercial (Office/Shop).
+    </li>
+    <li class="step-item seller">
+      <div class="step-number">3</div>
+      <strong>Step 2 - Basic Details:</strong> Enter building name, locality, address, and city.
+    </li>
+    <li class="step-item seller">
+      <div class="step-number">4</div>
+      <strong>Step 3 - Specs & Amenities:</strong> Set BHK, Carpet Area (Sq.Ft), Floor No, Parking, Lift, Gym, Gas Pipeline.
+    </li>
+    <li class="step-item seller">
+      <div class="step-number">5</div>
+      <strong>Step 4 - Photos & Media:</strong> Upload clear room photos and property video.
+    </li>
+    <li class="step-item seller">
+      <div class="step-number">6</div>
+      <strong>Step 5 - Pricing & Review:</strong> Set expected rent/price, deposit amount, and submit for verification.
+    </li>
+    <li class="step-item seller">
+      <div class="step-number">7</div>
+      <strong>Manage Visits & Tokens:</strong> In <em>My Dashboard</em>, view incoming site visits (Accept/Reject) and token offers.
+    </li>
+  </ul>
+</div>
+
+<div class="user-card agent avoid-break">
+  <div class="user-card-header">
+    <h3 style="color:#92400E;">User Flow C: Real Estate Agent Journey</h3>
+    <span class="tag tag-agent">Flow: Agent</span>
+  </div>
+  <ul class="step-list">
+    <li class="step-item agent">
+      <div class="step-number">1</div>
+      <strong>Register as Agent:</strong> Complete agent onboarding with RERA registration number and agency name.
+    </li>
+    <li class="step-item agent">
+      <div class="step-number">2</div>
+      <strong>Manage Multi-Inventory:</strong> Post and manage multiple client flats and commercial spaces under one unified profile.
+    </li>
+    <li class="step-item agent">
+      <div class="step-number">3</div>
+      <strong>Respond to Inquiries:</strong> Handle direct calls and WhatsApp leads from verified buyers.
+    </li>
+  </ul>
+</div>
+
+<div class="user-card developer avoid-break">
+  <div class="user-card-header">
+    <h3 style="color:#5B21B6;">User Flow D: Builder & Developer Journey</h3>
+    <span class="tag tag-developer">Flow: Developer</span>
+  </div>
+  <ul class="step-list">
+    <li class="step-item developer">
+      <div class="step-number">1</div>
+      <strong>Developer Onboarding:</strong> Register company details, past experience, and corporate office address.
+    </li>
+    <li class="step-item developer">
+      <div class="step-number">2</div>
+      <strong>Add Mega Project:</strong> Create project listing with master plans, tower configurations (1/2/3 BHK), launch dates, and RERA approval numbers.
+    </li>
+    <li class="step-item developer">
+      <div class="step-number">3</div>
+      <strong>Direct Lead Generation & Reviews:</strong> Receive buyer inquiries directly and build public trust through customer reviews and ratings.
+    </li>
+  </ul>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ================= SECTION 4: DATA JOURNEY ================= -->
+<h2>4. 🔄 The Data Journey: Where Info Comes, Verifies & Shows</h2>
+
+<div class="diagram-box avoid-break">
+  <strong>[1. SOURCE / INPUT]</strong> 👤 User types info / picks photos / GPS location<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼<br>
+  <strong>[2. STATE LAYER]</strong> 📦 Riverpod Notifier validates inputs & sets Loading state<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼<br>
+  <strong>[3. REPOSITORY]</strong> 🔌 Repo bundles JSON / Multipart and adds JWT Bearer Token<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼<br>
+  <strong>[4. BACKEND API]</strong> 🛡️ Server checks token, verifies database schema & saves<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;▼<br>
+  <strong>[5. DISPLAY / UI]</strong> 📱 Screen auto-refreshes with newly updated data & success toast
+</div>
+
+<table class="avoid-break">
+  <thead>
+    <tr>
+      <th>Feature / Action</th>
+      <th>Where Info Comes From</th>
+      <th>Where Info is Verified</th>
+      <th>Where Info is Shown</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>User Login / OTP</strong></td>
+      <td>User types mobile number in Login screen</td>
+      <td>Backend OTP verification service + JWT generation</td>
+      <td>Saved in SharedPreferences; user enters Home Screen</td>
+    </tr>
+    <tr>
+      <td><strong>Property Listing</strong></td>
+      <td>Owner inputs specs, pricing, and uploads photos</td>
+      <td>PropertyAddNotifier frontend check + Backend schema verification</td>
+      <td>Shows on Home Feed, Search Results, & Owner Dashboard</td>
+    </tr>
+    <tr>
+      <td><strong>Site Visit Booking</strong></td>
+      <td>Buyer selects preferred date and time slot</td>
+      <td>Backend validates availability & creates visit record</td>
+      <td>Shows in Buyer's "My Visits" & Owner's "Received Requests"</td>
+    </tr>
+    <tr>
+      <td><strong>Token Booking</strong></td>
+      <td>Buyer submits token booking commitment</td>
+      <td>Backend marks property status as Reserved</td>
+      <td>Shows in Owner's Decision Page to Accept/Reject</td>
+    </tr>
+    <tr>
+      <td><strong>Commercial Spaces</strong></td>
+      <td>Commercial owners enter office/shop dimensions</td>
+      <td>Backend classifies commercial space category</td>
+      <td>Commercial Space Discovery feed & filter drawer</td>
+    </tr>
+    <tr>
+      <td><strong>Developer Review</strong></td>
+      <td>Buyer writes review and star rating</td>
+      <td>Backend checks user authentication</td>
+      <td>Developer Detail Page under Customer Reviews tab</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ================= SECTION 5: APP MODULES ================= -->
+<h2>5. 🧩 Key Modules & Features Overview</h2>
+
+<div class="user-card avoid-break">
+  <div class="user-card-header">
+    <h3>🪙 1. Token Reservation Engine</h3>
+    <span class="tag tag-buyer">High Security</span>
+  </div>
+  <p>Enables serious buyers to lock a property with a token. When a token is requested, the property moves into <em>Reserved</em> status, preventing conflicting bookings. The owner can inspect the buyer's profile and either <strong>Accept</strong> or <strong>Reject</strong> the token.</p>
+</div>
+
+<div class="user-card seller avoid-break">
+  <div class="user-card-header">
+    <h3>📅 2. Real-Time Site Visit Management</h3>
+    <span class="tag tag-seller">Zero Friction</span>
+  </div>
+  <p>Replaces chaotic phone calls with a structured appointment system. Buyers select a calendar day and time window. Owners receive push notifications and can approve or suggest alternate timings.</p>
+</div>
+
+<div class="user-card developer avoid-break">
+  <div class="user-card-header">
+    <h3>🛠️ 3. Financial & Area Calculation Tools</h3>
+    <span class="tag tag-developer">Utility Tools</span>
+  </div>
+  <p><strong>Loan Calculator:</strong> Interactive sliders to calculate monthly EMI based on loan amount, interest rate, and tenure.<br>
+  <strong>Unit Converter:</strong> Instant conversion between Square Feet, Square Meters, Guntha, Gaj, Acres, and Hectares.</p>
+</div>
+
+<div class="page-break"></div>
+
+<!-- ================= SECTION 6: DEVELOPER ARCHITECTURE ================= -->
+<h2>6. 💻 Technical Blueprint for Developers</h2>
+
+<h3>A. Folder Architecture</h3>
+<p>The app follows a <strong>Feature-First Architecture</strong>. Everything related to a feature lives in its own folder:</p>
+
+<div class="diagram-box avoid-break">
+lib/<br>
+├── <strong>core/</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- App-wide URLs, Dio NetworkApiService, LocalStorage, Themes<br>
+├── <strong>features/</strong><br>
+│&nbsp;&nbsp;&nbsp;├── <strong>auth/</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- Login, OTP, Onboarding, Role selection<br>
+│&nbsp;&nbsp;&nbsp;├── <strong>property/</strong> &nbsp;&nbsp;&nbsp;&nbsp;-- Residential listings, Property details, 6-step Add Property form<br>
+│&nbsp;&nbsp;&nbsp;├── <strong>commercial/</strong> &nbsp;&nbsp;-- Office & shop listings, Commercial filters & details<br>
+│&nbsp;&nbsp;&nbsp;├── <strong>developer/</strong> &nbsp;&nbsp;&nbsp;-- Builder project creation, Developer profiles & reviews<br>
+│&nbsp;&nbsp;&nbsp;├── <strong>profile/</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- User dashboard, Site visits, Token requests, Calculators<br>
+│&nbsp;&nbsp;&nbsp;└── <strong>home/</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- Banners, Map search, Notifications, Wishlist<br>
+├── <strong>routes/</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- GoRouter configuration & route name constants<br>
+└── <strong>shared/</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-- Reusable Buttons, TextFields, Snackbars, BottomNavBar
+</div>
+
+<h3>B. State Management with Riverpod</h3>
+<p>State is cleanly separated from UI widgets using <strong>Riverpod StateNotifiers</strong>:</p>
+<ul class="step-list avoid-break">
+  <li class="step-item">
+    <div class="step-number">1</div>
+    <strong>Immutable State:</strong> Every provider has a dedicated state class (e.g. holding <code>isLoading</code>, <code>errorMessage</code>, and <code>dataList</code>).
+  </li>
+  <li class="step-item">
+    <div class="step-number">2</div>
+    <strong>Zero Business Logic in UI:</strong> UI widgets only call provider methods like <code>ref.read(provider.notifier).submitForm()</code> and listen with <code>ref.watch(...)</code>.
+  </li>
+</ul>
+
+<h3>C. Session & Auto Token Refresh</h3>
+<p>When the app opens, <code>SplashScreen</code> reads the saved token from <code>LocalStorageService</code>. If expired, it calls <code>POST /user/auth/refresh-token</code>. If valid, the user goes straight to <code>MyHomePage</code> without having to log in again!</p>
+
+<div class="info-box avoid-break">
+  <div class="info-box-title">🚀 How to add a new screen in 5 minutes:</div>
+  1. Create model in <code>features/[name]/models/</code><br>
+  2. Add API endpoint in <code>core/constants/app_urls.dart</code><br>
+  3. Create repo & provider in <code>features/[name]/</code><br>
+  4. Create UI screen using <code>ConsumerWidget</code><br>
+  5. Register the route in <code>routes/app_routes.dart</code>
+</div>
+
+<hr style="margin: 20px 0; border: 0; border-top: 1px solid #E2E8F0;">
+<div style="text-align: center; font-size: 8.5pt; color: #94A3B8;">
+  <strong>GharMB User Application</strong> • Complete Technical & Operational Architecture • End of Document
+</div>
+
+</body>
+</html>

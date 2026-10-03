@@ -1,18 +1,230 @@
 import 'dart:math' as math;
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/project/provider/project_provider.dart';
+import 'package:gharmb_app/features/property/models/response/near_properties_response.dart';
+import 'package:gharmb_app/features/property/widget/schedule_visit_bottom_sheet.dart';
+import 'package:gharmb_app/features/wishlist/providers/wishlist_provider.dart';
+import 'package:gharmb_app/routes/app_page.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gharmb_app/core/constants/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class ProjectDetailPage extends ConsumerWidget {
+class ProjectDetailPage extends ConsumerStatefulWidget {
   const ProjectDetailPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProjectDetailPage> createState() => _ProjectDetailPageState();
+}
+
+class _ProjectDetailPageState extends ConsumerState<ProjectDetailPage> {
+  int _currentImageIndex = 0;
+
+  IconData _getAmenityIcon(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('pool') || lower.contains('swim')) return Icons.pool;
+    if (lower.contains('gym') || lower.contains('fit')) {
+      return Icons.fitness_center;
+    }
+    if (lower.contains('club')) return Icons.sports_tennis_outlined;
+    if (lower.contains('play') || lower.contains('kid')) {
+      return Icons.child_friendly;
+    }
+    if (lower.contains('security') ||
+        lower.contains('guard') ||
+        lower.contains('cctv')) {
+      return Icons.security;
+    }
+    if (lower.contains('park') || lower.contains('garden')) {
+      return Icons.park_outlined;
+    }
+    if (lower.contains('power') ||
+        lower.contains('backup') ||
+        lower.contains('generator')) {
+      return Icons.bolt;
+    }
+    if (lower.contains('lift') || lower.contains('elevator')) {
+      return Icons.elevator;
+    }
+    if (lower.contains('wifi') || lower.contains('internet')) return Icons.wifi;
+    if (lower.contains('water')) return Icons.water_drop_outlined;
+    if (lower.contains('car') || lower.contains('parking')) {
+      return Icons.directions_car_outlined;
+    }
+    return Icons.verified_outlined;
+  }
+
+  String _formatAmenityName(String name) {
+    final lower = name.toLowerCase().trim();
+    if (lower == 'powerbackup' || lower == 'power_backup') return 'Power Backup';
+    if (lower == 'cctv' || lower == 'cctvcamera') return 'CCTV Security';
+    if (lower == 'swimmingpool') return 'Swimming Pool';
+    if (lower == 'clubhouse') return 'Clubhouse';
+    if (lower == 'kidsplayarea' || lower == 'playarea') return 'Kids Play Area';
+    return name;
+  }
+
+  String _formatFurnishing(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return 'Unfurnished';
+    final lower = raw.toLowerCase().trim();
+    if (lower == 'semifurnished' ||
+        lower == 'semi-furnished' ||
+        lower == 'semi furnished') {
+      return 'Semi-Furnished';
+    }
+    if (lower == 'unfurnished' ||
+        lower == 'un-furnished' ||
+        lower == 'un furnished') {
+      return 'Unfurnished';
+    }
+    if (lower == 'fullyfurnished' ||
+        lower == 'fully-furnished' ||
+        lower == 'furnished') {
+      return 'Fully Furnished';
+    }
+    return raw;
+  }
+
+  String _formatPossession(String raw) {
+    final lower = raw.toLowerCase().trim();
+    if (lower == 'fifteenplus' || lower == 'fifteen_plus') {
+      return '15+ Days';
+    }
+    if (lower == 'immediate') {
+      return 'Immediate';
+    }
+    if (lower == 'readytomove' || lower == 'ready to move') {
+      return 'Ready to Move';
+    }
+    return raw;
+  }
+
+  String _formatFacing(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return '';
+    if (raw.contains(',')) return 'Multiple';
+    return raw;
+  }
+
+  Property _getOrCreateProperty(ProjectModel project) {
+    if (project.property != null) return project.property!;
+    return Property(
+      location: Location(type: 'Point', coordinates: [0.0, 0.0]),
+      id: project.id,
+      mongoId: project.id,
+      listingAs: project.developer,
+      category: 'residential',
+      listingFor: 'Buy',
+      propertyType: 'Apartment',
+      title: project.name,
+      city: project.distance,
+      locality: project.location,
+      fullAddress: project.fullAddress ?? project.location,
+      pincode: '',
+      description: project.description ?? '',
+      bedrooms: project.bhkTypes,
+      bathrooms: project.bathrooms ?? '1',
+      carpetArea: project.carpetArea ?? 0,
+      builtUpArea: project.builtUpArea ?? 0,
+      floorNo: project.floorNo ?? '1',
+      totalFloors: project.totalFloors ?? '1',
+      ageOfProperty: '',
+      furnishing: project.furnishing ?? '',
+      facingDirection: project.facing ?? '',
+      parking: project.parking ?? '1',
+      amenities: project.amenities,
+      preferredTenants: const [],
+      petsAllowed: false,
+      smokingAllowed: false,
+      brokerageFree: true,
+      rentNegotiable: false,
+      images: project.images,
+      price: project.price ?? 0,
+      securityDeposit: 0,
+      maintenanceCharges: 0,
+      maintenanceIncludedInRent: false,
+      brokerageFee: 0,
+      otherCharges: 0,
+      vastuCompliant: false,
+      keyHandover: false,
+      isVerified: project.isVerified || project.reraApproved,
+      openToAllBuyers: true,
+      loanAssistanceNeeded: false,
+      listingTier: '',
+      allowInstallments: project.allowInstallments,
+      installmentDetails: project.installmentDetails,
+      owner: Owner(
+        id: project.ownerId ?? '',
+        name: project.developer,
+        phone: project.ownerPhone ?? '',
+        profilePicture: '',
+        isVerified: project.isVerified || project.reraApproved,
+      ),
+      approvalStatus: 'approved',
+      isLive: true,
+      viewsCount: project.interested,
+      shortlistedCount: project.interested,
+      inquiriesCount: 0,
+      tokensCount: 0,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
+      submissionId: '',
+      version: 1,
+    );
+  }
+
+  Future<void> _makeCall(String? phone) async {
+    if (phone == null || phone.trim().isEmpty) {
+      AppSnackBar.showError(context, message: "Contact number not available");
+      return;
+    }
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final uri = Uri.parse("tel:$cleanPhone");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      if (mounted) {
+        AppSnackBar.showError(context, message: "Could not launch dialer");
+      }
+    }
+  }
+
+  Future<void> _openWhatsApp(String? phone, String propTitle) async {
+    if (phone == null || phone.trim().isEmpty) {
+      AppSnackBar.showError(context, message: "WhatsApp number not available");
+      return;
+    }
+    final cleanPhone = phone.replaceAll(RegExp(r'\D'), '');
+    final msg = Uri.encodeComponent(
+      "Hello, I am interested in exploring '$propTitle' on GharMB.",
+    );
+    final uri = Uri.parse("https://wa.me/$cleanPhone?text=$msg");
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        AppSnackBar.showError(context, message: "Could not open WhatsApp");
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final project = ref.watch(selectedProjectProvider) ?? _defaultProject;
+    final wishlistState = ref.watch(wishlistProvider);
+    final isWishlisted = wishlistState.items.any(
+      (item) =>
+          item.id == project.id ||
+          (item.property != null && item.property!.id == project.id),
+    );
+
+    final List<String> images = project.images.isNotEmpty
+        ? project.images
+        : (project.imageUrl != null && project.imageUrl!.isNotEmpty
+              ? [project.imageUrl!]
+              : <String>[]);
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -22,7 +234,7 @@ class ProjectDetailPage extends ConsumerWidget {
             slivers: [
               // ── Hero SliverAppBar ──────────────────────────────────
               SliverAppBar(
-                expandedHeight: 260,
+                expandedHeight: 280,
                 pinned: true,
                 backgroundColor: AppColors.primary,
                 leading: GestureDetector(
@@ -41,19 +253,40 @@ class ProjectDetailPage extends ConsumerWidget {
                   ),
                 ),
                 actions: [
-                  Container(
-                    margin: const EdgeInsets.only(right: 6, top: 8, bottom: 8),
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: Colors.black38,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.notifications_outlined,
-                      color: AppColors.white,
-                      size: 20,
+                  // Wishlist / Favorite Icon (Replaces Notification Bell)
+                  GestureDetector(
+                    onTap: () async {
+                      final added = await ref
+                          .read(wishlistProvider.notifier)
+                          .toggleWishlist(
+                            propertyId: project.id,
+                            itemType: 'Property',
+                          );
+                      if (context.mounted) {
+                        AppSnackBar.showSuccess(
+                          context,
+                          title: added ? 'Wishlisted' : 'Removed',
+                          message: added
+                              ? 'Added to your wishlist!'
+                              : 'Removed from wishlist!',
+                        );
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.only(right: 6, top: 8, bottom: 8),
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: Colors.black38,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        isWishlisted ? Icons.favorite : Icons.favorite_border,
+                        color: isWishlisted ? AppColors.error : AppColors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
+                  // Share Button
                   Container(
                     margin: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
                     padding: const EdgeInsets.all(7),
@@ -72,48 +305,146 @@ class ProjectDetailPage extends ConsumerWidget {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Container(
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF1A1200), Color(0xFF3D2B00)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                      // Photo PageView
+                      if (images.isNotEmpty)
+                        PageView.builder(
+                          itemCount: images.length,
+                          onPageChanged: (idx) {
+                            setState(() {
+                              _currentImageIndex = idx;
+                            });
+                          },
+                          itemBuilder: (ctx, idx) {
+                            return CachedNetworkImage(
+                              imageUrl: images[idx],
+                              fit: BoxFit.fill,
+                              placeholder: (_, __) => Container(
+                                color: const Color(0xFF2C1B00),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: AppColors.primary,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
+                                color: const Color(0xFF1E293B),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.business_outlined,
+                                    color: AppColors.grey400,
+                                    size: 48,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      else
+                        Container(
+                          decoration: const BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.business_outlined,
+                              color: AppColors.grey400,
+                              size: 56,
+                            ),
                           ),
                         ),
-                        child: Image.asset(
-                          width: double.infinity,
-                          "assets/builder.png",
-                          fit: BoxFit.cover,
+
+                      // Bottom Gradient overlay
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: 80,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.7),
+                              ],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                          ),
                         ),
                       ),
+
+                      // RERA / Verified badge
                       Positioned(
                         bottom: 12,
                         left: 12,
                         child: _BadgeChip(
-                          label: '✓ RERA Approved',
+                          label: project.reraApproved
+                              ? '✓ RERA Approved'
+                              : '✓ Verified Project',
                           bg: AppColors.success,
                         ),
                       ),
+
+                      // Ready / Possession badge
                       Positioned(
                         bottom: 12,
-                        right: 12,
+                        right: images.length > 1 ? 70 : 12,
                         child: _BadgeChip(
-                          label: '⚡ Ready to Move',
+                          label: project.readyToMove
+                              ? '⚡ Ready to Move'
+                              : '⏳ ${_formatPossession(project.possession)}',
                           bg: const Color(0xFFF39C12),
                         ),
                       ),
+
+                      // Photos counter badge
+                      if (images.length > 1)
+                        Positioned(
+                          bottom: 12,
+                          right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.photo_library_outlined,
+                                  color: AppColors.white,
+                                  size: 12,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${_currentImageIndex + 1}/${images.length}',
+                                  style: text11(color: AppColors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
               ),
 
+              // ── Body Content ──────────────────────────────────────
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 120),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Name + Price ─────────────────────────────────
+                      // ── Name + Price + Location ───────────────────────
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                         child: Row(
@@ -129,13 +460,12 @@ class ProjectDetailPage extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       const Icon(
                                         Icons.location_on_outlined,
-                                        size: 13,
+                                        size: 14,
                                         color: AppColors.textSecondary,
                                       ),
                                       const SizedBox(width: 2),
@@ -145,6 +475,8 @@ class ProjectDetailPage extends ConsumerWidget {
                                           style: text12(
                                             color: AppColors.textSecondary,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ],
@@ -198,17 +530,23 @@ class ProjectDetailPage extends ConsumerWidget {
                               ),
                               _VDivider(),
                               _QuadStat(
-                                value: '${project.totalUnits}',
-                                label: 'Total Units',
+                                value: project.carpetArea != null &&
+                                        project.carpetArea! > 0
+                                    ? '${project.carpetArea} sq ft'
+                                    : '${project.totalUnits} Units',
+                                label: project.carpetArea != null &&
+                                        project.carpetArea! > 0
+                                    ? 'Carpet Area'
+                                    : 'Total Units',
                               ),
                               _VDivider(),
                               _QuadStat(
-                                value: project.openSpace,
-                                label: 'Open Space',
+                                value: _formatFurnishing(project.furnishing),
+                                label: 'Furnishing',
                               ),
                               _VDivider(),
                               _QuadStat(
-                                value: project.possession,
+                                value: _formatPossession(project.possession),
                                 label: 'Possession',
                               ),
                             ],
@@ -216,7 +554,11 @@ class ProjectDetailPage extends ConsumerWidget {
                         ),
                       ),
 
-                      const SizedBox(height: 20),
+                      // ── Installment / EMI Plan (if allowed) ─────────
+                      if (project.allowInstallments)
+                        _ProjectInstallmentPlanCard(project: project),
+
+                      const SizedBox(height: 18),
                       _SectionDivider(),
 
                       // ── Project Highlights ───────────────────────────
@@ -226,34 +568,67 @@ class ProjectDetailPage extends ConsumerWidget {
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          children: const [
+                          children: [
+                            if (project.allowInstallments)
+                              const _HighlightTile(
+                                icon: Icons.payments_outlined,
+                                label: 'EMI Plan\nAvailable',
+                              ),
                             _HighlightTile(
                               icon: Icons.verified_outlined,
-                              label: 'RERA\nApproved',
+                              label: project.reraApproved
+                                  ? 'RERA\nApproved'
+                                  : 'GharMB\nVerified',
                             ),
-                            _HighlightTile(
-                              icon: Icons.train_outlined,
-                              label: 'Metro\n1.2 km',
-                            ),
-                            _HighlightTile(
+                            if (project.readyToMove)
+                              const _HighlightTile(
+                                icon: Icons.home_outlined,
+                                label: 'Ready to\nMove',
+                              ),
+                            if (project.furnishing?.isNotEmpty == true)
+                              _HighlightTile(
+                                icon: Icons.chair_outlined,
+                                label: _formatFurnishing(project.furnishing),
+                              ),
+                            if (project.parking?.isNotEmpty == true)
+                              _HighlightTile(
+                                icon: Icons.directions_car_outlined,
+                                label: '${project.parking}\nParking',
+                              ),
+                            if (project.facing?.isNotEmpty == true)
+                              _HighlightTile(
+                                icon: Icons.explore_outlined,
+                                label: '${_formatFacing(project.facing)}\nFacing',
+                              ),
+                            const _HighlightTile(
                               icon: Icons.sports_outlined,
                               label: 'Premium\nClubhouse',
                             ),
-                            _HighlightTile(
+                            const _HighlightTile(
                               icon: Icons.security,
                               label: '24x7\nSecurity',
                             ),
-                            _HighlightTile(
+                            const _HighlightTile(
                               icon: Icons.park_outlined,
                               label: '70% Open\nSpace',
-                            ),
-                            _HighlightTile(
-                              icon: Icons.home_outlined,
-                              label: 'Ready to\nMove',
                             ),
                           ],
                         ),
                       ),
+
+                      if (project.description?.isNotEmpty == true) ...[
+                        const SizedBox(height: 8),
+                        _SectionDivider(),
+                        _SectionTitle('About Property'),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            project.description!,
+                            style: text13(color: AppColors.textSecondary)
+                                .copyWith(height: 1.5),
+                          ),
+                        ),
+                      ],
 
                       const SizedBox(height: 8),
                       _SectionDivider(),
@@ -279,33 +654,29 @@ class ProjectDetailPage extends ConsumerWidget {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              // Circle score
                               Column(
                                 children: [
                                   SizedBox(
                                     width: 80,
                                     height: 80,
-                                    child: CustomPaint(
-                                      painter: _ScoreCirclePainter(8.9),
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              '8.9',
-                                              style: text18(
-                                                fontWeight: FontWeight.bold,
-                                              ),
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            '8.9',
+                                            style: text18(
+                                              fontWeight: FontWeight.bold,
                                             ),
-                                            Text(
-                                              '/ 10',
-                                              style: text10(
-                                                color: AppColors.textSecondary,
-                                              ),
+                                          ),
+                                          Text(
+                                            '/ 10',
+                                            style: text10(
+                                              color: AppColors.textSecondary,
                                             ),
-                                          ],
-                                        ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ),
@@ -320,7 +691,6 @@ class ProjectDetailPage extends ConsumerWidget {
                                 ],
                               ),
                               const SizedBox(width: 20),
-                              // Score bars
                               Expanded(
                                 child: Column(
                                   children: scoreItems
@@ -346,59 +716,56 @@ class ProjectDetailPage extends ConsumerWidget {
                               'Price & Unit Details',
                               style: text16(fontWeight: FontWeight.bold),
                             ),
-                            GestureDetector(
-                              onTap: () {},
-                              child: Text(
-                                'View all',
-                                style: text13(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            Text(
+                              project.bhkTypes,
+                              style: text13(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 12),
-                      ...priceUnits.map(
-                        (u) => Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                          child: _PriceUnitRow(unit: u),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                        child: _PriceUnitRow(
+                          unit: PriceUnit(
+                            bhk: project.bhkTypes,
+                            area: project.carpetArea != null &&
+                                    project.carpetArea! > 0
+                                ? '${project.carpetArea} sq ft Carpet'
+                                : 'Standard Unit',
+                            priceRange: project.startingPrice,
+                            status: project.readyToMove
+                                ? 'Ready'
+                                : 'Booking Open',
+                          ),
                         ),
                       ),
 
                       _SectionDivider(),
 
                       // ── Amenities ────────────────────────────────────
-                      _SectionTitle('Amenities'),
-                      SizedBox(
-                        height: 90,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          children: const [
-                            _HighlightTile(icon: Icons.pool, label: 'Pool'),
-                            _HighlightTile(
-                              icon: Icons.fitness_center,
-                              label: 'Gym',
-                            ),
-                            _HighlightTile(
-                              icon: Icons.sports_tennis_outlined,
-                              label: 'Clubhouse',
-                            ),
-                            _HighlightTile(
-                              icon: Icons.child_friendly,
-                              label: 'Kids Play\nArea',
-                            ),
-                            _HighlightTile(
-                              icon: Icons.security,
-                              label: '24x7\nSecurity',
-                            ),
-                          ],
+                      if (project.amenities.isNotEmpty) ...[
+                        _SectionTitle('Amenities'),
+                        SizedBox(
+                          height: 90,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: project.amenities.length,
+                            itemBuilder: (context, idx) {
+                              final item = project.amenities[idx];
+                              return _HighlightTile(
+                                icon: _getAmenityIcon(item),
+                                label: _formatAmenityName(item),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-
-                      _SectionDivider(),
+                        _SectionDivider(),
+                      ],
 
                       // ── Builder Info ─────────────────────────────────
                       _SectionTitle('Builder Information'),
@@ -413,7 +780,6 @@ class ProjectDetailPage extends ConsumerWidget {
                           ),
                           child: Row(
                             children: [
-                              // Logo
                               Container(
                                 width: 56,
                                 height: 56,
@@ -421,10 +787,20 @@ class ProjectDetailPage extends ConsumerWidget {
                                   color: AppColors.textPrimary,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Center(
+                                child: Center(
                                   child: Text(
-                                    'dp/',
-                                    style: TextStyle(
+                                    project.developer.isNotEmpty
+                                        ? project.developer
+                                            .substring(
+                                              0,
+                                              math.min(
+                                                2,
+                                                project.developer.length,
+                                              ),
+                                            )
+                                            .toUpperCase()
+                                        : 'MB',
+                                    style: const TextStyle(
                                       color: AppColors.white,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -438,20 +814,20 @@ class ProjectDetailPage extends ConsumerWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'XYZ Developers',
+                                      project.developer,
                                       style: text14(
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '• 15 Projects Delivered',
+                                      '• Verified Builder Partner',
                                       style: text11(
                                         color: AppColors.textSecondary,
                                       ),
                                     ),
                                     Text(
-                                      '• 12 Years Experience',
+                                      '• GharMB Trust Guaranteed',
                                       style: text11(
                                         color: AppColors.textSecondary,
                                       ),
@@ -469,26 +845,29 @@ class ProjectDetailPage extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    'RERA Registration',
+                                    'RERA Status',
                                     style: text10(
                                       color: AppColors.textSecondary,
                                     ),
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
-                                    'UPRERAPRJ12345',
+                                    project.reraApproved
+                                        ? 'APPROVED'
+                                        : 'VERIFIED',
                                     style: text11(
                                       color: AppColors.primary,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                   const SizedBox(height: 3),
-                                  GestureDetector(
-                                    onTap: () {},
-                                    child: Text(
-                                      'View on RERA Website',
-                                      style: text10(color: AppColors.primary),
+                                  Text(
+                                    project.location,
+                                    style: text10(
+                                      color: AppColors.textSecondary,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),
@@ -496,7 +875,7 @@ class ProjectDetailPage extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
 
                       _SectionDivider(),
 
@@ -507,29 +886,84 @@ class ProjectDetailPage extends ConsumerWidget {
                         child: Wrap(
                           spacing: 16,
                           runSpacing: 8,
-                          children: nearbyPlaces
-                              .map((n) => _NearbyItem(place: n))
-                              .toList(),
+                          children: [
+                            _NearbyItem(
+                              place: NearbyPlace(
+                                project.location,
+                                project.distance,
+                                'orange',
+                              ),
+                            ),
+                            const _NearbyItem(
+                              place: NearbyPlace(
+                                'City Center',
+                                '1.5 km',
+                                'blue',
+                              ),
+                            ),
+                            const _NearbyItem(
+                              place: NearbyPlace(
+                                'Nearest Metro/Bus',
+                                '0.8 km',
+                                'green',
+                              ),
+                            ),
+                            const _NearbyItem(
+                              place: NearbyPlace(
+                                'Hospital & Medical',
+                                '1.2 km',
+                                'red',
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
 
-                      _SectionDivider(),
-
-                      // ── Gallery ──────────────────────────────────────
-                      _SectionTitle('Gallery'),
-                      SizedBox(
-                        height: 80,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          children: galleryTabs
-                              .map((t) => _GalleryTabCard(tab: t))
-                              .toList(),
+                      // ── Gallery (Only displayed if real images exist) ──
+                      if (images.isNotEmpty) ...[
+                        _SectionDivider(),
+                        _SectionTitle('Gallery (${images.length} Photos)'),
+                        SizedBox(
+                          height: 95,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: images.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 10),
+                            itemBuilder: (context, idx) {
+                              final img = images[idx];
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: CachedNetworkImage(
+                                  imageUrl: img,
+                                  width: 130,
+                                  height: 95,
+                                  fit: BoxFit.fill,
+                                  placeholder: (_, __) => Container(
+                                    width: 130,
+                                    height: 95,
+                                    color: AppColors.grey200,
+                                  ),
+                                  errorWidget: (_, __, ___) => Container(
+                                    width: 130,
+                                    height: 95,
+                                    color: AppColors.grey300,
+                                    child: const Icon(
+                                      Icons.image,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                      ],
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
 
                       // ── Site Visit Banner ────────────────────────────
                       Padding(
@@ -566,7 +1000,21 @@ class ProjectDetailPage extends ConsumerWidget {
                               ),
                               const SizedBox(width: 10),
                               ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  showScheduleVisitBottomSheet(
+                                    context,
+                                    propertyId: project.id,
+                                    title: project.name,
+                                    locality: project.location,
+                                    city: project.location,
+                                    imageUrl: project.images.isNotEmpty
+                                        ? project.images.first
+                                        : project.imageUrl,
+                                    ownerId: project.ownerId,
+                                    ownerName: project.developer,
+                                    ownerPhone: project.ownerPhone,
+                                  );
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.white,
                                   foregroundColor: AppColors.primary,
@@ -631,8 +1079,39 @@ class ProjectDetailPage extends ConsumerWidget {
             ],
           ),
 
-          // ── Bottom Action Bar ──────────────────────────────────────
-          Positioned(bottom: 0, left: 0, right: 0, child: _BottomActions()),
+          // ── Bottom Action Bar (Same as PropertyDetailPage) ────────
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: _ProjectBottomActions(
+              project: project,
+              onScheduleVisit: () {
+                showScheduleVisitBottomSheet(
+                  context,
+                  propertyId: project.id,
+                  title: project.name,
+                  locality: project.location,
+                  city: project.location,
+                  imageUrl: project.images.isNotEmpty
+                      ? project.images.first
+                      : project.imageUrl,
+                  ownerId: project.ownerId,
+                  ownerName: project.developer,
+                  ownerPhone: project.ownerPhone,
+                );
+              },
+              onBookToken: () {
+                final prop = _getOrCreateProperty(project);
+                context.pushNamed(AppPage.bookByTokenName, extra: prop);
+              },
+              onCall: () => _makeCall(project.ownerPhone),
+              onWhatsApp: () => _openWhatsApp(
+                project.ownerPhone,
+                project.name,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -686,7 +1165,13 @@ class _QuadStat extends StatelessWidget {
   Widget build(BuildContext context) => Expanded(
     child: Column(
       children: [
-        Text(value, style: text13(fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: text13(fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
         Text(
           label,
           style: text10(color: AppColors.textSecondary),
@@ -722,7 +1207,7 @@ class _HighlightTile extends StatelessWidget {
             color: AppColors.grey100,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(icon, size: 22, color: AppColors.textSecondary),
+          child: Icon(icon, size: 22, color: AppColors.primary),
         ),
         const SizedBox(height: 5),
         Text(
@@ -746,7 +1231,7 @@ class _BadgeChip extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
       color: bg,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
       label,
@@ -870,39 +1355,6 @@ class _NearbyItem extends StatelessWidget {
   }
 }
 
-class _GalleryTabCard extends StatelessWidget {
-  final GalleryTab tab;
-  const _GalleryTabCard({required this.tab});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 80,
-    margin: const EdgeInsets.only(right: 10),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(10),
-      gradient: const LinearGradient(
-        colors: [Color(0xFF1A1200), Color(0xFF3D2B00)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-    ),
-    child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          tab.label,
-          style: text11(color: AppColors.white, fontWeight: FontWeight.w600),
-          textAlign: TextAlign.center,
-        ),
-        Text(
-          '(${tab.count})',
-          style: text10(color: Colors.white.withOpacity(0.7)),
-        ),
-      ],
-    ),
-  );
-}
-
 class _TrustBadge extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -922,57 +1374,332 @@ class _TrustBadge extends StatelessWidget {
   );
 }
 
-// ─── Score Circle Painter ─────────────────────────────────────────────────────
+// ─── Installment / EMI Plan Card for Projects ─────────────────────────────────
 
-class _ScoreCirclePainter extends CustomPainter {
-  final double score;
-  const _ScoreCirclePainter(this.score);
+class _ProjectInstallmentPlanCard extends StatelessWidget {
+  final ProjectModel project;
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cx = size.width / 2;
-    final cy = size.height / 2;
-    final r = size.width / 2 - 6;
+  const _ProjectInstallmentPlanCard({required this.project});
 
-    final bgPaint = Paint()
-      ..color = AppColors.grey200
-      ..strokeWidth = 7
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final fgPaint = Paint()
-      ..color = AppColors.success
-      ..strokeWidth = 7
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    const startAngle = -math.pi / 2;
-    final sweepAngle = 2 * math.pi * (score / 10);
-
-    canvas.drawCircle(Offset(cx, cy), r, bgPaint);
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(cx, cy), radius: r),
-      startAngle,
-      sweepAngle,
-      false,
-      fgPaint,
-    );
+  String _formatCurrency(int amount) {
+    if (amount <= 0) return '₹0';
+    if (amount >= 10000000) {
+      final cr = amount / 10000000;
+      return '₹${cr.toStringAsFixed(cr.truncateToDouble() == cr ? 0 : 2)} Cr';
+    } else if (amount >= 100000) {
+      final l = amount / 100000;
+      return '₹${l.toStringAsFixed(l.truncateToDouble() == l ? 0 : 2)} L';
+    } else if (amount >= 1000) {
+      final k = amount / 1000;
+      return '₹${k.toStringAsFixed(k.truncateToDouble() == k ? 0 : 1)} K';
+    }
+    return '₹$amount';
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter _) => false;
+  Widget build(BuildContext context) {
+    final details = project.installmentDetails;
+
+    String downPaymentText = 'Available';
+    if (details != null && details.downPaymentAmount > 0) {
+      downPaymentText = _formatCurrency(details.downPaymentAmount);
+      if (details.downPaymentPercentage > 0) {
+        downPaymentText += ' (${details.downPaymentPercentage}%)';
+      }
+    } else if (details != null && details.downPaymentPercentage > 0) {
+      downPaymentText = '${details.downPaymentPercentage}%';
+    }
+
+    String emiText = 'Flexible';
+    if (details != null && details.installmentAmount > 0) {
+      final freq = details.installmentFrequency.isNotEmpty
+          ? details.installmentFrequency.toLowerCase().replaceAll('ly', '')
+          : 'mo';
+      emiText = '${_formatCurrency(details.installmentAmount)} / $freq';
+    } else if (details != null && details.numberOfInstallments > 0) {
+      emiText = '${details.numberOfInstallments} Installments';
+    }
+
+    String durationText = 'Custom Plan';
+    if (details != null && details.numberOfInstallments > 0) {
+      final freq = details.installmentFrequency.isNotEmpty
+          ? details.installmentFrequency
+          : 'Monthly';
+      if (details.installmentDurationMonths > 0 &&
+          details.installmentDurationMonths != details.numberOfInstallments) {
+        durationText =
+            '${details.numberOfInstallments} ($freq) · ${details.installmentDurationMonths}M';
+      } else {
+        durationText = '${details.numberOfInstallments} ($freq)';
+      }
+    } else if (details != null && details.installmentDurationMonths > 0) {
+      durationText = '${details.installmentDurationMonths} Months';
+    }
+
+    String interestText = '0% (Interest Free)';
+    if (details != null && details.interestRate > 0) {
+      interestText = '${details.interestRate}% p.a.';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.grey200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.payments_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Installment / EMI Plan',
+                        style: text14(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        'Flexible payment options available directly from builder',
+                        style: text11(color: AppColors.textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Available',
+                    style: text10(
+                      color: const Color(0xFF2E7D32),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // 2x2 Metric Cards Grid
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              childAspectRatio: 2.3,
+              mainAxisSpacing: 8,
+              crossAxisSpacing: 8,
+              children: [
+                _ProjectInstallmentMetricTile(
+                  title: 'Down Payment',
+                  value: downPaymentText,
+                  icon: Icons.account_balance_wallet_outlined,
+                ),
+                _ProjectInstallmentMetricTile(
+                  title: 'Estimated EMI',
+                  value: emiText,
+                  icon: Icons.credit_card_outlined,
+                ),
+                _ProjectInstallmentMetricTile(
+                  title: 'Tenure & Frequency',
+                  value: durationText,
+                  icon: Icons.calendar_month_outlined,
+                ),
+                _ProjectInstallmentMetricTile(
+                  title: 'Interest Rate',
+                  value: interestText,
+                  icon: Icons.percent_outlined,
+                ),
+              ],
+            ),
+
+            // Grace Period Pill
+            if (details != null && details.gracePeriodDays > 0) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.grey50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.schedule,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Grace Period: ${details.gracePeriodDays} days after due date',
+                      style: text11(
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
+            // Terms and conditions note
+            if (details != null &&
+                details.termsAndConditions.trim().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.grey50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.grey200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Terms & Conditions',
+                      style: text11(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      details.termsAndConditions.trim(),
+                      style: text12(color: AppColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-// ─── Bottom Action Bar ────────────────────────────────────────────────────────
+class _ProjectInstallmentMetricTile extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
 
-class _BottomActions extends StatelessWidget {
+  const _ProjectInstallmentMetricTile({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.grey50,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.grey200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: text10(color: AppColors.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: text12(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Bottom Actions (Aligned with PropertyDetailPage) ─────────────────────────
+
+class _ProjectBottomActions extends StatelessWidget {
+  final ProjectModel project;
+  final VoidCallback onScheduleVisit;
+  final VoidCallback onBookToken;
+  final VoidCallback onCall;
+  final VoidCallback onWhatsApp;
+
+  const _ProjectBottomActions({
+    required this.project,
+    required this.onScheduleVisit,
+    required this.onBookToken,
+    required this.onCall,
+    required this.onWhatsApp,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.fromLTRB(
-        12,
+        16,
         10,
-        12,
+        16,
         MediaQuery.of(context).padding.bottom + 10,
       ),
       decoration: BoxDecoration(
@@ -987,79 +1714,134 @@ class _BottomActions extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Schedule Visit button (Primary Action)
           Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.phone_outlined,
-                size: 16,
-                color: AppColors.primary,
-              ),
-              label: Text(
-                'Call Expert',
-                style: text13(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppColors.primary),
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+            flex: 3,
+            child: _ProjectBottomBtn(
+              label: 'Schedule Visit',
+              icon: Icons.calendar_month_outlined,
+              bgColor: AppColors.primary,
+              textColor: AppColors.white,
+              onTap: onScheduleVisit,
             ),
           ),
           const SizedBox(width: 8),
+          // Book Token button
           Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const FaIcon(
-                FontAwesomeIcons.whatsapp,
-                size: 16,
-                color: AppColors.white,
-              ),
-              label: Text(
-                'WhatsApp',
-                style: text13(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF25D366),
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                elevation: 0,
-              ),
+            flex: 2,
+            child: _ProjectBottomBtn(
+              label: 'Book Token',
+              icon: Icons.bookmark_added_outlined,
+              bgColor: AppColors.white,
+              textColor: AppColors.primary,
+              borderColor: AppColors.primary,
+              onTap: onBookToken,
             ),
           ),
           const SizedBox(width: 8),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () {},
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                'Schedule\nSite Visit',
-                style: text11(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
+          // Call button
+          _ProjectCircleActionBtn(
+            icon: Icons.phone_outlined,
+            bgColor: AppColors.grey100,
+            iconColor: AppColors.textPrimary,
+            onTap: onCall,
+          ),
+          const SizedBox(width: 8),
+          // WhatsApp button
+          _ProjectCircleActionBtn(
+            icon: Icons.chat_bubble_outline,
+            bgColor: const Color(0xFFE8F5E9),
+            iconColor: const Color(0xFF25D366),
+            onTap: onWhatsApp,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ProjectCircleActionBtn extends StatelessWidget {
+  final IconData icon;
+  final Color bgColor;
+  final Color iconColor;
+  final VoidCallback onTap;
+
+  const _ProjectCircleActionBtn({
+    required this.icon,
+    required this.bgColor,
+    required this.iconColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(11),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, size: 18, color: iconColor),
+      ),
+    );
+  }
+}
+
+class _ProjectBottomBtn extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final Color bgColor;
+  final Color textColor;
+  final Color? borderColor;
+  final VoidCallback onTap;
+
+  const _ProjectBottomBtn({
+    required this.label,
+    this.icon,
+    required this.bgColor,
+    required this.textColor,
+    this.borderColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(10),
+            border: borderColor != null
+                ? Border.all(color: borderColor!, width: 1.2)
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: textColor),
+                const SizedBox(width: 4),
+              ],
+              Flexible(
+                child: Text(
+                  label,
+                  style: text11(color: textColor, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

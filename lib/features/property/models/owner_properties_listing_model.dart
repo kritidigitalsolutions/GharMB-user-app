@@ -14,8 +14,14 @@ class PropertyListingResponse {
       data: json["data"] is Map
           ? PropertyListingData.fromJson(
               Map<String, dynamic>.from(json["data"]),
+              rootSubmissionId: json["submissionId"]?.toString(),
             )
-          : null,
+          : (json["submissionId"] != null || json["property"] != null
+              ? PropertyListingData.fromJson(
+                  json,
+                  rootSubmissionId: json["submissionId"]?.toString(),
+                )
+              : null),
     );
   }
 
@@ -30,12 +36,19 @@ class PropertyListingData {
 
   PropertyListingData({this.submissionId, this.property});
 
-  factory PropertyListingData.fromJson(Map<String, dynamic> json) {
+  factory PropertyListingData.fromJson(
+    Map<String, dynamic> json, {
+    String? rootSubmissionId,
+  }) {
     return PropertyListingData(
-      submissionId: json["submissionId"]?.toString(),
+      submissionId: rootSubmissionId ??
+          json["submissionId"]?.toString() ??
+          (json["property"] is Map
+              ? json["property"]["submissionId"]?.toString()
+              : null),
       property: json["property"] is Map
           ? PropertyModel.fromJson(Map<String, dynamic>.from(json["property"]))
-          : null,
+          : PropertyModel.fromJson(json),
     );
   }
 
@@ -98,12 +111,13 @@ class PropertyModel {
   final int? brokerageFee;
   final int? otherCharges;
 
-  // Additional Features
   final bool? vastuCompliant;
   final bool? keyHandover;
   final bool? openToAllBuyers;
   final bool? loanAssistanceNeeded;
   final String? listingTier;
+  final bool? allowInstallments;
+  final InstallmentDetailsModel? installmentDetails;
 
   // Location
   final LocationModel? location;
@@ -167,6 +181,8 @@ class PropertyModel {
     this.openToAllBuyers,
     this.loanAssistanceNeeded,
     this.listingTier,
+    this.allowInstallments,
+    this.installmentDetails,
     this.location,
     this.owner,
     this.approvalStatus,
@@ -228,6 +244,12 @@ class PropertyModel {
       openToAllBuyers: json["openToAllBuyers"] as bool?,
       loanAssistanceNeeded: json["loanAssistanceNeeded"] as bool?,
       listingTier: json["listingTier"]?.toString(),
+      allowInstallments: json["allowInstallments"] as bool?,
+      installmentDetails: json["installmentDetails"] is Map
+          ? InstallmentDetailsModel.fromJson(
+              Map<String, dynamic>.from(json["installmentDetails"]),
+            )
+          : null,
       location: json["location"] is Map
           ? LocationModel.fromJson(Map<String, dynamic>.from(json["location"]))
           : null,
@@ -293,6 +315,8 @@ class PropertyModel {
       "openToAllBuyers": openToAllBuyers,
       "loanAssistanceNeeded": loanAssistanceNeeded,
       "listingTier": listingTier,
+      "allowInstallments": allowInstallments,
+      "installmentDetails": installmentDetails?.toJson(),
       "location": location?.toJson(),
       "owner": owner,
       "approvalStatus": approvalStatus,
@@ -357,5 +381,57 @@ class LocationModel {
       return null;
     }
     return coordinates![1];
+  }
+}
+
+class InstallmentDetailsModel {
+  final int? downPaymentAmount;
+  final int? downPaymentPercentage;
+  final int? numberOfInstallments;
+  final String? installmentFrequency;
+  final int? installmentAmount;
+  final int? interestRate;
+  final int? installmentDurationMonths;
+  final int? gracePeriodDays;
+  final String? termsAndConditions;
+
+  const InstallmentDetailsModel({
+    this.downPaymentAmount,
+    this.downPaymentPercentage,
+    this.numberOfInstallments,
+    this.installmentFrequency,
+    this.installmentAmount,
+    this.interestRate,
+    this.installmentDurationMonths,
+    this.gracePeriodDays,
+    this.termsAndConditions,
+  });
+
+  factory InstallmentDetailsModel.fromJson(Map<String, dynamic> json) {
+    return InstallmentDetailsModel(
+      downPaymentAmount: json["downPaymentAmount"] as int?,
+      downPaymentPercentage: json["downPaymentPercentage"] as int?,
+      numberOfInstallments: json["numberOfInstallments"] as int?,
+      installmentFrequency: json["installmentFrequency"]?.toString(),
+      installmentAmount: json["installmentAmount"] as int?,
+      interestRate: json["interestRate"] as int?,
+      installmentDurationMonths: json["installmentDurationMonths"] as int?,
+      gracePeriodDays: json["gracePeriodDays"] as int?,
+      termsAndConditions: json["termsAndConditions"]?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "downPaymentAmount": downPaymentAmount,
+      "downPaymentPercentage": downPaymentPercentage,
+      "numberOfInstallments": numberOfInstallments,
+      "installmentFrequency": installmentFrequency,
+      "installmentAmount": installmentAmount,
+      "interestRate": interestRate,
+      "installmentDurationMonths": installmentDurationMonths,
+      "gracePeriodDays": gracePeriodDays,
+      "termsAndConditions": termsAndConditions,
+    };
   }
 }

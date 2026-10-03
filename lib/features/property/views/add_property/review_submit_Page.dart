@@ -55,6 +55,32 @@ class _ReviewSubmitPageState extends ConsumerState<ReviewSubmitPage> {
             ? '₹85 Lakhs'
             : '₹${state.expectedPrice}',
       ),
+      if (state.allowInstallments) ...[
+        const _SummaryRow(
+          label: 'Payment mode',
+          value: 'Installments / EMI Enabled',
+        ),
+        if (state.downPaymentAmount.isNotEmpty ||
+            state.downPaymentPercentage.isNotEmpty)
+          _SummaryRow(
+            label: 'Down payment',
+            value: state.downPaymentAmount.isNotEmpty
+                ? '₹${state.downPaymentAmount}${state.downPaymentPercentage.isNotEmpty ? ' (${state.downPaymentPercentage}%)' : ''}'
+                : '${state.downPaymentPercentage}%',
+          ),
+        if (state.numberOfInstallments.isNotEmpty)
+          _SummaryRow(
+            label: 'Plan duration',
+            value:
+                '${state.numberOfInstallments} installments (${state.installmentFrequency})',
+          ),
+        if (state.installmentAmount.isNotEmpty)
+          _SummaryRow(
+            label: 'Estimated EMI',
+            value:
+                '₹${state.installmentAmount} / ${state.installmentFrequency.toLowerCase()}',
+          ),
+      ],
       _SummaryRow(
         label: 'Furnishing',
         value: state.furnishingLabel.isEmpty
@@ -75,7 +101,8 @@ class _ReviewSubmitPageState extends ConsumerState<ReviewSubmitPage> {
       '${state.bedrooms} BHK',
       state.carpetArea.isEmpty ? '1450 sqft' : '${state.carpetArea} sqft',
       state.floorNo.isEmpty ? '2th floor' : '${state.floorNo}th floor',
-      'For sale',
+      state.listingFor.isNotEmpty ? state.listingFor.first.label : 'For sale',
+      if (state.allowInstallments) 'EMI / Installment',
     ];
 
     // Hero image — first picked photo or gradient placeholder

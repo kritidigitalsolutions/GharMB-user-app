@@ -3040,8 +3040,10 @@ class _DynamicNewProjectsSection extends ConsumerWidget {
               ref
                   .read(proj_prov.selectedProjectProvider.notifier)
                   .state = proj_prov.ProjectModel(
-                id: project.id,
-                name: project.title,
+                id: project.id.isNotEmpty ? project.id : project.mongoId,
+                name: project.title.isNotEmpty
+                    ? project.title
+                    : '${project.bedrooms} BHK ${project.propertyType}',
                 location: project.locationLabel,
                 developer: project.owner.name.isNotEmpty
                     ? project.owner.name
@@ -3051,13 +3053,38 @@ class _DynamicNewProjectsSection extends ConsumerWidget {
                 totalUnits: project.carpetArea > 0 ? project.carpetArea : 100,
                 openSpace: '70%',
                 possession: project.possessionLabel,
-                distance: project.locality,
+                distance: project.locality.isNotEmpty
+                    ? project.locality
+                    : project.city,
                 interested: project.shortlistedCount > 0
                     ? project.shortlistedCount
                     : (project.viewsCount > 0 ? project.viewsCount : 12),
                 reraApproved: project.isReraApproved,
                 readyToMove: project.isReadyToMove,
                 imageGradientKey: project.gradientKey,
+                imageUrl: project.images.isNotEmpty
+                    ? project.images.first
+                    : null,
+                images: project.images,
+                amenities: project.amenities,
+                description: project.description,
+                ownerId: project.owner.id,
+                ownerPhone: project.owner.phone,
+                fullAddress: project.fullAddress,
+                price: project.price,
+                bathrooms: project.bathrooms,
+                carpetArea: project.carpetArea,
+                builtUpArea: project.builtUpArea,
+                furnishing: project.furnishing,
+                facing: project.facingDirection,
+                parking: project.parking,
+                totalFloors: project.totalFloors,
+                floorNo: project.floorNo,
+                allowInstallments: project.allowInstallments,
+                installmentDetails: project.installmentDetails,
+                tokenAmount: project.tokenAmount,
+                isVerified: project.isVerified,
+                property: project.toProperty(),
               );
               context.pushNamed(AppPage.projectDetailName);
             },

@@ -96,6 +96,7 @@ class RegistrationSubmitNotifier
 
     // ── 1. Upload every picked document, one at a time ──────────────
     final Map<String, String> uploadedUrls = {};
+    final uploadRepo = ref.read(uploadRepoProvider);
 
     for (final doc in step2.documents) {
       final file = pickedFiles[doc.key];
@@ -111,33 +112,37 @@ class RegistrationSubmitNotifier
         continue; // optional and not picked — skip
       }
 
-      final notifier = ref.read(uploadProvider.notifier);
+      try {
+        final uploadRes = await uploadRepo.uploadFile(
+          uploadRequest: FileUploadRequest(
+            fields: {"type": doc.key, "folder": "documents"},
+            files: [
+              MultipartFileData(
+                fieldName: "files",
+                filePath: file.path,
+                fileName: file.name,
+              ),
+            ],
+          ),
+        );
 
-      // TODO: MultipartFileData's constructor isn't available to me — adjust
-      // the field name(s) below (e.g. `field`, `filePath`) to match your
-      // actual class. This assumes a shape like:
-      //   MultipartFileData({required String field, required String filePath})
-      await notifier.upload(
-        FileUploadRequest(
-          files: [MultipartFileData(fieldName: file.name, filePath: file.path)],
-        ),
-      );
+        if (uploadRes == null || uploadRes.data.fileUrls.isEmpty) {
+          state = state.copyWith(
+            isUploadingFiles: false,
+            errorMessage: 'Failed to upload ${doc.name}.',
+          );
+          return false;
+        }
 
-      final uploadState = ref.read(uploadProvider);
-
-      if (!uploadState.isSuccess ||
-          uploadState.response == null ||
-          uploadState.response!.data.fileUrls.isEmpty) {
+        uploadedUrls[doc.key] = uploadRes.data.fileUrls.first;
+        step2Notifier.setUploaded(doc.key, true);
+      } catch (e) {
         state = state.copyWith(
           isUploadingFiles: false,
-          errorMessage:
-              uploadState.errorMessage ?? 'Failed to upload ${doc.name}.',
+          errorMessage: 'Failed to upload ${doc.name}.',
         );
         return false;
       }
-
-      uploadedUrls[doc.key] = uploadState.response!.data.fileUrls.first;
-      step2Notifier.setUploaded(doc.key, true);
     }
 
     state = state.copyWith(isUploadingFiles: false, isSubmitting: true);
@@ -170,6 +175,7 @@ class RegistrationSubmitNotifier
         developerResponse: res,
       );
       ref.invalidate(userProfileDataProvider);
+      ref.invalidate(verificationStatusProvider);
       return true;
     } else {
       final payload = AgentRegistrationPayload(
@@ -198,6 +204,7 @@ class RegistrationSubmitNotifier
         agentResponse: res,
       );
       ref.invalidate(userProfileDataProvider);
+      ref.invalidate(verificationStatusProvider);
       return true;
     }
   }

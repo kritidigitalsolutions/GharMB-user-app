@@ -1,5 +1,12 @@
 // property_payload.dart
 
+/// Safely converts int / double / numeric String to int.
+int? _toInt(dynamic v) {
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v);
+  return null;
+}
+
 class OwnerPropertListingPayload {
   final String? listingAs;
   final String? category;
@@ -37,7 +44,9 @@ class OwnerPropertListingPayload {
   final bool? keyHandover;
   final bool? openToAllBuyers;
   final bool? loanAssistanceNeeded;
-  final String? listingTier;
+  final String? listingTier; // <-- was missing
+  final bool? allowInstallments;
+  final InstallmentDetailsPayload? installmentDetails;
   final LocationPayload? location;
 
   OwnerPropertListingPayload({
@@ -78,6 +87,8 @@ class OwnerPropertListingPayload {
     this.openToAllBuyers,
     this.loanAssistanceNeeded,
     this.listingTier,
+    this.allowInstallments,
+    this.installmentDetails,
     this.location,
   });
 
@@ -95,8 +106,8 @@ class OwnerPropertListingPayload {
       description: json["description"]?.toString(),
       bedrooms: json["bedrooms"]?.toString(),
       bathrooms: json["bathrooms"]?.toString(),
-      carpetArea: json["carpetArea"] as int?,
-      builtUpArea: json["builtUpArea"] as int?,
+      carpetArea: _toInt(json["carpetArea"]),
+      builtUpArea: _toInt(json["builtUpArea"]),
       floorNo: json["floorNo"]?.toString(),
       totalFloors: json["totalFloors"]?.toString(),
       ageOfProperty: json["ageOfProperty"]?.toString(),
@@ -113,21 +124,27 @@ class OwnerPropertListingPayload {
       smokingAllowed: json["smokingAllowed"] as bool?,
       noticePeriod: json["noticePeriod"]?.toString(),
       availableFrom: json["availableFrom"]?.toString(),
-      images: json["images"] is List
-          ? List<String>.from(json["images"])
-          : null,
-      price: json["price"] as int?,
-      securityDeposit: json["securityDeposit"] as int?,
-      maintenanceCharges: json["maintenanceCharges"] as int?,
+      images: json["images"] is List ? List<String>.from(json["images"]) : null,
+      price: _toInt(json["price"]),
+      securityDeposit: _toInt(json["securityDeposit"]),
+      maintenanceCharges: _toInt(json["maintenanceCharges"]),
       maintenanceIncludedInRent: json["maintenanceIncludedInRent"] as bool?,
-      brokerageFee: json["brokerageFee"] as int?,
+      brokerageFee: _toInt(json["brokerageFee"]),
       vastuCompliant: json["vastuCompliant"] as bool?,
       keyHandover: json["keyHandover"] as bool?,
       openToAllBuyers: json["openToAllBuyers"] as bool?,
       loanAssistanceNeeded: json["loanAssistanceNeeded"] as bool?,
       listingTier: json["listingTier"]?.toString(),
+      allowInstallments: json["allowInstallments"] as bool?,
+      installmentDetails: json["installmentDetails"] is Map
+          ? InstallmentDetailsPayload.fromJson(
+              Map<String, dynamic>.from(json["installmentDetails"]),
+            )
+          : null,
       location: json["location"] is Map
-          ? LocationPayload.fromJson(Map<String, dynamic>.from(json["location"]))
+          ? LocationPayload.fromJson(
+              Map<String, dynamic>.from(json["location"]),
+            )
           : null,
     );
   }
@@ -171,6 +188,8 @@ class OwnerPropertListingPayload {
       "openToAllBuyers": openToAllBuyers,
       "loanAssistanceNeeded": loanAssistanceNeeded,
       "listingTier": listingTier,
+      "allowInstallments": allowInstallments,
+      "installmentDetails": installmentDetails?.toJson(),
       "location": location?.toJson(),
     };
   }
@@ -214,6 +233,8 @@ class OwnerPropertListingPayload {
     bool? openToAllBuyers,
     bool? loanAssistanceNeeded,
     String? listingTier,
+    bool? allowInstallments,
+    InstallmentDetailsPayload? installmentDetails,
     LocationPayload? location,
   }) {
     return OwnerPropertListingPayload(
@@ -247,14 +268,100 @@ class OwnerPropertListingPayload {
       price: price ?? this.price,
       securityDeposit: securityDeposit ?? this.securityDeposit,
       maintenanceCharges: maintenanceCharges ?? this.maintenanceCharges,
-      maintenanceIncludedInRent: maintenanceIncludedInRent ?? this.maintenanceIncludedInRent,
+      maintenanceIncludedInRent:
+          maintenanceIncludedInRent ?? this.maintenanceIncludedInRent,
       brokerageFee: brokerageFee ?? this.brokerageFee,
       vastuCompliant: vastuCompliant ?? this.vastuCompliant,
       keyHandover: keyHandover ?? this.keyHandover,
       openToAllBuyers: openToAllBuyers ?? this.openToAllBuyers,
       loanAssistanceNeeded: loanAssistanceNeeded ?? this.loanAssistanceNeeded,
       listingTier: listingTier ?? this.listingTier,
+      allowInstallments: allowInstallments ?? this.allowInstallments,
+      installmentDetails: installmentDetails ?? this.installmentDetails,
       location: location ?? this.location,
+    );
+  }
+}
+
+class InstallmentDetailsPayload {
+  final int? downPaymentAmount;
+  final int? downPaymentPercentage;
+  final int? numberOfInstallments;
+  final String? installmentFrequency;
+  final int? installmentAmount;
+  final int? interestRate;
+  final int? installmentDurationMonths;
+  final int? gracePeriodDays;
+  final String? termsAndConditions;
+
+  const InstallmentDetailsPayload({
+    this.downPaymentAmount,
+    this.downPaymentPercentage,
+    this.numberOfInstallments,
+    this.installmentFrequency,
+    this.installmentAmount,
+    this.interestRate,
+    this.installmentDurationMonths,
+    this.gracePeriodDays,
+    this.termsAndConditions,
+  });
+
+  factory InstallmentDetailsPayload.fromJson(Map<String, dynamic> json) {
+    return InstallmentDetailsPayload(
+      downPaymentAmount: _toInt(json["downPaymentAmount"]),
+      downPaymentPercentage: _toInt(json["downPaymentPercentage"]),
+      numberOfInstallments: _toInt(json["numberOfInstallments"]),
+      installmentFrequency: json["installmentFrequency"]?.toString(),
+      installmentAmount: _toInt(json["installmentAmount"]),
+      interestRate: _toInt(json["interestRate"]),
+      installmentDurationMonths: _toInt(json["installmentDurationMonths"]),
+      gracePeriodDays: _toInt(json["gracePeriodDays"]),
+      termsAndConditions: json["termsAndConditions"]?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (downPaymentAmount != null) "downPaymentAmount": downPaymentAmount,
+      if (downPaymentPercentage != null)
+        "downPaymentPercentage": downPaymentPercentage,
+      if (numberOfInstallments != null)
+        "numberOfInstallments": numberOfInstallments,
+      if (installmentFrequency != null)
+        "installmentFrequency": installmentFrequency,
+      if (installmentAmount != null) "installmentAmount": installmentAmount,
+      if (interestRate != null) "interestRate": interestRate,
+      if (installmentDurationMonths != null)
+        "installmentDurationMonths": installmentDurationMonths,
+      if (gracePeriodDays != null) "gracePeriodDays": gracePeriodDays,
+      if (termsAndConditions != null && termsAndConditions!.trim().isNotEmpty)
+        "termsAndConditions": termsAndConditions,
+    };
+  }
+
+  InstallmentDetailsPayload copyWith({
+    int? downPaymentAmount,
+    int? downPaymentPercentage,
+    int? numberOfInstallments,
+    String? installmentFrequency,
+    int? installmentAmount,
+    int? interestRate,
+    int? installmentDurationMonths,
+    int? gracePeriodDays,
+    String? termsAndConditions,
+  }) {
+    return InstallmentDetailsPayload(
+      downPaymentAmount: downPaymentAmount ?? this.downPaymentAmount,
+      downPaymentPercentage:
+          downPaymentPercentage ?? this.downPaymentPercentage,
+      numberOfInstallments: numberOfInstallments ?? this.numberOfInstallments,
+      installmentFrequency: installmentFrequency ?? this.installmentFrequency,
+      installmentAmount: installmentAmount ?? this.installmentAmount,
+      interestRate: interestRate ?? this.interestRate,
+      installmentDurationMonths:
+          installmentDurationMonths ?? this.installmentDurationMonths,
+      gracePeriodDays: gracePeriodDays ?? this.gracePeriodDays,
+      termsAndConditions: termsAndConditions ?? this.termsAndConditions,
     );
   }
 }
@@ -263,34 +370,25 @@ class LocationPayload {
   final String? type;
   final List<double>? coordinates;
 
-  const LocationPayload({
-    this.type,
-    this.coordinates,
-  });
+  const LocationPayload({this.type, this.coordinates});
 
   factory LocationPayload.fromJson(Map<String, dynamic> json) {
     return LocationPayload(
       type: json["type"]?.toString(),
       coordinates: json["coordinates"] is List
           ? (json["coordinates"] as List)
-              .whereType<num>()
-              .map((value) => value.toDouble())
-              .toList()
+                .whereType<num>()
+                .map((value) => value.toDouble())
+                .toList()
           : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      "type": type,
-      "coordinates": coordinates,
-    };
+    return {"type": type, "coordinates": coordinates};
   }
 
-  LocationPayload copyWith({
-    String? type,
-    List<double>? coordinates,
-  }) {
+  LocationPayload copyWith({String? type, List<double>? coordinates}) {
     return LocationPayload(
       type: type ?? this.type,
       coordinates: coordinates ?? this.coordinates,
@@ -303,10 +401,7 @@ class LocationPayload {
     required double longitude,
     String type = 'Point',
   }) {
-    return LocationPayload(
-      type: type,
-      coordinates: [longitude, latitude],
-    );
+    return LocationPayload(type: type, coordinates: [longitude, latitude]);
   }
 
   double? get latitude {

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/profile/provider/profile_provider.dart';
 import 'package:gharmb_app/features/property/providers/property_add_provider.dart';
 import 'package:gharmb_app/features/property/widget/listing_widget.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
+import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
 import 'package:gharmb_app/shared/widget/custom_stepprogress.dart';
 import 'package:go_router/go_router.dart';
 
@@ -201,7 +203,30 @@ class BasicDetailsPage extends ConsumerWidget {
             SafeArea(
               child: AppButton(
                 title: 'Next',
-                onTap: () => context.pushNamed(AppPage.propertySpecsName),
+                onTap: () {
+                  final user = ref.read(userModelProvider);
+                  if (state.role == ListingRole.agentBroker &&
+                      user?.isAgentVerified != true) {
+                    AppSnackBar.showError(
+                      context,
+                      title: 'Verification Required',
+                      message:
+                          'Agent verification complete hone ke baad hi aap property list kar sakte hain.',
+                    );
+                    return;
+                  }
+                  if (state.role == ListingRole.developerBuilder &&
+                      user?.isBuilderVerified != true) {
+                    AppSnackBar.showError(
+                      context,
+                      title: 'Verification Required',
+                      message:
+                          'Developer verification complete hone ke baad hi aap projects list kar sakte hain.',
+                    );
+                    return;
+                  }
+                  context.pushNamed(AppPage.propertySpecsName);
+                },
               ),
             ),
           ],

@@ -4,8 +4,10 @@ import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/developer/providers/register_provider.dart';
 import 'package:gharmb_app/features/developer/providers/register_submit_provider.dart';
+import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/shared/button/custom_button.dart';
 import 'package:gharmb_app/shared/snakebar/custom_snakebar.dart';
+import 'package:go_router/go_router.dart';
 
 class RegistrationStep3Page extends ConsumerWidget {
   final RegistrationType type;
@@ -30,24 +32,32 @@ class RegistrationStep3Page extends ConsumerWidget {
       }
     });
 
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _ProgressBar(step: 3, total: 3),
-              const SizedBox(height: 48),
-              submitState.isSuccess
-                  ? _SuccessContent(isDeveloper: _isDeveloper)
-                  : _ReviewAndSubmitContent(
-                      type: type,
-                      isDeveloper: _isDeveloper,
-                      submitState: submitState,
-                    ),
-            ],
+    return PopScope(
+      canPop: !submitState.isSuccess,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          context.goNamed(AppPage.myHomeName);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _ProgressBar(step: 3, total: 3),
+                const SizedBox(height: 48),
+                submitState.isSuccess
+                    ? _SuccessContent(isDeveloper: _isDeveloper)
+                    : _ReviewAndSubmitContent(
+                        type: type,
+                        isDeveloper: _isDeveloper,
+                        submitState: submitState,
+                      ),
+              ],
+            ),
           ),
         ),
       ),
@@ -358,16 +368,12 @@ class _SuccessContent extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 20),
-
-        // "Add Project"/"Add Property" removed — nothing to add until the
-        // account is actually verified. A quiet text link back to the
-        // dashboard is enough here.
-        // TODO: point this at your actual dashboard/home route.
-        // TextButton(
-        //   onPressed: () => context.go('/dashboard'),
-        //   child: Text('Back to dashboard', style: text13(fontWeight: FontWeight.w600)),
-        // ),
+        const SizedBox(height: 24),
+        AppButton(
+          title: 'Back to Home',
+          onTap: () => context.goNamed(AppPage.myHomeName),
+        ),
+        const SizedBox(height: 16),
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(

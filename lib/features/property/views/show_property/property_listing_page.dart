@@ -855,7 +855,10 @@ class _PropertyCard extends ConsumerWidget {
                           textColor: AppColors.primary,
                           borderColor: AppColors.primary,
                           onTap: () {
-                            context.pushNamed(AppPage.bookByTokenName);
+                            context.pushNamed(
+                              AppPage.bookByTokenName,
+                              extra: property,
+                            );
                           },
                         ),
                       ),

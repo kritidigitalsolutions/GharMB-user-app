@@ -49,28 +49,33 @@ class UploadNotifier extends StateNotifier<UploadState> {
 
   UploadNotifier(this._repo) : super(const UploadState());
 
-  Future<void> upload(FileUploadRequest request) async {
-    state = state.copyWith(
-      status: UploadStatus.uploading,
-      progress: 0,
-      errorMessage: null,
-    );
+  Future<UploadResponse?> upload(FileUploadRequest request) async {
+    if (mounted) {
+      state = state.copyWith(
+        status: UploadStatus.uploading,
+        progress: 0,
+        errorMessage: null,
+      );
+    }
 
     try {
       final response = await _repo.uploadFile(
         uploadRequest: request,
         onSendProgress: (sent, total) {
+          if (!mounted) return;
           if (total <= 0) return;
           state = state.copyWith(progress: sent / total);
         },
       );
+
+      if (!mounted) return response;
 
       if (response == null) {
         state = state.copyWith(
           status: UploadStatus.error,
           errorMessage: 'Upload failed. Please try again.',
         );
-        return;
+        return null;
       }
 
       state = state.copyWith(
@@ -78,26 +83,35 @@ class UploadNotifier extends StateNotifier<UploadState> {
         progress: 1,
         response: response,
       );
+      return response;
     } on AppException catch (e) {
-      state = state.copyWith(
-        status: UploadStatus.error,
-        errorMessage: e.toString(),
-      );
+      if (mounted) {
+        state = state.copyWith(
+          status: UploadStatus.error,
+          errorMessage: e.toString(),
+        );
+      }
+      return null;
     } catch (e) {
-      state = state.copyWith(
-        status: UploadStatus.error,
-        errorMessage: 'Something went wrong. Please try again.',
-      );
+      if (mounted) {
+        state = state.copyWith(
+          status: UploadStatus.error,
+          errorMessage: 'Something went wrong. Please try again.',
+        );
+      }
+      return null;
     }
   }
 
   void reset() {
-    state = const UploadState();
+    if (mounted) {
+      state = const UploadState();
+    }
   }
 }
 
 // ─── Main Provider ──────────────────────────────────────────────
-final uploadProvider = StateNotifierProvider.autoDispose<UploadNotifier, UploadState>((
+final uploadProvider = StateNotifierProvider<UploadNotifier, UploadState>((
   ref,
 ) {
   final repo = ref.watch(uploadRepoProvider);

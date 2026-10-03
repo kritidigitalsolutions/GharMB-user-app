@@ -1,3 +1,11 @@
+import 'package:gharmb_app/features/property/models/response/near_properties_response.dart'
+    as near;
+
+export 'package:gharmb_app/features/property/models/response/near_properties_response.dart'
+    show Property;
+
+typedef Property = near.Property;
+
 class PropertyResponse {
   final String status;
   final int results;
@@ -27,13 +35,17 @@ class PropertyResponse {
       total: json['total'] != null
           ? _toInt(json['total'])
           : (json['totalProperties'] != null
-              ? _toInt(json['totalProperties'])
-              : (json['totalDocs'] != null ? _toInt(json['totalDocs']) : null)),
+                ? _toInt(json['totalProperties'])
+                : (json['totalDocs'] != null
+                      ? _toInt(json['totalDocs'])
+                      : null)),
       page: json['page'] != null
           ? _toInt(json['page'])
           : (json['currentPage'] != null ? _toInt(json['currentPage']) : null),
       limit: json['limit'] != null ? _toInt(json['limit']) : null,
-      totalPages: json['totalPages'] != null ? _toInt(json['totalPages']) : null,
+      totalPages: json['totalPages'] != null
+          ? _toInt(json['totalPages'])
+          : null,
       hasMore: json['hasMore'] is bool ? json['hasMore'] as bool : null,
       data: PropertyData.fromJson(rawData ?? json),
     );
@@ -75,10 +87,8 @@ class PropertyData {
     }
 
     if (json is Map<String, dynamic>) {
-      final list = json['properties'] ??
-          json['docs'] ??
-          json['results'] ??
-          json['data'];
+      final list =
+          json['properties'] ?? json['docs'] ?? json['results'] ?? json['data'];
       if (list is List) {
         return PropertyData(
           properties: list
@@ -150,6 +160,9 @@ class PropertyModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String submissionId;
+  final bool allowInstallments;
+  final near.InstallmentDetails? installmentDetails;
+  final int tokenAmount;
 
   PropertyModel({
     required this.location,
@@ -204,6 +217,9 @@ class PropertyModel {
     required this.createdAt,
     required this.updatedAt,
     required this.submissionId,
+    this.allowInstallments = false,
+    this.installmentDetails,
+    this.tokenAmount = 0,
   });
 
   factory PropertyModel.fromJson(Map<String, dynamic> json) {
@@ -211,7 +227,10 @@ class PropertyModel {
       location: Location.fromJson(
         json['location'] is Map<String, dynamic>
             ? json['location']
-            : {'type': 'Point', 'coordinates': [0, 0]},
+            : {
+                'type': 'Point',
+                'coordinates': [0, 0],
+              },
       ),
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       mongoId: json['_id']?.toString() ?? json['id']?.toString() ?? '',
@@ -245,24 +264,40 @@ class PropertyModel {
               (json['preferredTenants'] as List).map((e) => e.toString()),
             )
           : [],
-      petsAllowed: json['petsAllowed'] == true || json['petsAllowed']?.toString() == 'true',
-      smokingAllowed: json['smokingAllowed'] == true || json['smokingAllowed']?.toString() == 'true',
-      brokerageFree: json['brokerageFree'] == true || json['brokerageFree']?.toString() == 'true',
-      rentNegotiable: json['rentNegotiable'] == true || json['rentNegotiable']?.toString() == 'true',
+      petsAllowed:
+          json['petsAllowed'] == true ||
+          json['petsAllowed']?.toString() == 'true',
+      smokingAllowed:
+          json['smokingAllowed'] == true ||
+          json['smokingAllowed']?.toString() == 'true',
+      brokerageFree:
+          json['brokerageFree'] == true ||
+          json['brokerageFree']?.toString() == 'true',
+      rentNegotiable:
+          json['rentNegotiable'] == true ||
+          json['rentNegotiable']?.toString() == 'true',
       images: json['images'] is List
           ? List<String>.from((json['images'] as List).map((e) => e.toString()))
           : [],
       price: _toInt(json['price']),
       securityDeposit: _toInt(json['securityDeposit']),
       maintenanceCharges: _toInt(json['maintenanceCharges']),
-      maintenanceIncludedInRent: json['maintenanceIncludedInRent'] == true ||
+      maintenanceIncludedInRent:
+          json['maintenanceIncludedInRent'] == true ||
           json['maintenanceIncludedInRent']?.toString() == 'true',
       brokerageFee: _toInt(json['brokerageFee']),
       otherCharges: _toInt(json['otherCharges']),
-      vastuCompliant: json['vastuCompliant'] == true || json['vastuCompliant']?.toString() == 'true',
-      keyHandover: json['keyHandover'] == true || json['keyHandover']?.toString() == 'true',
-      openToAllBuyers: json['openToAllBuyers'] != false && json['openToAllBuyers']?.toString() != 'false',
-      loanAssistanceNeeded: json['loanAssistanceNeeded'] == true ||
+      vastuCompliant:
+          json['vastuCompliant'] == true ||
+          json['vastuCompliant']?.toString() == 'true',
+      keyHandover:
+          json['keyHandover'] == true ||
+          json['keyHandover']?.toString() == 'true',
+      openToAllBuyers:
+          json['openToAllBuyers'] != false &&
+          json['openToAllBuyers']?.toString() != 'false',
+      loanAssistanceNeeded:
+          json['loanAssistanceNeeded'] == true ||
           json['loanAssistanceNeeded']?.toString() == 'true',
       listingTier: json['listingTier']?.toString() ?? 'standard',
       owner: Owner.fromJson(
@@ -270,7 +305,9 @@ class PropertyModel {
       ),
       approvalStatus: json['approvalStatus']?.toString() ?? 'pending',
       isLive: json['isLive'] != false && json['isLive']?.toString() != 'false',
-      isVerified: json['isVerified'] == true || json['isVerified']?.toString() == 'true',
+      isVerified:
+          json['isVerified'] == true ||
+          json['isVerified']?.toString() == 'true',
       viewsCount: _toInt(json['viewsCount']),
       shortlistedCount: _toInt(json['shortlistedCount']),
       inquiriesCount: _toInt(json['inquiriesCount']),
@@ -282,6 +319,97 @@ class PropertyModel {
           ? DateTime.tryParse(json['updatedAt'].toString()) ?? DateTime.now()
           : DateTime.now(),
       submissionId: json['submissionId']?.toString() ?? '',
+      allowInstallments:
+          json['allowInstallments'] == true ||
+          json['allowInstallments']?.toString() == 'true',
+      installmentDetails: json['installmentDetails'] is Map<String, dynamic>
+          ? near.InstallmentDetails.fromJson(
+              json['installmentDetails'] as Map<String, dynamic>,
+            )
+          : null,
+      tokenAmount: _toInt(json['tokenAmount'] ?? json['bookingAmount']),
+    );
+  }
+
+  near.Property toProperty() {
+    return near.Property(
+      location: near.Location(
+        type: location.type,
+        coordinates: location.coordinates,
+      ),
+      id: id.isNotEmpty ? id : mongoId,
+      mongoId: mongoId.isNotEmpty ? mongoId : id,
+      listingAs: listingAs,
+      category: category,
+      listingFor: listingFor,
+      version: 0,
+      propertyType: propertyType,
+      title: title,
+      city: city,
+      locality: locality,
+      fullAddress: fullAddress,
+      pincode: pincode,
+      description: description,
+      bedrooms: bedrooms,
+      bathrooms: bathrooms,
+      carpetArea: carpetArea,
+      builtUpArea: builtUpArea,
+      floorNo: floorNo,
+      totalFloors: totalFloors,
+      ageOfProperty: ageOfProperty,
+      furnishing: furnishing,
+      facingDirection: facingDirection,
+      parking: parking,
+      amenities: amenities,
+      preferredTenants: preferredTenants,
+      petsAllowed: petsAllowed,
+      smokingAllowed: smokingAllowed,
+      brokerageFree: brokerageFree,
+      rentNegotiable: rentNegotiable,
+      images: images,
+      price: price,
+      securityDeposit: securityDeposit,
+      maintenanceCharges: maintenanceCharges,
+      maintenanceIncludedInRent: maintenanceIncludedInRent,
+      brokerageFee: brokerageFee,
+      otherCharges: otherCharges,
+      vastuCompliant: vastuCompliant,
+      keyHandover: keyHandover,
+      isVerified: isVerified,
+      openToAllBuyers: openToAllBuyers,
+      loanAssistanceNeeded: loanAssistanceNeeded,
+      listingTier: listingTier,
+      allowInstallments: allowInstallments,
+      installmentDetails: installmentDetails != null
+          ? near.InstallmentDetails(
+              downPaymentAmount: installmentDetails!.downPaymentAmount,
+              downPaymentPercentage: installmentDetails!.downPaymentPercentage,
+              numberOfInstallments: installmentDetails!.numberOfInstallments,
+              installmentFrequency: installmentDetails!.installmentFrequency,
+              installmentAmount: installmentDetails!.installmentAmount,
+              interestRate: installmentDetails!.interestRate,
+              installmentDurationMonths:
+                  installmentDetails!.installmentDurationMonths,
+              gracePeriodDays: installmentDetails!.gracePeriodDays,
+              termsAndConditions: installmentDetails!.termsAndConditions,
+            )
+          : null,
+      owner: near.Owner(
+        id: owner.id,
+        name: owner.name,
+        phone: owner.phone,
+        profilePicture: owner.profilePicture,
+        isVerified: owner.isVerified,
+      ),
+      approvalStatus: approvalStatus,
+      isLive: isLive,
+      viewsCount: viewsCount,
+      shortlistedCount: shortlistedCount,
+      inquiriesCount: inquiriesCount,
+      tokensCount: tokensCount,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      submissionId: submissionId,
     );
   }
 
@@ -338,6 +466,9 @@ class PropertyModel {
     'createdAt': createdAt.toIso8601String(),
     'updatedAt': updatedAt.toIso8601String(),
     'submissionId': submissionId,
+    'allowInstallments': allowInstallments,
+    'installmentDetails': installmentDetails?.toJson(),
+    'tokenAmount': tokenAmount,
   };
 
   static int _toInt(dynamic val) {
@@ -355,11 +486,13 @@ class PropertyModel {
       ageOfProperty.toLowerCase().contains('ready') ||
       ageOfProperty.trim() == '0';
 
-  String get locationLabel =>
-      locality.isNotEmpty ? '$locality, $city' : (city.isNotEmpty ? city : 'Location on request');
+  String get locationLabel => locality.isNotEmpty
+      ? '$locality, $city'
+      : (city.isNotEmpty ? city : 'Location on request');
 
-  String get bhkLabel =>
-      bedrooms.isNotEmpty && bedrooms != '0' ? '$bedrooms BHK' : (propertyType.isNotEmpty ? propertyType : 'Residential');
+  String get bhkLabel => bedrooms.isNotEmpty && bedrooms != '0'
+      ? '$bedrooms BHK'
+      : (propertyType.isNotEmpty ? propertyType : 'Residential');
 
   String get possessionLabel =>
       ageOfProperty.trim().isEmpty ? 'Ready to Move' : ageOfProperty;
@@ -430,7 +563,9 @@ class Owner {
       name: json['name']?.toString() ?? '',
       phone: json['phone']?.toString() ?? '',
       profilePicture: json['profilePicture']?.toString() ?? '',
-      isVerified: json['isVerified'] == true || json['isVerified']?.toString() == 'true',
+      isVerified:
+          json['isVerified'] == true ||
+          json['isVerified']?.toString() == 'true',
     );
   }
 

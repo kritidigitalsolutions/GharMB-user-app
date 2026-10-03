@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/developer/model/payload/review_payload.dart';
+import 'package:gharmb_app/features/developer/model/response/detail_developer_model.dart';
 import 'package:gharmb_app/features/developer/model/response/developer_reviews_response.dart';
+import 'package:gharmb_app/features/developer/providers/detail_developer_provider.dart';
 import 'package:gharmb_app/features/developer/providers/developer_provider.dart';
 import 'package:gharmb_app/features/developer/providers/enquiry_provider.dart';
 import 'package:gharmb_app/features/developer/providers/review_provider.dart';
@@ -26,11 +28,135 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
   @override
   Widget build(BuildContext context) {
     final selectedDev = ref.watch(selectedDeveloperProvider);
-    final dev = selectedDev ?? _defaultDeveloper;
     final devId = (widget.developerId != null && widget.developerId!.isNotEmpty)
         ? widget.developerId!
-        : dev.id;
+        : (selectedDev?.id ?? '');
 
+    if (devId.isEmpty) {
+      return Scaffold(
+        backgroundColor: AppColors.white,
+        appBar: AppBar(
+          backgroundColor: AppColors.white,
+          leading: const CustomBackButton(),
+          title: const Text('Developer Details'),
+        ),
+        body: const Center(child: Text('Developer ID is missing.')),
+      );
+    }
+
+    final devDetailAsync = ref.watch(developerDetailProvider(devId));
+
+    return devDetailAsync.when(
+      data: (detailRes) {
+        final Developer? apiDev = detailRes?.data.developer;
+        final name = apiDev?.companyName.isNotEmpty == true
+            ? apiDev!.companyName
+            : (apiDev?.name ?? selectedDev?.name ?? 'Developer');
+        final logo = apiDev?.logo.isNotEmpty == true
+            ? apiDev!.logo
+            : (apiDev?.profilePicture ?? '');
+        final city = apiDev?.cityOfOperation ?? selectedDev?.coverage ?? '';
+        final years = apiDev?.yearsInBusiness ?? selectedDev?.established ?? '';
+        final bio = apiDev?.bio.isNotEmpty == true
+            ? apiDev!.bio
+            : (selectedDev?.about ?? '');
+        final rating = apiDev?.rating ?? selectedDev?.rating ?? 0.0;
+        final reviewCount = apiDev?.reviewCount ?? 0;
+        final projectsCount = apiDev?.projectsCount ?? selectedDev?.projects ?? 0;
+        final unitsDelivered = apiDev?.unitsDelivered ?? '${selectedDev?.unitsDelivered ?? 0}';
+        final citiesCount = apiDev?.citiesCount ?? selectedDev?.cities ?? 0;
+        final isIsoCertified = apiDev?.isIsoCertified ?? selectedDev?.isoCertified ?? false;
+
+        return _buildContent(
+          context: context,
+          devId: devId,
+          name: name,
+          logo: logo,
+          city: city,
+          years: years,
+          bio: bio,
+          initialRating: rating,
+          initialReviewCount: reviewCount,
+          projectsCount: projectsCount,
+          unitsDelivered: unitsDelivered,
+          citiesCount: citiesCount,
+          isIsoCertified: isIsoCertified,
+        );
+      },
+      loading: () => Scaffold(
+        backgroundColor: AppColors.white,
+        appBar: AppBar(
+          backgroundColor: AppColors.white,
+          leading: const CustomBackButton(),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
+      ),
+      error: (e, _) {
+        if (selectedDev != null) {
+          return _buildContent(
+            context: context,
+            devId: devId,
+            name: selectedDev.name,
+            logo: '',
+            city: selectedDev.coverage,
+            years: selectedDev.established,
+            bio: selectedDev.about,
+            initialRating: selectedDev.rating,
+            initialReviewCount: 0,
+            projectsCount: selectedDev.projects,
+            unitsDelivered: '${selectedDev.unitsDelivered}',
+            citiesCount: selectedDev.cities,
+            isIsoCertified: selectedDev.isoCertified,
+          );
+        }
+        return Scaffold(
+          backgroundColor: AppColors.white,
+          appBar: AppBar(
+            backgroundColor: AppColors.white,
+            leading: const CustomBackButton(),
+            title: const Text('Developer Details'),
+          ),
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                const SizedBox(height: 12),
+                Text('Could not load developer details', style: text14()),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () =>
+                      ref.refresh(developerDetailProvider(devId)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                  ),
+                  child: Text('Retry', style: text14(color: AppColors.white)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildContent({
+    required BuildContext context,
+    required String devId,
+    required String name,
+    required String logo,
+    required String city,
+    required String years,
+    required String bio,
+    required double initialRating,
+    required int initialReviewCount,
+    required int projectsCount,
+    required String unitsDelivered,
+    required int citiesCount,
+    required bool isIsoCertified,
+  }) {
     final reviewsAsync = ref.watch(developerReviewsProvider(devId));
     final wishlistState = ref.watch(wishlistProvider);
     final isWishlisted = wishlistState.items.any(
@@ -38,18 +164,25 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
     );
 
     final stats = reviewsAsync.value?.stats;
-    final avgRating = stats?.averageRating ?? dev.rating;
+    final avgRating = stats?.averageRating ?? initialRating;
     final totalCount = stats != null
         ? '${stats.totalReviews} reviews'
-        : dev.reviewCount;
+        : (initialReviewCount > 0 ? '$initialReviewCount reviews' : '0 reviews');
 
-    // Dynamic rating breakdown (5,4,3,2,1 stars)
+    // Dynamic rating breakdown
     final ratingBreakdown = [5, 4, 3, 2, 1].map((s) {
-      final fraction = stats != null
-          ? stats.fractionForStar(s)
-          : (s == 5 ? 0.7 : s == 4 ? 0.2 : 0.05);
+      final fraction = stats != null ? stats.fractionForStar(s) : 0.0;
       return _RatingBar(stars: s, fraction: fraction);
     }).toList();
+
+    final hasSubtitle = city.isNotEmpty || years.isNotEmpty;
+    final subtitleText = [
+      if (city.isNotEmpty) city,
+      if (years.isNotEmpty) 'Est. $years',
+    ].join(' · ');
+
+    final hasUnits = unitsDelivered.isNotEmpty && unitsDelivered != '0';
+    final hasStats = projectsCount > 0 || hasUnits || citiesCount > 0;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -68,8 +201,10 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          dev.name,
+                          name,
                           style: text18(fontWeight: FontWeight.bold),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           'Developer profile',
@@ -92,8 +227,8 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
                           context,
                           title: added ? 'Wishlisted!' : 'Removed',
                           message: added
-                              ? '${dev.name} added to your wishlist'
-                              : '${dev.name} removed from wishlist',
+                              ? '$name added to your wishlist'
+                              : '$name removed from wishlist',
                         );
                       }
                     },
@@ -156,12 +291,28 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: AppColors.grey200),
                                 ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.construction,
-                                    color: Color(0xFF8B6914),
-                                    size: 30,
-                                  ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(9),
+                                  child: logo.isNotEmpty
+                                      ? Image.network(
+                                          logo,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) =>
+                                              const Center(
+                                            child: Icon(
+                                              Icons.construction,
+                                              color: Color(0xFF8B6914),
+                                              size: 30,
+                                            ),
+                                          ),
+                                        )
+                                      : const Center(
+                                          child: Icon(
+                                            Icons.construction,
+                                            color: Color(0xFF8B6914),
+                                            size: 30,
+                                          ),
+                                        ),
                                 ),
                               ),
                               const SizedBox(width: 14),
@@ -170,18 +321,20 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      dev.name,
+                                      name,
                                       style: text16(
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      'Pan India · ${dev.established}',
-                                      style: text12(
-                                        color: AppColors.textSecondary,
+                                    if (hasSubtitle) ...[
+                                      const SizedBox(height: 3),
+                                      Text(
+                                        subtitleText,
+                                        style: text12(
+                                          color: AppColors.textSecondary,
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                     const SizedBox(height: 5),
                                     Row(
                                       children: [
@@ -211,59 +364,72 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
 
-                          // 3-stat chips
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _StatChip(
-                                  value: '${dev.projects}+',
-                                  label: 'Projects',
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _StatChip(
-                                  value:
-                                      '${(dev.unitsDelivered / 1000).toStringAsFixed(0)}K+',
-                                  label: 'Units delivered',
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _StatChip(
-                                  value: '${dev.cities}',
-                                  label: 'Cities',
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
+                          // Stat chips
+                          if (hasStats) ...[
+                            const SizedBox(height: 14),
+                            Row(
+                              children: [
+                                if (projectsCount > 0)
+                                  Expanded(
+                                    child: _StatChip(
+                                      value: '$projectsCount+',
+                                      label: 'Projects',
+                                    ),
+                                  ),
+                                if (projectsCount > 0 && hasUnits)
+                                  const SizedBox(width: 8),
+                                if (hasUnits)
+                                  Expanded(
+                                    child: _StatChip(
+                                      value: unitsDelivered,
+                                      label: 'Units delivered',
+                                    ),
+                                  ),
+                                if ((projectsCount > 0 || hasUnits) &&
+                                    citiesCount > 0)
+                                  const SizedBox(width: 8),
+                                if (citiesCount > 0)
+                                  Expanded(
+                                    child: _StatChip(
+                                      value: '$citiesCount',
+                                      label: 'Cities',
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
 
                           // Badges row
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              if (dev.reraApproved) const _SmallBadge(label: 'RERA'),
-                              if (dev.isoCertified)
-                                const _SmallBadge(label: 'ISO certified'),
-                              if (dev.bseListed)
-                                const _SmallBadge(label: 'BSE Listed'),
-                            ],
-                          ),
+                          if (isIsoCertified) ...[
+                            const SizedBox(height: 12),
+                            const Wrap(
+                              spacing: 8,
+                              children: [
+                                _SmallBadge(label: 'ISO certified'),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
 
                     // ── About ────────────────────────────────────────
-                    Text(
-                      dev.about,
-                      style: text13(
-                        color: AppColors.textSecondary,
-                      ).copyWith(height: 1.6),
-                    ),
+                    if (bio.trim().isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Text(
+                        'About Developer',
+                        style: text16(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        bio.trim(),
+                        style: text13(
+                          color: AppColors.textSecondary,
+                        ).copyWith(height: 1.6),
+                      ),
+                    ],
+
                     const SizedBox(height: 20),
 
                     // ── Action Buttons Row ───────────────────────────
@@ -327,61 +493,63 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Rating summary card
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF1EB),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Big rating
-                          Column(
-                            children: [
-                              Text(
-                                avgRating.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  fontSize: 42,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: List.generate(
-                                  5,
-                                  (i) => Icon(
-                                    i < avgRating.floor()
-                                        ? Icons.star_rounded
-                                        : Icons.star_border_rounded,
-                                    color: AppColors.yellow,
-                                    size: 16,
+                    // Rating summary card (only if rating or reviews exist)
+                    if (stats != null && stats.totalReviews > 0) ...[
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF1EB),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Big rating
+                            Column(
+                              children: [
+                                Text(
+                                  avgRating.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                    fontSize: 42,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                totalCount,
-                                style: text11(color: AppColors.textSecondary),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 20),
-
-                          // Rating bars
-                          Expanded(
-                            child: Column(
-                              children: ratingBreakdown
-                                  .map((r) => _RatingBarRow(data: r))
-                                  .toList(),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: List.generate(
+                                    5,
+                                    (i) => Icon(
+                                      i < avgRating.floor()
+                                          ? Icons.star_rounded
+                                          : Icons.star_border_rounded,
+                                      color: AppColors.yellow,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  totalCount,
+                                  style: text11(color: AppColors.textSecondary),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 20),
+
+                            // Rating bars
+                            Expanded(
+                              child: Column(
+                                children: ratingBreakdown
+                                    .map((r) => _RatingBarRow(data: r))
+                                    .toList(),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 14),
+                      const SizedBox(height: 14),
+                    ],
 
                     // ── Review Cards ─────────────────────────────────
                     reviewsAsync.when(
@@ -435,15 +603,22 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
                         padding: EdgeInsets.symmetric(vertical: 20),
                         child: Center(child: CircularProgressIndicator()),
                       ),
-                      error: (_, __) => Column(
-                        children: dev.reviews
-                            .map(
-                              (r) => Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _ReviewCard(review: r),
-                              ),
-                            )
-                            .toList(),
+                      error: (_, __) => Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 20,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.grey100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'No reviews available',
+                            style: text13(color: AppColors.textSecondary),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -538,8 +713,7 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
                           : ElevatedButton(
                               onPressed: () async {
                                 final message = messageController.text.trim();
-                                if (developerId.isEmpty ||
-                                    developerId == 'default') {
+                                if (developerId.isEmpty) {
                                   AppSnackBar.showWarning(
                                     context,
                                     title: 'Invalid Developer',
@@ -822,8 +996,7 @@ class _DeveloperDetailPageState extends ConsumerState<DeveloperDetailPage> {
                           ? const Center(child: CircularProgressIndicator())
                           : ElevatedButton(
                               onPressed: () async {
-                                if (developerId.isEmpty ||
-                                    developerId == 'default') {
+                                if (developerId.isEmpty) {
                                   AppSnackBar.showWarning(
                                     context,
                                     title: 'Invalid Developer',
@@ -1169,125 +1342,3 @@ class _DeveloperReviewCard extends StatelessWidget {
     );
   }
 }
-
-// ─── Review Card (Fallback) ──────────────────────────────────────────────────
-
-class _ReviewCard extends StatelessWidget {
-  final ReviewModel review;
-  const _ReviewCard({required this.review});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.grey200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              // Avatar
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.blue.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    review.initials,
-                    style: text12(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.blue,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  review.name,
-                  style: text14(fontWeight: FontWeight.w600),
-                ),
-              ),
-              // Star rating
-              Row(
-                children: List.generate(
-                  5,
-                  (i) => Icon(
-                    i < review.rating.floor()
-                        ? Icons.star_rounded
-                        : Icons.star_border_rounded,
-                    color: AppColors.yellow,
-                    size: 14,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            review.review,
-            style: text13(color: AppColors.textSecondary).copyWith(height: 1.5),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Text(
-                review.projectBought,
-                style: text11(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const Spacer(),
-              Text(review.timeAgo, style: text11(color: AppColors.hintText)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Fallback developer ───────────────────────────────────────────────────────
-
-const _defaultDeveloper = DeveloperModel(
-  id: 'default',
-  name: 'Godrej Properties',
-  coverage: 'Pan India · 80+ projects',
-  projects: 80,
-  rating: 4.9,
-  reviewCount: '12K reviews',
-  reraApproved: true,
-  isoCertified: true,
-  bseListed: true,
-  established: 'Est. 1990 · BSE listed',
-  unitsDelivered: 15000,
-  cities: 12,
-  about:
-      'Godrej Properties brings the Godrej Group philosophy of innovation, sustainability and excellence to the real estate industry. They have won over 250 awards for excellence in construction, design and delivery. All projects are IGBC green-rated.',
-  reviews: [
-    ReviewModel(
-      name: 'Anil Verma',
-      initials: 'AV',
-      rating: 5.0,
-      review:
-          'Excellent construction quality. Delivered on time. The admin team at NestKey made the entire process smooth.',
-      projectBought: 'Bought Godrej Meridian',
-      timeAgo: '2 weeks ago',
-    ),
-  ],
-);

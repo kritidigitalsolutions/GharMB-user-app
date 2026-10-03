@@ -1,12 +1,14 @@
 import 'dart:convert';
 
 import 'package:gharmb_app/features/auth/models/response/auth_response_model.dart';
+import 'package:gharmb_app/features/auth/models/response/refresh_token_response_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorageService {
   LocalStorageService._();
 
   static const String _tokenKey = "auth_token";
+  static const String _refreshTokenKey = "refresh_token";
   static const String _userKey = "auth_user";
   static const String _authResponseKey = "auth_response";
 
@@ -28,9 +30,48 @@ class LocalStorageService {
     await prefs.setString(_authResponseKey, jsonEncode(response.toJson()));
   }
 
+  static Future<void> saveRefreshTokenResponse(
+    RefreshTokenResponseModel response,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final token = response.effectiveToken;
+    final refreshToken = response.effectiveRefreshToken;
+    final user = response.effectiveUser;
+
+    if (token != null && token.isNotEmpty) {
+      await prefs.setString(_tokenKey, token);
+    }
+
+    if (refreshToken != null && refreshToken.isNotEmpty) {
+      await prefs.setString(_refreshTokenKey, refreshToken);
+    }
+
+    if (user != null) {
+      await prefs.setString(_userKey, jsonEncode(user.toJson()));
+    }
+
+    await prefs.setString(_authResponseKey, jsonEncode(response.toJson()));
+  }
+
+  static Future<void> saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
+  }
+
+  static Future<void> saveRefreshToken(String refreshToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_refreshTokenKey, refreshToken);
+  }
+
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_tokenKey);
+  }
+
+  static Future<String?> getRefreshToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_refreshTokenKey);
   }
 
   static Future<AuthUserModel?> getUser() async {
@@ -92,6 +133,7 @@ class LocalStorageService {
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.remove(_tokenKey);
+    await prefs.remove(_refreshTokenKey);
     await prefs.remove(_userKey);
     await prefs.remove(_authResponseKey);
   }
@@ -107,8 +149,12 @@ class LocalStorageService {
       name: currentUser.name,
       email: currentUser.email,
       phone: currentUser.phone,
+      role: currentUser.role,
+      profilePicture: currentUser.profilePicture,
+      authProvider: currentUser.authProvider,
       address: currentUser.address,
       location: currentUser.location,
+      isBasicInfoCompleted: currentUser.isBasicInfoCompleted,
       isOnboardingCompleted: isCompleted,
     );
 

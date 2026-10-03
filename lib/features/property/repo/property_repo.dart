@@ -150,4 +150,25 @@ class PropertyRepo {
       throw FetchDataException("Failed to fetch verified properties: $e");
     }
   }
+
+  Future<Property?> getPropertyById(String id) async {
+    try {
+      final res = await _api.getApi(AppUrls.propertyDetail(id: id));
+      if (res is Map<String, dynamic>) {
+        if (res['data'] is Map<String, dynamic>) {
+          final propMap = res['data']['property'] ?? res['data'];
+          if (propMap is Map<String, dynamic>) {
+            return Property.fromJson(propMap);
+          }
+        }
+        if (res['property'] is Map<String, dynamic>) {
+          return Property.fromJson(res['property']);
+        }
+      }
+      return null;
+    } catch (e) {
+      print("Unexpected error in getPropertyById: $e");
+      return null;
+    }
+  }
 }

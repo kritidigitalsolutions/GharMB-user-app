@@ -111,6 +111,9 @@ class AuthUserModel {
   final String? name;
   final String? email;
   final String? phone;
+  final String? role;
+  final String? profilePicture;
+  final String? authProvider;
   final AddressModel? address;
   final LocationModel? location;
   final bool? isBasicInfoCompleted;
@@ -121,6 +124,9 @@ class AuthUserModel {
     this.name,
     this.email,
     this.phone,
+    this.role,
+    this.profilePicture,
+    this.authProvider,
     this.address,
     this.location,
     this.isBasicInfoCompleted,
@@ -133,6 +139,9 @@ class AuthUserModel {
       name: json["name"]?.toString(),
       email: json["email"]?.toString(),
       phone: json["phone"]?.toString(),
+      role: json["role"]?.toString(),
+      profilePicture: json["profilePicture"]?.toString(),
+      authProvider: json["authProvider"]?.toString(),
       address: json["address"] is Map
           ? AddressModel.fromJson(Map<String, dynamic>.from(json["address"]))
           : null,
@@ -154,6 +163,9 @@ class AuthUserModel {
       "name": name,
       "email": email,
       "phone": phone,
+      "role": role,
+      "profilePicture": profilePicture,
+      "authProvider": authProvider,
       "address": address?.toJson(),
       "location": location?.toJson(),
       "isBasicInfoCompleted": isBasicInfoCompleted,

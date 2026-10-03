@@ -1,6 +1,6 @@
 class AppUrls {
   // static const serverUrl = "https://server.gharmb.com";
-  static const serverUrl = "http://192.168.1.32:5001";
+  static const serverUrl = "https://ghar-mb-backend.vercel.app";
   static const baseUrl = "$serverUrl/api";
 
   // --------------------------------------
@@ -12,14 +12,19 @@ class AppUrls {
   static const verifyOtp = "$baseUrl/user/auth/verify-otp";
   static const googleAuth = "$baseUrl/user/auth/google";
   static const basicInfo = "$baseUrl/user/auth/basic-info";
+  static const refreshToken = "$baseUrl/user/auth/refresh-token";
   static const addProperties = "$baseUrl/user/properties";
   static const dashBoardUrl = "$baseUrl/properties/my-dashboard";
-  static const commercialDashboardUrl = "$baseUrl/commercial-spaces/my-dashboard";
+  static const commercialDashboardUrl =
+      "$baseUrl/commercial-spaces/my-dashboard";
   static const getProfile = "$baseUrl/users/me";
+  static const verificationStatus = "$baseUrl/user/users/verification-status";
   static const agentRegister = "$baseUrl/user/users/register-agent";
   static const uploadFile = "$baseUrl/user/upload/multiple";
   static const developerRegister = "$baseUrl/user/users/register-developer";
   static const allProperties = "$baseUrl/properties";
+  static String propertyDetail({required String id}) =>
+      "$baseUrl/properties/$id";
   static String verifiedProperties({
     int page = 1,
     int limit = 20,
@@ -77,6 +82,7 @@ class AppUrls {
     final query = Uri(queryParameters: params).query;
     return '$baseUrl/properties/latest?$query';
   }
+
   static String commercialProperties({
     String? category = 'commercial',
     String? listingFor,
@@ -250,4 +256,61 @@ class AppUrls {
   static String checkWishlist({required String id}) =>
       "$baseUrl/wishlist/check/$id";
   static String removeWishlist({required String id}) => "$baseUrl/wishlist/$id";
+
+  // --------------------------------------
+  // Site Visit Requests
+  // --------------------------------------
+  static const scheduleVisit = "$baseUrl/user/visit-requests";
+  static String propertyScheduleVisit({required String id}) =>
+      "$baseUrl/properties/$id/schedule-visit";
+  static String receivedVisitRequests({
+    String? status,
+    String? propertyId,
+    int page = 1,
+    int limit = 20,
+  }) {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+      if (status != null && status.isNotEmpty && status.toLowerCase() != 'all')
+        'status': status.toLowerCase(),
+      if (propertyId != null && propertyId.isNotEmpty) 'propertyId': propertyId,
+    };
+    final query = Uri(queryParameters: params).query;
+    return '$baseUrl/user/visit-requests?$query';
+  }
+
+  static String myVisitRequests({
+    String? status,
+    int page = 1,
+    int limit = 20,
+  }) {
+    final params = <String, String>{
+      'page': page.toString(),
+      'limit': limit.toString(),
+      if (status != null && status.isNotEmpty && status.toLowerCase() != 'all')
+        'status': status.toLowerCase(),
+    };
+    final query = Uri(queryParameters: params).query;
+    return '$baseUrl/user/visit-requests/my-visits?$query';
+  }
+
+  static String visitRequestDetail({required String id}) =>
+      "$baseUrl/user/visit-requests/$id";
+  static String acceptVisitRequest({required String id}) =>
+      "$baseUrl/user/visit-requests/$id/accept";
+  static String rejectVisitRequest({required String id}) =>
+      "$baseUrl/user/visit-requests/$id/reject";
+
+  // --------------------------------------
+  // Token Bookings (Escrow Reserve)
+  // --------------------------------------
+  static String tokenConfig({required String propertyId}) =>
+      "$baseUrl/tokens/config?propertyId=$propertyId";
+  static const tokenBooking = "$baseUrl/tokens";
+  static const uploadSingle = "$baseUrl/upload/single";
+  static String myTokenRequests({int page = 1, int limit = 10}) =>
+      "$baseUrl/tokens/my-requests?page=$page&limit=$limit";
+  static String cancelTokenBooking({required String id}) =>
+      "$baseUrl/tokens/$id/cancel";
 }

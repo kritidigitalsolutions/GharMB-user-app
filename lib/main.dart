@@ -3,14 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
+import 'package:gharmb_app/features/auth/models/response/auth_response_model.dart';
 import 'package:gharmb_app/features/home/providers/home_provider.dart';
 import 'package:gharmb_app/features/home/views/home_screen.dart';
 import 'package:gharmb_app/features/home/views/wishlist_page.dart';
 import 'package:gharmb_app/features/profile/views/profile_screen.dart';
 import 'package:gharmb_app/features/project/views/project_list_page.dart';
 import 'package:gharmb_app/features/property/views/add_property/property_list_type.dart';
+import 'package:gharmb_app/routes/app_page.dart';
 import 'package:gharmb_app/routes/app_routes.dart';
 import 'package:gharmb_app/shared/bottom_nav_bar/bottom_nav_bar.dart';
+import 'package:go_router/go_router.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -82,6 +86,128 @@ class _MyHomePageState extends ConsumerState<MyHomePage> {
         ref.read(currentIndexProvider.notifier).state = widget.initialIndex!;
       });
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkOnboardingStatus();
+    });
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    final user = await LocalStorageService.getUser();
+    final bool isOnboardingCompleted = user?.isOnboardingCompleted ?? false;
+    if (!isOnboardingCompleted && mounted) {
+      _showCompleteProfileDialog(context, user);
+    }
+  }
+
+  void _showCompleteProfileDialog(BuildContext context, AuthUserModel? user) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.55),
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.person_pin_rounded,
+                  color: AppColors.primary,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Complete Your Profile',
+                style: text18(fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Your profile setup is incomplete. Complete your profile to get personalized property recommendations and seamless booking.',
+                style: text13(color: AppColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.grey300),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                      child: Text(
+                        'Later',
+                        style: text14(
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(ctx).pop();
+                        final bool isBasicDone =
+                            user?.isBasicInfoCompleted ?? false;
+                        if (!isBasicDone) {
+                          context.pushNamed(AppPage.basicInfoName);
+                        } else {
+                          context.pushNamed(AppPage.roleSelectionName);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        elevation: 0,
+                      ),
+                      child: Text(
+                        'Complete Now',
+                        style: text14(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<bool?> _showExitDialog(BuildContext context) {

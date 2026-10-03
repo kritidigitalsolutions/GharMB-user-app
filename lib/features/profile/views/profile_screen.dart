@@ -83,6 +83,13 @@ class ProfilePage extends ConsumerWidget {
         ),
       ],
       const _ToolItem(
+        title: 'Site Visits',
+        subtitle: 'Manage & track property visits',
+        icon: Icons.calendar_month_outlined,
+        iconColor: Color(0xFF00897B),
+        bgColor: Color(0xFFE0F2F1),
+      ),
+      const _ToolItem(
         title: 'Loan Calculator',
         subtitle: 'Calculate your home loan',
         icon: Icons.calculate_outlined,
@@ -263,8 +270,12 @@ class ProfilePage extends ConsumerWidget {
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(userProfileDataProvider);
+          ref.invalidate(verificationStatusProvider);
           try {
-            await ref.read(userProfileDataProvider.future);
+            await Future.wait([
+              ref.read(userProfileDataProvider.future),
+              ref.read(verificationStatusProvider.future),
+            ]);
           } catch (_) {}
         },
         color: AppColors.primary,
@@ -646,6 +657,9 @@ void _handleToolTap(BuildContext context, String title, UserModel? user) {
       break;
     case 'Invite Friends':
       context.pushNamed(AppPage.inviteFriendsName);
+      break;
+    case 'Site Visits':
+      context.pushNamed(AppPage.siteVisitsName);
       break;
     case 'Loan Calculator':
       context.pushNamed(AppPage.loanCalculatorName);

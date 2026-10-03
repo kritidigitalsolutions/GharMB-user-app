@@ -1,53 +1,49 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
+import 'package:gharmb_app/features/property/models/token_booking_model.dart';
 import 'package:gharmb_app/routes/app_page.dart';
 import 'package:go_router/go_router.dart';
 
-// ─── Model ────────────────────────────────────────────────────────────────────
+class PropertyReservedPage extends StatelessWidget {
+  final TokenRequestItem? tokenRequest;
+  final int? tokenAmount;
+  final String? propertyId;
+  final String? propertyTitle;
 
-class ReservationDetails {
-  final int tokenAmount;
-  final String validFor;
-  final String propertyId;
-
-  const ReservationDetails({
-    this.tokenAmount = 5000,
-    this.validFor = '48 Hours',
-    this.propertyId = 'GHARMB-28491',
+  const PropertyReservedPage({
+    super.key,
+    this.tokenRequest,
+    this.tokenAmount,
+    this.propertyId,
+    this.propertyTitle,
   });
-}
-
-final reservationProvider = Provider<ReservationDetails>(
-  (_) => const ReservationDetails(),
-);
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
-
-class PropertyReservedPage extends ConsumerWidget {
-  const PropertyReservedPage({super.key});
 
   void _goHome(BuildContext context) {
     context.goNamed(AppPage.myHomeName);
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final details = ref.watch(reservationProvider);
+  Widget build(BuildContext context) {
+    final displayAmount = tokenRequest?.tokenAmount ?? tokenAmount ?? 2000;
+    final displayRequestId =
+        tokenRequest?.tokenRequestId ?? '#TKN-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+    final displayPropId = tokenRequest?.propertyId.isNotEmpty == true
+        ? tokenRequest!.propertyId
+        : (propertyId?.isNotEmpty == true ? propertyId! : 'GHARMB-RESERVED');
+    final escrowStatus = tokenRequest?.escrowStatus ?? 'Escrow Held';
 
     return PopScope(
-      // Disable back gesture/button — user must use "Go to Home"
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _goHome(context);
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5F5F5),
+        backgroundColor: const Color(0xFFF8FAFC),
         body: SafeArea(
           child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -63,7 +59,7 @@ class PropertyReservedPage extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.07),
+                          color: Colors.black.withOpacity(0.06),
                           blurRadius: 20,
                           offset: const Offset(0, 6),
                         ),
@@ -77,15 +73,16 @@ class PropertyReservedPage extends ConsumerWidget {
                           child: Column(
                             children: [
                               Text(
-                                'Property Reserved!',
+                                'Property Reserved in Escrow!',
                                 style: text20(
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.success,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Your token has been received successfully',
+                                'Your token has been secured. Pending owner confirmation.',
                                 style: text13(color: AppColors.textSecondary),
                                 textAlign: TextAlign.center,
                               ),
@@ -102,22 +99,34 @@ class PropertyReservedPage extends ConsumerWidget {
                           child: Column(
                             children: [
                               _DetailRow(
+                                label: 'Booking Request ID',
+                                value: displayRequestId,
+                                valueStyle: text14(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _DetailRow(
                                 label: 'Token Amount',
-                                value: '₹${_formatAmount(details.tokenAmount)}',
+                                value: '₹${_formatAmount(displayAmount)}',
                                 valueStyle: text14(fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 16),
                               _DetailRow(
-                                label: 'Reservation Valid For',
-                                value: details.validFor,
-                                valueStyle: text14(fontWeight: FontWeight.w600),
+                                label: 'Escrow Status',
+                                value: escrowStatus,
+                                valueStyle: text13(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.success,
+                                ),
                               ),
                               const SizedBox(height: 16),
                               _DetailRow(
                                 label: 'Property ID',
-                                value: details.propertyId,
-                                valueStyle: text14(
-                                  fontWeight: FontWeight.bold,
+                                value: displayPropId,
+                                valueStyle: text13(
+                                  fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary,
                                 ),
                               ),
@@ -134,7 +143,7 @@ class PropertyReservedPage extends ConsumerWidget {
                           ),
                         ),
 
-                        // Gmail notification note
+                        // Notification note
                         Padding(
                           padding: const EdgeInsets.all(20),
                           child: Row(
@@ -147,12 +156,18 @@ class PropertyReservedPage extends ConsumerWidget {
                                   color: AppColors.grey50,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Center(child: _GmailIcon()),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.mark_email_read_outlined,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  'You will receive a confirmation on your registered mobile number and email',
+                                  'A confirmation has been sent to your registered mobile and email address.',
                                   style: text12(
                                     color: AppColors.textSecondary,
                                   ).copyWith(height: 1.5),
@@ -260,79 +275,15 @@ class _DetailRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: text13(color: AppColors.textSecondary)),
-        Text(value, style: valueStyle),
+        Flexible(
+          child: Text(
+            value,
+            style: valueStyle,
+            textAlign: TextAlign.end,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }
-}
-
-// ─── Gmail M Icon (custom painted) ───────────────────────────────────────────
-
-class _GmailIcon extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(size: const Size(22, 16), painter: _GmailPainter());
-  }
-}
-
-class _GmailPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-
-    // Envelope background
-    final bgPaint = Paint()..color = Colors.white;
-    // final borderPaint = Paint()
-    //   ..color = const Color(0xFFEA4335)
-    //   ..style = PaintingStyle.stroke
-    //   ..strokeWidth = 1.2;
-
-    final rect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, w, h),
-      const Radius.circular(2),
-    );
-    canvas.drawRRect(rect, bgPaint);
-
-    // Red left flap
-    final leftPaint = Paint()..color = const Color(0xFFEA4335);
-    final leftPath = Path()
-      ..moveTo(0, 0)
-      ..lineTo(w * 0.38, h * 0.5)
-      ..lineTo(0, h)
-      ..close();
-    canvas.drawPath(leftPath, leftPaint);
-
-    // Blue right flap
-    final rightPaint = Paint()..color = const Color(0xFF4285F4);
-    final rightPath = Path()
-      ..moveTo(w, 0)
-      ..lineTo(w * 0.62, h * 0.5)
-      ..lineTo(w, h)
-      ..close();
-    canvas.drawPath(rightPath, rightPaint);
-
-    // Yellow/green bottom flap
-    final bottomPaint = Paint()..color = const Color(0xFF34A853);
-    final bottomPath = Path()
-      ..moveTo(0, h)
-      ..lineTo(w * 0.38, h * 0.5)
-      ..lineTo(w * 0.5, h * 0.62)
-      ..lineTo(w * 0.62, h * 0.5)
-      ..lineTo(w, h)
-      ..close();
-    canvas.drawPath(bottomPath, bottomPaint);
-
-    // Red top M shape
-    final mPaint = Paint()..color = const Color(0xFFEA4335);
-    final mPath = Path()
-      ..moveTo(0, 0)
-      ..lineTo(w * 0.5, h * 0.52)
-      ..lineTo(w, 0)
-      ..close();
-    canvas.drawPath(mPath, mPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter _) => false;
 }

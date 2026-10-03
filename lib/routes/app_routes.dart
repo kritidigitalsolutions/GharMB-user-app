@@ -32,6 +32,7 @@ import 'package:gharmb_app/features/profile/views/my_property_view_Page.dart';
 import 'package:gharmb_app/features/profile/views/my_project_page.dart';
 import 'package:gharmb_app/features/profile/views/privacy_policy_page.dart';
 import 'package:gharmb_app/features/profile/views/profile_edit_page.dart';
+import 'package:gharmb_app/features/profile/views/site_visits/site_visits_page.dart';
 import 'package:gharmb_app/features/profile/views/term_and_condtion_page.dart';
 import 'package:gharmb_app/features/profile/views/token/decision_page.dart';
 import 'package:gharmb_app/features/profile/views/token/token_details.dart';
@@ -39,6 +40,7 @@ import 'package:gharmb_app/features/profile/views/token/token_requested_page.dar
 import 'package:gharmb_app/features/profile/views/unit_converter_page.dart';
 import 'package:gharmb_app/features/project/views/project_details_page.dart';
 import 'package:gharmb_app/features/property/models/response/near_properties_response.dart';
+import 'package:gharmb_app/features/property/models/token_booking_model.dart';
 import 'package:gharmb_app/features/property/views/add_property/basic_details_Page.dart';
 import 'package:gharmb_app/features/property/views/add_property/photo_upload_screen.dart';
 import 'package:gharmb_app/features/property/views/add_property/pricing_preference_Page.dart';
@@ -160,20 +162,74 @@ class AppRouter {
       GoRoute(
         name: AppPage.propertyDetailsName,
         path: AppPage.propertyDetails,
-        builder: (context, state) =>
-            PropertyDetailPage(propertyId: state.extra?.toString()),
+        builder: (context, state) {
+          if (state.extra is Property) {
+            return PropertyDetailPage(
+              property: state.extra as Property,
+              propertyId: (state.extra as Property).id,
+            );
+          }
+          final id = state.extra?.toString() ?? state.uri.queryParameters['id'];
+          return PropertyDetailPage(propertyId: id);
+        },
       ),
 
       GoRoute(
         name: AppPage.bookByTokenName,
         path: AppPage.bookByToken,
-        builder: (context, state) => BookWithTokenPage(),
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is Property) {
+            return BookWithTokenPage(property: extra);
+          } else if (extra is String && extra.isNotEmpty) {
+            return BookWithTokenPage(propertyId: extra);
+          } else if (extra is Map) {
+            final map = Map<String, dynamic>.from(extra);
+            return BookWithTokenPage(
+              propertyId: (map['propertyId'] ?? map['_id'] ?? map['id'])?.toString(),
+              monthlyRent: (map['monthlyRent'] ?? map['price']) as int? ?? 28000,
+              propertyTitle: (map['title'] ?? map['name'])?.toString(),
+            );
+          } else if (extra != null) {
+            try {
+              final dynamic d = extra;
+              final propId = d.id?.toString() ?? d.mongoId?.toString() ?? '';
+              final rent = (d.price is int) ? d.price as int : 28000;
+              final title = d.title?.toString() ?? d.name?.toString();
+              return BookWithTokenPage(
+                propertyId: propId,
+                monthlyRent: rent,
+                propertyTitle: title,
+              );
+            } catch (_) {}
+          }
+          final qId =
+              state.uri.queryParameters['propertyId'] ??
+              state.uri.queryParameters['id'] ??
+              '';
+          return BookWithTokenPage(propertyId: qId);
+        },
       ),
 
       GoRoute(
         name: AppPage.propertyReservedName,
         path: AppPage.propertyReserved,
-        builder: (context, state) => PropertyReservedPage(),
+        builder: (context, state) {
+          if (state.extra is TokenRequestItem) {
+            return PropertyReservedPage(
+              tokenRequest: state.extra as TokenRequestItem,
+            );
+          } else if (state.extra is Map<String, dynamic>) {
+            final map = state.extra as Map<String, dynamic>;
+            return PropertyReservedPage(
+              tokenRequest: map['tokenRequest'] as TokenRequestItem?,
+              tokenAmount: map['tokenAmount'] as int?,
+              propertyId: map['propertyId']?.toString(),
+              propertyTitle: map['propertyTitle']?.toString(),
+            );
+          }
+          return const PropertyReservedPage();
+        },
       ),
 
       GoRoute(
@@ -249,6 +305,12 @@ class AppRouter {
         name: AppPage.myPropertyDetailsName,
         path: AppPage.myPropertyDetails,
         builder: (_, _) => const MyPropertyDetailsPage(),
+      ),
+
+      GoRoute(
+        name: AppPage.siteVisitsName,
+        path: AppPage.siteVisits,
+        builder: (_, _) => const SiteVisitsPage(),
       ),
 
       // =====================================================

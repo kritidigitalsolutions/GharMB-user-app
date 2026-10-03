@@ -6,9 +6,31 @@ import 'package:gharmb_app/features/auth/models/request/upload_request.dart';
 import 'package:gharmb_app/features/auth/models/request/user_register_req_model.dart';
 import 'package:gharmb_app/features/auth/models/response/auth_response_model.dart';
 import 'package:gharmb_app/features/auth/models/response/file_upload_model.dart';
+import 'package:gharmb_app/features/auth/models/response/refresh_token_response_model.dart';
 
 class AuthRepo {
   final NetworkApiService _api = NetworkApiService();
+
+  // Refresh Token
+  Future<RefreshTokenResponseModel> refreshToken({String? token}) async {
+    try {
+      final authToken = token ?? await LocalStorageService.getToken() ?? '';
+      if (authToken.isEmpty) {
+        throw UnauthorizedException("No token found");
+      }
+      _api.setToken(authToken);
+
+      final res = await _api.postApi(AppUrls.refreshToken, {});
+      if (res is Map<String, dynamic>) {
+        return RefreshTokenResponseModel.fromJson(res);
+      }
+      return RefreshTokenResponseModel.fromJson({"data": res});
+    } on AppException {
+      rethrow;
+    } catch (e) {
+      throw FetchDataException(e.toString());
+    }
+  }
 
   // register
 

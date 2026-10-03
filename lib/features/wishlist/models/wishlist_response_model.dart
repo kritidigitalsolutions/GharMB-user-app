@@ -112,6 +112,7 @@ class WishlistItem {
 
 class WishlistPropertyItem {
   final String id;
+  String get mongoId => id;
   final String title;
   final int price;
   final String city;

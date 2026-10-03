@@ -4,6 +4,7 @@ import 'package:gharmb_app/core/utils/local_storage/auth_storage.dart';
 import 'package:gharmb_app/features/profile/models/dashboard_model.dart';
 import 'package:gharmb_app/features/profile/models/profile_model.dart';
 import 'package:gharmb_app/features/profile/models/update_profile_payload.dart';
+import 'package:gharmb_app/features/profile/models/verification_status_model.dart';
 
 class ProfileRepo {
   final NetworkApiService _api = NetworkApiService();
@@ -48,6 +49,20 @@ class ProfileRepo {
       return null;
     }
     return UserProfileResponse.fromJson(res);
+  }
+
+  Future<VerificationStatusResponse?> getVerificationStatus() async {
+    final String token = await LocalStorageService.getToken() ?? "";
+    if (token.isEmpty) {
+      print("No token found");
+      return null;
+    }
+    _api.setToken(token);
+    final res = await _api.getApi(AppUrls.verificationStatus);
+    if (res == null) {
+      return null;
+    }
+    return VerificationStatusResponse.fromJson(res);
   }
 
   Future<UserProfileResponse?> updateProfile({

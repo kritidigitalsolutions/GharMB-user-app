@@ -90,6 +90,8 @@ class Property {
   final bool openToAllBuyers;
   final bool loanAssistanceNeeded;
   final String listingTier;
+  final bool allowInstallments;
+  final InstallmentDetails? installmentDetails; // null when not applicable
   final Owner owner;
   final String approvalStatus;
   final bool isLive;
@@ -140,11 +142,13 @@ class Property {
     required this.brokerageFee,
     required this.otherCharges,
     required this.vastuCompliant,
-    this.keyHandover = false,
-    this.isVerified = false,
+    required this.keyHandover,
+    required this.isVerified,
     required this.openToAllBuyers,
     required this.loanAssistanceNeeded,
     required this.listingTier,
+    required this.allowInstallments,
+    required this.installmentDetails,
     required this.owner,
     required this.approvalStatus,
     required this.isLive,
@@ -160,13 +164,20 @@ class Property {
 
   factory Property.fromJson(Map<String, dynamic> json) {
     return Property(
-      location: Location.fromJson(json['location'] is Map<String, dynamic> ? json['location'] : {}),
+      location: Location.fromJson(
+        json['location'] is Map<String, dynamic> ? json['location'] : {},
+      ),
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       mongoId: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       listingAs: json['listingAs']?.toString() ?? '',
-      category: json['category']?.toString() ?? (json['spaceType'] != null ? 'commercial' : ''),
+      category:
+          json['category']?.toString() ??
+          (json['spaceType'] != null ? 'commercial' : ''),
       listingFor: json['listingFor']?.toString() ?? '',
-      propertyType: json['propertyType']?.toString() ?? json['spaceType']?.toString() ?? '',
+      propertyType:
+          json['propertyType']?.toString() ??
+          json['spaceType']?.toString() ??
+          '',
       title: json['title']?.toString() ?? '',
       city: json['city']?.toString() ?? '',
       locality: json['locality']?.toString() ?? '',
@@ -183,11 +194,13 @@ class Property {
       furnishing: json['furnishing']?.toString() ?? '',
       facingDirection: json['facingDirection']?.toString() ?? '',
       parking: json['parking']?.toString() ?? '',
-      amenities: (json['amenities'] as List<dynamic>?)
+      amenities:
+          (json['amenities'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      preferredTenants: (json['preferredTenants'] as List<dynamic>?)
+      preferredTenants:
+          (json['preferredTenants'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -195,7 +208,8 @@ class Property {
       smokingAllowed: json['smokingAllowed'] ?? false,
       brokerageFree: json['brokerageFree'] ?? false,
       rentNegotiable: json['rentNegotiable'] ?? false,
-      images: ((json['images'] ?? json['photos']) as List<dynamic>?)
+      images:
+          ((json['images'] ?? json['photos']) as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -207,19 +221,28 @@ class Property {
       otherCharges: (json['otherCharges'] as num?)?.toInt() ?? 0,
       vastuCompliant: json['vastuCompliant'] ?? false,
       keyHandover: json['keyHandover'] ?? false,
+      isVerified: json['isVerified'] ?? false,
       openToAllBuyers: json['openToAllBuyers'] ?? false,
       loanAssistanceNeeded: json['loanAssistanceNeeded'] ?? false,
       listingTier: json['listingTier']?.toString() ?? '',
-      owner: Owner.fromJson(json['owner'] is Map<String, dynamic> ? json['owner'] : {}),
+      allowInstallments: json['allowInstallments'] == true,
+      installmentDetails: json['installmentDetails'] is Map<String, dynamic>
+          ? InstallmentDetails.fromJson(json['installmentDetails'])
+          : null,
+      owner: Owner.fromJson(
+        json['owner'] is Map<String, dynamic> ? json['owner'] : {},
+      ),
       approvalStatus: json['approvalStatus']?.toString() ?? '',
       isLive: json['isLive'] ?? false,
       viewsCount: (json['viewsCount'] as num?)?.toInt() ?? 0,
       shortlistedCount: (json['shortlistedCount'] as num?)?.toInt() ?? 0,
       inquiriesCount: (json['inquiriesCount'] as num?)?.toInt() ?? 0,
       tokensCount: (json['tokensCount'] as num?)?.toInt() ?? 0,
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
-      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
+      updatedAt:
+          DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
           DateTime.now(),
       submissionId: json['submissionId']?.toString() ?? '',
       version: (json['__v'] as num?)?.toInt() ?? 0,
@@ -265,9 +288,12 @@ class Property {
     'otherCharges': otherCharges,
     'vastuCompliant': vastuCompliant,
     'keyHandover': keyHandover,
+    'isVerified': isVerified,
     'openToAllBuyers': openToAllBuyers,
     'loanAssistanceNeeded': loanAssistanceNeeded,
     'listingTier': listingTier,
+    'allowInstallments': allowInstallments,
+    'installmentDetails': installmentDetails?.toJson(),
     'owner': owner.toJson(),
     'approvalStatus': approvalStatus,
     'isLive': isLive,
@@ -279,6 +305,60 @@ class Property {
     'updatedAt': updatedAt.toIso8601String(),
     'submissionId': submissionId,
     '__v': version,
+  };
+}
+
+class InstallmentDetails {
+  final int downPaymentAmount;
+  final int downPaymentPercentage;
+  final int numberOfInstallments;
+  final String installmentFrequency;
+  final int installmentAmount;
+  final int interestRate;
+  final int installmentDurationMonths;
+  final int gracePeriodDays;
+  final String termsAndConditions;
+
+  InstallmentDetails({
+    required this.downPaymentAmount,
+    required this.downPaymentPercentage,
+    required this.numberOfInstallments,
+    required this.installmentFrequency,
+    required this.installmentAmount,
+    required this.interestRate,
+    required this.installmentDurationMonths,
+    required this.gracePeriodDays,
+    required this.termsAndConditions,
+  });
+
+  factory InstallmentDetails.fromJson(Map<String, dynamic> json) {
+    return InstallmentDetails(
+      downPaymentAmount: (json['downPaymentAmount'] as num?)?.toInt() ?? 0,
+      downPaymentPercentage:
+          (json['downPaymentPercentage'] as num?)?.toInt() ?? 0,
+      numberOfInstallments:
+          (json['numberOfInstallments'] as num?)?.toInt() ?? 0,
+      installmentFrequency:
+          json['installmentFrequency']?.toString() ?? 'Monthly',
+      installmentAmount: (json['installmentAmount'] as num?)?.toInt() ?? 0,
+      interestRate: (json['interestRate'] as num?)?.toInt() ?? 0,
+      installmentDurationMonths:
+          (json['installmentDurationMonths'] as num?)?.toInt() ?? 0,
+      gracePeriodDays: (json['gracePeriodDays'] as num?)?.toInt() ?? 0,
+      termsAndConditions: json['termsAndConditions']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'downPaymentAmount': downPaymentAmount,
+    'downPaymentPercentage': downPaymentPercentage,
+    'numberOfInstallments': numberOfInstallments,
+    'installmentFrequency': installmentFrequency,
+    'installmentAmount': installmentAmount,
+    'interestRate': interestRate,
+    'installmentDurationMonths': installmentDurationMonths,
+    'gracePeriodDays': gracePeriodDays,
+    'termsAndConditions': termsAndConditions,
   };
 }
 

@@ -58,71 +58,82 @@ class _RegistrationStep1PageState extends ConsumerState<RegistrationStep1Page> {
         : user?.isAgentVerified == true;
 
     if (isUnderReview || isVerified) {
-      return Scaffold(
-        backgroundColor: AppColors.white,
-        appBar: AppBar(
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) {
+            context.goNamed(AppPage.myHomeName);
+          }
+        },
+        child: Scaffold(
           backgroundColor: AppColors.white,
-          elevation: 0,
-          leading: const CustomBackButton(),
-          title: Text(_title, style: text16(fontWeight: FontWeight.bold)),
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: isUnderReview
-                      ? AppColors.warning.withOpacity(0.12)
-                      : AppColors.success.withOpacity(0.12),
-                  shape: BoxShape.circle,
+          appBar: AppBar(
+            backgroundColor: AppColors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+              onPressed: () => context.goNamed(AppPage.myHomeName),
+            ),
+            title: Text(_title, style: text16(fontWeight: FontWeight.bold)),
+          ),
+          body: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    color: isUnderReview
+                        ? AppColors.warning.withOpacity(0.12)
+                        : AppColors.success.withOpacity(0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isUnderReview
+                        ? Icons.hourglass_top_rounded
+                        : Icons.verified_user_rounded,
+                    color: isUnderReview ? AppColors.warning : AppColors.success,
+                    size: 36,
+                  ),
                 ),
-                child: Icon(
+                const SizedBox(height: 20),
+                Text(
                   isUnderReview
-                      ? Icons.hourglass_top_rounded
-                      : Icons.verified_user_rounded,
-                  color: isUnderReview ? AppColors.warning : AppColors.success,
-                  size: 36,
+                      ? 'Application Under Review'
+                      : 'Already Verified Account',
+                  style: text18(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                isUnderReview
-                    ? 'Application Under Review'
-                    : 'Already Verified Account',
-                style: text18(fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                isUnderReview
-                    ? 'Your $_title details and RERA/KYC documents have already been submitted and are currently being reviewed by our verification team.'
-                    : 'You are already a certified and verified ${_isDeveloper ? 'Developer' : 'Agent'} on GharMB. You can post and manage listings directly from your dashboard.',
-                textAlign: TextAlign.center,
-                style: text13(color: AppColors.textSecondary).copyWith(height: 1.45),
-              ),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => context.pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 10),
+                Text(
+                  isUnderReview
+                      ? 'Your $_title details and RERA/KYC documents have already been submitted and are currently being reviewed by our verification team.'
+                      : 'You are already a certified and verified ${_isDeveloper ? 'Developer' : 'Agent'} on GharMB. You can post and manage listings directly from your dashboard.',
+                  textAlign: TextAlign.center,
+                  style: text13(color: AppColors.textSecondary).copyWith(height: 1.45),
+                ),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => context.goNamed(AppPage.myHomeName),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Back to Home',
+                      style: text14(color: AppColors.white),
                     ),
                   ),
-                  child: Text(
-                    'Back to Profile',
-                    style: text14(color: AppColors.white),
-                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       );

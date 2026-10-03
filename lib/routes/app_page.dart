@@ -43,6 +43,7 @@ class AppPage {
   static const profileEditName = "profileEdit";
   static const myProjectName = "myProject";
   static const inviteFriendsName = "inviteFriends";
+  static const siteVisitsName = "siteVisits";
 
   // token
 
@@ -141,6 +142,7 @@ class AppPage {
   static const profileEdit = "/profileEdit";
   static const myProject = "/myProject";
   static const inviteFriends = "/inviteFriends";
+  static const siteVisits = "/site-visits";
 
   // token
 

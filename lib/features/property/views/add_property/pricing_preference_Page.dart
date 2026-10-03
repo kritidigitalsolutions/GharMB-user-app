@@ -146,6 +146,7 @@ class _ResidentialSell extends StatelessWidget {
             ),
           ],
         ),
+        _InstallmentSection(state: state, notifier: notifier),
         _Section(
           title: 'Preferences',
           children: [
@@ -384,6 +385,7 @@ class _CommercialSell extends StatelessWidget {
             ),
           ],
         ),
+        _InstallmentSection(state: state, notifier: notifier),
         _Section(
           title: 'Availability',
           children: [
@@ -1158,6 +1160,459 @@ class _BottomBar extends StatelessWidget {
       ),
       child: SafeArea(
         child: AppButton(title: 'Review & submit listing', onTap: onTap),
+      ),
+    );
+  }
+}
+
+// ─── Installment / EMI Section Widget ─────────────────────────────────────────
+
+class _InstallmentSection extends StatefulWidget {
+  final ListPropertyState state;
+  final ListPropertyNotifier notifier;
+
+  const _InstallmentSection({
+    required this.state,
+    required this.notifier,
+  });
+
+  @override
+  State<_InstallmentSection> createState() => _InstallmentSectionState();
+}
+
+class _InstallmentSectionState extends State<_InstallmentSection> {
+  late TextEditingController _downPaymentPctController;
+  late TextEditingController _downPaymentAmtController;
+  late TextEditingController _installmentsCountController;
+  late TextEditingController _interestRateController;
+  late TextEditingController _termsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _downPaymentPctController =
+        TextEditingController(text: widget.state.downPaymentPercentage);
+    _downPaymentAmtController =
+        TextEditingController(text: widget.state.downPaymentAmount);
+    _installmentsCountController =
+        TextEditingController(text: widget.state.numberOfInstallments);
+    _interestRateController =
+        TextEditingController(text: widget.state.interestRate);
+    _termsController =
+        TextEditingController(text: widget.state.installmentTerms);
+  }
+
+  @override
+  void didUpdateWidget(covariant _InstallmentSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.state.downPaymentPercentage != _downPaymentPctController.text) {
+      _downPaymentPctController.text = widget.state.downPaymentPercentage;
+    }
+    if (widget.state.downPaymentAmount != _downPaymentAmtController.text) {
+      _downPaymentAmtController.text = widget.state.downPaymentAmount;
+    }
+    if (widget.state.numberOfInstallments != _installmentsCountController.text) {
+      _installmentsCountController.text = widget.state.numberOfInstallments;
+    }
+    if (widget.state.interestRate != _interestRateController.text) {
+      _interestRateController.text = widget.state.interestRate;
+    }
+    if (widget.state.installmentTerms != _termsController.text) {
+      _termsController.text = widget.state.installmentTerms;
+    }
+  }
+
+  @override
+  void dispose() {
+    _downPaymentPctController.dispose();
+    _downPaymentAmtController.dispose();
+    _installmentsCountController.dispose();
+    _interestRateController.dispose();
+    _termsController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
+    final notifier = widget.notifier;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: state.allowInstallments
+              ? AppColors.primary.withOpacity(0.5)
+              : AppColors.grey300,
+          width: state.allowInstallments ? 1.5 : 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Toggle Header ──────────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: state.allowInstallments
+                      ? AppColors.primary.withOpacity(0.12)
+                      : AppColors.grey100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.payments_outlined,
+                  size: 22,
+                  color: state.allowInstallments
+                      ? AppColors.primary
+                      : AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Allow Installments / EMI Option',
+                      style: text14(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Enable buyers to pay via flexible down payment & monthly installments',
+                      style: text11(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              CustomSwitch(
+                value: state.allowInstallments,
+                onChanged: notifier.setAllowInstallments,
+              ),
+            ],
+          ),
+
+          // ── Installment Plan Fields (Rendered only when toggle is ON) ───
+          if (state.allowInstallments) ...[
+            const SizedBox(height: 16),
+            const Divider(color: AppColors.grey200),
+            const SizedBox(height: 14),
+
+            // 1. Down Payment
+            const FieldLabel('Minimum Down Payment *'),
+            Row(
+              children: [
+                // Down Payment %
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _downPaymentPctController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (val) {
+                      notifier.setDownPaymentPercentage(val);
+                    },
+                    style: text14(fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      hintText: '20',
+                      suffixText: '%',
+                      suffixStyle: text14(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.grey300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.grey300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                // Down Payment Amount (Rs.)
+                Expanded(
+                  flex: 3,
+                  child: TextField(
+                    controller: _downPaymentAmtController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onChanged: (val) {
+                      notifier.setDownPaymentAmount(val);
+                    },
+                    style: text14(fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      hintText: 'Down payment',
+                      prefixText: 'Rs. ',
+                      prefixStyle: text14(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.grey300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: AppColors.grey300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Quick Down Payment % Chips
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ['10%', '20%', '25%', '30%', '50%'].map((pctStr) {
+                final pctVal = pctStr.replaceAll('%', '');
+                final isSelected = state.downPaymentPercentage == pctVal;
+                return SelectorChip(
+                  label: pctStr,
+                  isSelected: isSelected,
+                  onTap: () {
+                    _downPaymentPctController.text = pctVal;
+                    notifier.setDownPaymentPercentage(pctVal);
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // 2. Number of Installments
+            const FieldLabel('Number of Installments (Months / Count) *'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ['6', '12', '24', '36', '48', '60'].map((countStr) {
+                final isSelected = state.numberOfInstallments == countStr;
+                return SelectorChip(
+                  label: '$countStr Months',
+                  isSelected: isSelected,
+                  onTap: () {
+                    _installmentsCountController.text = countStr;
+                    notifier.setNumberOfInstallments(countStr);
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _installmentsCountController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: notifier.setNumberOfInstallments,
+              style: text14(fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                hintText: 'Or enter custom number of installments (e.g. 18)',
+                hintStyle: text13(color: AppColors.hintText),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.grey300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.grey300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 3. Installment Frequency
+            const FieldLabel('Payment Frequency'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                'Monthly',
+                'Quarterly',
+                'Bi-annual',
+                'Yearly',
+                'Milestone-based',
+              ].map((freq) {
+                final isSelected = state.installmentFrequency == freq;
+                return SelectorChip(
+                  label: freq,
+                  isSelected: isSelected,
+                  onTap: () => notifier.setInstallmentFrequency(freq),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // 4. Annual Interest Rate (% per annum)
+            const FieldLabel('Annual Interest Rate (% per annum)'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                '0% (Interest-Free)',
+                '6%',
+                '8.5%',
+                '10%',
+                '12%',
+              ].map((rateStr) {
+                final rateVal =
+                    rateStr.contains('0%') ? '0' : rateStr.replaceAll('%', '');
+                final isSelected = state.interestRate == rateVal;
+                return SelectorChip(
+                  label: rateStr,
+                  isSelected: isSelected,
+                  onTap: () {
+                    _interestRateController.text = rateVal;
+                    notifier.setInterestRate(rateVal);
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // 5. Grace Period (Days)
+            const FieldLabel('Grace Period (Optional)'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: ['0 Days', '7 Days', '15 Days', '30 Days'].map((gStr) {
+                final gVal = gStr.split(' ').first;
+                final isSelected = state.gracePeriodDays == gVal;
+                return SelectorChip(
+                  label: gStr,
+                  isSelected: isSelected,
+                  onTap: () => notifier.setGracePeriodDays(gVal),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 16),
+
+            // 6. Estimated EMI Preview Card
+            if (state.installmentAmount.isNotEmpty &&
+                state.installmentAmount != '0') ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.25),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.calculate_outlined,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Estimated Installment / EMI',
+                          style: text13(
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '₹${state.installmentAmount} / ${state.installmentFrequency.toLowerCase()}',
+                      style: text18(
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Down Payment: ₹${state.downPaymentAmount.isEmpty ? '0' : state.downPaymentAmount} • ${state.numberOfInstallments.isEmpty ? '0' : state.numberOfInstallments} installments • ${state.interestRate}% interest',
+                      style: text11(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // 7. Installment Terms & Conditions
+            const FieldLabel('Installment Terms & Conditions (Optional)'),
+            TextField(
+              controller: _termsController,
+              maxLines: 3,
+              onChanged: notifier.setInstallmentTerms,
+              style: text14(),
+              decoration: InputDecoration(
+                hintText:
+                    'e.g. Possession after 40% payment, registry upon final payment clearance.',
+                hintStyle: text13(color: AppColors.hintText),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.grey300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(color: AppColors.grey300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

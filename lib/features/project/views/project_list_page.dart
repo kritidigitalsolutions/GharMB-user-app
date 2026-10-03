@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:gharmb_app/core/constants/app_colors.dart';
 import 'package:gharmb_app/core/theme/text_style.dart';
 import 'package:gharmb_app/features/home/providers/notification_provider.dart';
@@ -109,9 +108,7 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final currentCity = ref
-                .watch(latestProjectsProvider)
-                .selectedCity;
+            final currentCity = ref.watch(latestProjectsProvider).selectedCity;
 
             final filteredCities = popularCities.where((c) {
               if (searchQuery.isEmpty) return true;
@@ -190,9 +187,8 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                           child: TextField(
                             controller: searchCtrl,
                             autofocus: false,
-                            onChanged: (val) => setModalState(
-                              () => searchQuery = val.trim(),
-                            ),
+                            onChanged: (val) =>
+                                setModalState(() => searchQuery = val.trim()),
                             onSubmitted: (val) {
                               final text = val.trim();
                               if (text.isNotEmpty) {
@@ -422,10 +418,8 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                                       MediaQuery.of(context).size.height * 0.55,
                                   child: _EmptyState(
                                     error: state.error,
-                                    onRetry: () =>
-                                        notifier.fetchLatestProperties(
-                                          refresh: true,
-                                        ),
+                                    onRetry: () => notifier
+                                        .fetchLatestProperties(refresh: true),
                                     onClearFilters: () {
                                       _searchController.clear();
                                       notifier.resetFilters();
@@ -510,40 +504,64 @@ class _ProjectListPageState extends ConsumerState<ProjectListPage> {
                                                 ? property.listingAs
                                                 : 'Verified Developer');
                                       ref
-                                              .read(
-                                                selectedProjectProvider
-                                                    .notifier,
-                                              )
-                                              .state =
-                                          ProjectModel(
-                                                id: property.id,
-                                                name: property.title,
-                                                location:
-                                                    property.locationLabel,
-                                                developer: ownerName,
-                                                startingPrice:
-                                                    property.startingPriceLabel,
-                                                bhkTypes: property.bhkLabel,
-                                                totalUnits:
-                                                    property.tokensCount > 0
-                                                    ? property.tokensCount
-                                                    : 100,
-                                                openSpace: '70%',
-                                                possession:
-                                                    property.possessionLabel,
-                                                distance: property.locality,
-                                                interested:
-                                                    property.shortlistedCount >
-                                                        0
-                                                    ? property.shortlistedCount
-                                                    : property.viewsCount,
-                                                reraApproved:
-                                                    property.isReraApproved,
-                                                readyToMove:
-                                                    property.isReadyToMove,
-                                                imageGradientKey:
-                                                    property.gradientKey,
-                                              );
+                                          .read(
+                                            selectedProjectProvider.notifier,
+                                          )
+                                          .state = ProjectModel(
+                                        id: property.id.isNotEmpty
+                                            ? property.id
+                                            : property.mongoId,
+                                        name: property.title.isNotEmpty
+                                            ? property.title
+                                            : '${property.bedrooms} BHK ${property.propertyType}',
+                                        location: property.locationLabel,
+                                        developer: ownerName,
+                                        startingPrice:
+                                            property.startingPriceLabel,
+                                        bhkTypes: property.bhkLabel,
+                                        totalUnits: property.tokensCount > 0
+                                            ? property.tokensCount
+                                            : (property.builtUpArea > 0
+                                                  ? property.builtUpArea
+                                                  : 100),
+                                        openSpace: '70%',
+                                        possession: property.possessionLabel,
+                                        distance: property.locality.isNotEmpty
+                                            ? property.locality
+                                            : property.city,
+                                        interested:
+                                            property.shortlistedCount > 0
+                                            ? property.shortlistedCount
+                                            : property.viewsCount,
+                                        reraApproved: property.isReraApproved,
+                                        readyToMove: property.isReadyToMove,
+                                        imageGradientKey: property.gradientKey,
+                                        imageUrl: property.images.isNotEmpty
+                                            ? property.images.first
+                                            : null,
+                                        images: property.images,
+                                        amenities: property.amenities,
+                                        description: property.description,
+                                        ownerId: property.owner.id,
+                                        ownerPhone: property.owner.phone,
+                                        fullAddress: property.fullAddress,
+                                        price: property.price,
+                                        bathrooms: property.bathrooms,
+                                        carpetArea: property.carpetArea,
+                                        builtUpArea: property.builtUpArea,
+                                        furnishing: property.furnishing,
+                                        facing: property.facingDirection,
+                                        parking: property.parking,
+                                        totalFloors: property.totalFloors,
+                                        floorNo: property.floorNo,
+                                        allowInstallments:
+                                            property.allowInstallments,
+                                        installmentDetails:
+                                            property.installmentDetails,
+                                        tokenAmount: property.tokenAmount,
+                                        isVerified: property.isVerified,
+                                        property: property.toProperty(),
+                                      );
                                       context.pushNamed(
                                         AppPage.projectDetailName,
                                       );
@@ -568,11 +586,7 @@ class _EmptyState extends StatelessWidget {
   final VoidCallback? onRetry;
   final VoidCallback onClearFilters;
 
-  const _EmptyState({
-    this.error,
-    this.onRetry,
-    required this.onClearFilters,
-  });
+  const _EmptyState({this.error, this.onRetry, required this.onClearFilters});
 
   @override
   Widget build(BuildContext context) {
@@ -587,11 +601,14 @@ class _EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: (isError ? AppColors.error : AppColors.primary).withOpacity(0.08),
+                color: (isError ? AppColors.error : AppColors.primary)
+                    .withOpacity(0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                isError ? Icons.error_outline_rounded : Icons.apartment_outlined,
+                isError
+                    ? Icons.error_outline_rounded
+                    : Icons.apartment_outlined,
                 size: 48,
                 color: isError ? AppColors.error : AppColors.primary,
               ),
@@ -604,7 +621,8 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               isError
-                  ? (error ?? 'Something went wrong. Please check your connection and retry.')
+                  ? (error ??
+                        'Something went wrong. Please check your connection and retry.')
                   : 'Try changing your city, search keywords or filters to see available projects.',
               style: text13(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
@@ -615,7 +633,11 @@ class _EmptyState extends StatelessWidget {
               children: [
                 if (isError && onRetry != null) ...[
                   ElevatedButton.icon(
-                    icon: const Icon(Icons.refresh, size: 16, color: AppColors.white),
+                    icon: const Icon(
+                      Icons.refresh,
+                      size: 16,
+                      color: AppColors.white,
+                    ),
                     label: Text(
                       'Retry',
                       style: text13(

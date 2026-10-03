@@ -1,6 +1,6 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:flutter/material.dart';
+import 'package:gharmb_app/features/property/models/response/near_properties_response.dart';
 
 class ProjectModel {
   final String id;
@@ -17,6 +17,28 @@ class ProjectModel {
   final bool reraApproved;
   final bool readyToMove;
   final String imageGradientKey;
+  final String? imageUrl;
+  final List<String> images;
+  final List<String> amenities;
+  final String? description;
+  final String? ownerId;
+  final String? ownerPhone;
+  final String? reraNumber;
+  final String? fullAddress;
+  final int? price;
+  final String? bathrooms;
+  final int? carpetArea;
+  final int? builtUpArea;
+  final String? furnishing;
+  final String? facing;
+  final String? parking;
+  final String? totalFloors;
+  final String? floorNo;
+  final bool allowInstallments;
+  final InstallmentDetails? installmentDetails;
+  final int? tokenAmount;
+  final bool isVerified;
+  final Property? property;
 
   const ProjectModel({
     required this.id,
@@ -33,6 +55,28 @@ class ProjectModel {
     required this.reraApproved,
     required this.readyToMove,
     required this.imageGradientKey,
+    this.imageUrl,
+    this.images = const [],
+    this.amenities = const [],
+    this.description,
+    this.ownerId,
+    this.ownerPhone,
+    this.reraNumber,
+    this.fullAddress,
+    this.price,
+    this.bathrooms,
+    this.carpetArea,
+    this.builtUpArea,
+    this.furnishing,
+    this.facing,
+    this.parking,
+    this.totalFloors,
+    this.floorNo,
+    this.allowInstallments = false,
+    this.installmentDetails,
+    this.tokenAmount,
+    this.isVerified = false,
+    this.property,
   });
 }
 

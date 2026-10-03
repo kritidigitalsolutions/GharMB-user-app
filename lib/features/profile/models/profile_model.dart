@@ -9,12 +9,20 @@ class UserProfileResponse {
   UserProfileResponse({this.status, this.data});
 
   factory UserProfileResponse.fromJson(Map<String, dynamic> json) {
-    return UserProfileResponse(
-      status: json["status"]?.toString(),
-      data: json["data"] is Map
-          ? UserProfileData.fromJson(Map<String, dynamic>.from(json["data"]))
-          : null,
-    );
+    UserProfileData? data;
+    if (json["data"] is Map) {
+      data = UserProfileData.fromJson(Map<String, dynamic>.from(json["data"]));
+    } else if (json["user"] is Map) {
+      data = UserProfileData(
+        user: UserModel.fromJson(Map<String, dynamic>.from(json["user"])),
+      );
+    } else if (json.containsKey("_id") ||
+        json.containsKey("id") ||
+        json.containsKey("role") ||
+        json.containsKey("phone")) {
+      data = UserProfileData(user: UserModel.fromJson(json));
+    }
+    return UserProfileResponse(status: json["status"]?.toString(), data: data);
   }
 
   Map<String, dynamic> toJson() {
@@ -28,11 +36,17 @@ class UserProfileData {
   UserProfileData({this.user});
 
   factory UserProfileData.fromJson(Map<String, dynamic> json) {
-    return UserProfileData(
-      user: json["user"] is Map
-          ? UserModel.fromJson(Map<String, dynamic>.from(json["user"]))
-          : null,
-    );
+    UserModel? user;
+    if (json["user"] is Map) {
+      user = UserModel.fromJson(Map<String, dynamic>.from(json["user"]));
+    } else if (json.containsKey("_id") ||
+        json.containsKey("id") ||
+        json.containsKey("role") ||
+        json.containsKey("phone") ||
+        json.containsKey("email")) {
+      user = UserModel.fromJson(json);
+    }
+    return UserProfileData(user: user);
   }
 
   Map<String, dynamic> toJson() {
@@ -88,14 +102,40 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final rawAgentStatus =
+        json["agentVerificationStatus"]?.toString() ??
+        json["agent_verification_status"]?.toString() ??
+        json["verificationStatus"]?.toString() ??
+        json["verification_status"]?.toString() ??
+        (json["verificationDocs"] is Map
+            ? json["verificationDocs"]["status"]?.toString()
+            : null) ??
+        (json["agentDocs"] is Map
+            ? json["agentDocs"]["status"]?.toString()
+            : null);
+
+    final rawBuilderStatus =
+        json["builderVerificationStatus"]?.toString() ??
+        json["builder_verification_status"]?.toString() ??
+        json["developerVerificationStatus"]?.toString() ??
+        json["developer_verification_status"]?.toString() ??
+        json["verificationStatus"]?.toString() ??
+        json["verification_status"]?.toString() ??
+        (json["verificationDocs"] is Map
+            ? json["verificationDocs"]["status"]?.toString()
+            : null) ??
+        (json["builderDocs"] is Map
+            ? json["builderDocs"]["status"]?.toString()
+            : null);
+
     return UserModel(
       id: json["_id"]?.toString() ?? json["id"]?.toString(),
       name: json["name"]?.toString(),
       email: json["email"]?.toString(),
       phone: json["phone"]?.toString(),
       role: json["role"]?.toString(),
-      agentVerificationStatus: json["agentVerificationStatus"]?.toString(),
-      builderVerificationStatus: json["builderVerificationStatus"]?.toString(),
+      agentVerificationStatus: rawAgentStatus,
+      builderVerificationStatus: rawBuilderStatus,
       builderDocs: json["builderDocs"] is Map
           ? BuilderDocsModel.fromJson(
               Map<String, dynamic>.from(json["builderDocs"]),
@@ -168,38 +208,112 @@ class UserModel {
     };
   }
 
+  UserModel copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? phone,
+    String? role,
+    String? agentVerificationStatus,
+    String? builderVerificationStatus,
+    BuilderDocsModel? builderDocs,
+    AgentDocsModel? agentDocs,
+    bool? isOnboardingCompleted,
+    String? profilePicture,
+    bool? isVerified,
+    String? authProvider,
+    List<String>? intents,
+    AddressModel? address,
+    LocationModel? location,
+    PreferencesModel? preferences,
+    NotificationSettingsModel? notificationSettings,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    int? version,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      role: role ?? this.role,
+      agentVerificationStatus:
+          agentVerificationStatus ?? this.agentVerificationStatus,
+      builderVerificationStatus:
+          builderVerificationStatus ?? this.builderVerificationStatus,
+      builderDocs: builderDocs ?? this.builderDocs,
+      agentDocs: agentDocs ?? this.agentDocs,
+      isOnboardingCompleted:
+          isOnboardingCompleted ?? this.isOnboardingCompleted,
+      profilePicture: profilePicture ?? this.profilePicture,
+      isVerified: isVerified ?? this.isVerified,
+      authProvider: authProvider ?? this.authProvider,
+      intents: intents ?? this.intents,
+      address: address ?? this.address,
+      location: location ?? this.location,
+      preferences: preferences ?? this.preferences,
+      notificationSettings: notificationSettings ?? this.notificationSettings,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      version: version ?? this.version,
+    );
+  }
+
   // Helper methods
   bool get isBuyer => role?.toLowerCase() == 'buyer';
 
   bool get isAgentVerified {
-    final status = agentVerificationStatus?.toLowerCase();
-    return status == 'verified' || status == 'approved';
+    final status = agentVerificationStatus?.toLowerCase().trim();
+    if (status == 'verified' || status == 'approved') return true;
+    if (role?.toLowerCase() == 'agent' && isVerified == true) return true;
+    return false;
   }
 
   bool get isBuilderVerified {
-    final status = builderVerificationStatus?.toLowerCase();
-    return status == 'verified' || status == 'approved';
+    final status = builderVerificationStatus?.toLowerCase().trim();
+    if (status == 'verified' || status == 'approved') return true;
+    final r = role?.toLowerCase();
+    if ((r == 'builder' || r == 'developer') && isVerified == true) return true;
+    return false;
   }
 
+  bool get hasBuilderRera => builderDocs?.hasRera == true;
+
+  bool get hasAgentRera => agentDocs?.hasRera == true;
+
   bool get isAgentUnderReview {
-    final status = agentVerificationStatus?.toLowerCase();
-    return status == 'under_review' || status == 'pending';
+    if (isAgentVerified) return false;
+    final status = agentVerificationStatus?.toLowerCase().trim();
+    if (status == 'under_review' ||
+        status == 'pending' ||
+        status == 'in_review' ||
+        status == 'under review' ||
+        status == 'submitted' ||
+        status == 'processing') {
+      return true;
+    }
+    if (role?.toLowerCase() == 'agent') return true;
+    if (agentDocs?.hasAnyDoc == true || agentDocs?.hasRera == true) return true;
+    return false;
   }
 
   bool get isBuilderUnderReview {
-    final status = builderVerificationStatus?.toLowerCase();
-    return status == 'under_review' || status == 'pending';
+    if (isBuilderVerified) return false;
+    final status = builderVerificationStatus?.toLowerCase().trim();
+    if (status == 'under_review' ||
+        status == 'pending' ||
+        status == 'in_review' ||
+        status == 'under review' ||
+        status == 'submitted' ||
+        status == 'processing') {
+      return true;
+    }
+    final r = role?.toLowerCase();
+    if (r == 'builder' || r == 'developer') return true;
+    if (builderDocs?.hasAnyDoc == true || builderDocs?.hasRera == true)
+      return true;
+    return false;
   }
-
-  bool get hasBuilderRera =>
-      (builderDocs?.hasRera == true) ||
-      isBuilderVerified ||
-      isBuilderUnderReview;
-
-  bool get hasAgentRera =>
-      (agentDocs?.hasRera == true) ||
-      isAgentVerified ||
-      isAgentUnderReview;
 
   bool get isAgent =>
       role?.toLowerCase() == 'agent' ||
@@ -236,11 +350,7 @@ class BuilderDocsModel {
   final String? panCard;
   final String? companyLogo;
 
-  BuilderDocsModel({
-    this.reraCertificate,
-    this.panCard,
-    this.companyLogo,
-  });
+  BuilderDocsModel({this.reraCertificate, this.panCard, this.companyLogo});
 
   factory BuilderDocsModel.fromJson(Map<String, dynamic> json) {
     return BuilderDocsModel(
@@ -270,11 +380,7 @@ class AgentDocsModel {
   final String? aadhaarCard;
   final String? profilePhoto;
 
-  AgentDocsModel({
-    this.reraCertificate,
-    this.aadhaarCard,
-    this.profilePhoto,
-  });
+  AgentDocsModel({this.reraCertificate, this.aadhaarCard, this.profilePhoto});
 
   factory AgentDocsModel.fromJson(Map<String, dynamic> json) {
     return AgentDocsModel(
